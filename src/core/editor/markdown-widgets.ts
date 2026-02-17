@@ -2,12 +2,10 @@ import {
   Decoration,
   DecorationSet,
   EditorView,
-  ViewPlugin,
-  ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
-import { Range } from "@codemirror/state";
+import { Range, StateField, StateEffect, Extension } from "@codemirror/state";
 
 class ImageWidget extends WidgetType {
   constructor(private url: string, private alt: string) {
@@ -60,7 +58,7 @@ function isLineActive(view: EditorView, pos: number, activeLines: Set<number>): 
   return activeLines.has(view.state.doc.lineAt(pos).number);
 }
 
-function getDecorations(view: EditorView): DecorationSet {
+function buildDecorations(view: EditorView): DecorationSet {
   const decorations: Range<Decoration>[] = [];
   const tree = syntaxTree(view.state);
   const activeLines = getActiveLines(view);
@@ -84,7 +82,6 @@ function getDecorations(view: EditorView): DecorationSet {
       if (/^ATXHeading[1-6]$/.test(type)) {
         const level = type.replace("ATXHeading", "");
         mark(from, to, `cm-md-header cm-md-header-${level}`);
-
         if (!active) {
           const line = view.state.doc.lineAt(from);
           const hashEnd = line.text.indexOf(" ") + 1;
@@ -124,11 +121,9 @@ function getDecorations(view: EditorView): DecorationSet {
       // Code blocks (FencedCode)
       if (type === "FencedCode") {
         mark(from, to, "cm-md-code-block");
-
         if (!active) {
           const firstLine = view.state.doc.lineAt(from);
           mark(firstLine.from, firstLine.to, "cm-md-hide");
-
           const lastLine = view.state.doc.lineAt(to);
           if (lastLine.number !== firstLine.number) {
             mark(lastLine.from, lastLine.to, "cm-md-hide");
@@ -181,11 +176,7 @@ function getDecorations(view: EditorView): DecorationSet {
 
       // QuoteMark (the > character)
       if (type === "QuoteMark") {
-        if (!active) {
-          mark(from, to, "cm-md-hide");
-        } else {
-          mark(from, to, "cm-md-syntax-dim");
-        }
+        mark(from, to, active ? "cm-md-syntax-dim" : "cm-md-hide");
       }
 
       // Horizontal rule
@@ -217,23 +208,37 @@ function getDecorations(view: EditorView): DecorationSet {
     },
   });
 
-  // Sort by position then build the RangeSet
   return Decoration.set(decorations, true);
 }
 
-export const markdownWidgets = ViewPlugin.fromClass(
-  class {
-    decorations: DecorationSet;
-    constructor(view: EditorView) {
-      this.decorations = getDecorations(view);
-    }
-    update(update: ViewUpdate) {
-      if (update.docChanged || update.viewportChanged || update.selectionSet) {
-        this.decorations = getDecorations(update.view);
+// StateEffect to push new decorations into the StateField
+const setDecorations = StateEffect.define<DecorationSet>();
+
+// StateField holds the decorations and provides them (supports block widgets)
+const decorationField = StateField.define<DecorationSet>({
+  create() {
+    return Decoration.none;
+  },
+  update(value, tr) {
+    for (const effect of tr.effects) {
+      if (effect.is(setDecorations)) {
+        return effect.value;
       }
     }
+    return value;
   },
-  {
-    decorations: (v) => v.decorations,
+  provide: (field) => EditorView.decorations.from(field),
+});
+
+// Listener that recomputes decorations and pushes them via effect.
+// updateListener runs after the update cycle, so dispatching is safe.
+// The dispatched effect only changes the StateField (no doc/selection change),
+// so the listener won't re-trigger in a loop.
+const decorationUpdater = EditorView.updateListener.of((update) => {
+  if (update.docChanged || update.viewportChanged || update.selectionSet) {
+    const decos = buildDecorations(update.view);
+    update.view.dispatch({ effects: setDecorations.of(decos) });
   }
-);
+});
+
+export const markdownWidgets: Extension = [decorationField, decorationUpdater];
