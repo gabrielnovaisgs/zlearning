@@ -25,7 +25,8 @@ src/
   views/
     App.tsx           # Layout principal + inicializacao do CommandRegistry
     Editor/
-      EditorContainer.tsx  # Container do editor CodeMirror
+      EditorContainer.tsx  # Container do editor CodeMirror + roteamento PDF/Markdown
+      PdfViewer.tsx        # Split view: iframe PDF + painel de notas com editor independente
     Sidebar/
       Sidebar.tsx     # Navegacao lateral redimensionavel
       FileTree.tsx    # Arvore hierarquica de arquivos
@@ -167,12 +168,16 @@ O caminho do arquivo ativo e refletido na URL do navegador (sem a extensao `.md`
 - `Decoration.set(array, true)` com `true` para auto-sort, pois syntax tree nao garante ordem
 - Block decorations (line, widget block) so funcionam via `StateField.provide()`, nao via ViewPlugin
 
-### Visualizador de PDF
+### Visualizador de PDF (PdfViewer.tsx)
 
 Arquivos `.pdf` em `docs/` aparecem na file tree com icone 📕:
 - **Servidor**: `GET /api/files/raw/*` serve arquivos binarios diretamente via `res.sendFile()`
 - **Store**: `openFile()` detecta extensao `.pdf` e pula leitura de conteudo texto
-- **EditorContainer**: quando `activeFile` termina em `.pdf`, renderiza `<iframe>` apontando para `/api/files/raw/{path}` em vez do CodeMirror
+- **EditorContainer**: quando `activeFile` termina em `.pdf`, oculta titulo e editor markdown, renderiza `<PdfViewer>`
+- **PdfViewer**: split view com iframe do PDF (esquerda) + painel de notas redimensionavel (direita, 400px default)
+- **Notas do PDF**: arquivo `notes-<nome>.md` criado automaticamente no mesmo diretorio, com frontmatter `pdf: "[[path]]"` vinculando ao PDF
+- **Vinculacao**: qualquer nota `.md` pode ser vinculada a um PDF adicionando `pdf: "[[path]]"` no frontmatter
+- **Auto-save**: as notas usam uma instancia independente de `createEditor` com debounce de 1s
 - **URL routing**: `openFileFromURL()` tenta resolver tanto `.md` quanto `.pdf` ao carregar a pagina
 
 ## Convencoes

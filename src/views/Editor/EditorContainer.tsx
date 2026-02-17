@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { createEditor, type EditorInstance } from "@core/editor/setup";
 import { store } from "@core/store";
 import { useStore } from "../hooks";
+import { PdfViewer } from "./PdfViewer";
 
 function fileTitle(path: string): string {
   const name = path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path;
@@ -90,31 +91,31 @@ export function EditorContainer() {
   }, []);
 
   useEffect(() => {
-    if (editorRef.current && activeFile) {
+    if (editorRef.current && activeFile && !isPdf(activeFile)) {
       isExternalUpdate.current = true;
       editorRef.current.setContent(fileContent);
       isExternalUpdate.current = false;
     }
   }, [activeFile]);
 
-  const showEditor = activeFile && !isPdf(activeFile);
-  const showPdf = activeFile && isPdf(activeFile);
+  const showMarkdown = !!activeFile && !isPdf(activeFile);
+  const showPdf = !!activeFile && isPdf(activeFile);
 
   return (
-    <div className="relative flex h-full flex-1 flex-col bg-bg-primary overflow-y-auto">
-      {activeFile && <EditableTitle activeFile={activeFile} />}
+    <div className="relative flex h-full flex-1 flex-col bg-bg-primary">
+      {/* Markdown editor — wrapper always in DOM, toggled via display */}
       <div
-        ref={containerRef}
-        className="flex-1"
-        style={{ display: showEditor ? undefined : "none" }}
-      />
-      {showPdf && (
-        <iframe
-          src={`/api/files/raw/${activeFile}`}
-          className="flex-1 border-none"
-          title={fileTitle(activeFile)}
-        />
-      )}
+        className="flex flex-1 flex-col overflow-y-auto"
+        style={{ display: showMarkdown ? undefined : "none" }}
+      >
+        {showMarkdown && <EditableTitle activeFile={activeFile} />}
+        <div ref={containerRef} className="flex-1" />
+      </div>
+
+      {/* PDF viewer with notes panel */}
+      {showPdf && <PdfViewer pdfPath={activeFile} />}
+
+      {/* Empty state */}
       {!activeFile && (
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center text-text-muted">
@@ -123,6 +124,7 @@ export function EditorContainer() {
           </div>
         </div>
       )}
+
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-bg-primary/80">
           <span className="text-text-muted">Loading...</span>
