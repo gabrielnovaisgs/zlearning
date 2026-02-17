@@ -113,6 +113,25 @@ export function createFilesystemRouter(): Router {
     }
   });
 
+  // Rename file
+  router.patch("/*splat", async (req, res) => {
+    try {
+      const reqPath = (req.params.splat as string[]).join("/");
+      const oldPath = safePath(reqPath);
+      const newRelative = req.body.newPath;
+      if (!newRelative) {
+        res.status(400).json({ error: "newPath is required" });
+        return;
+      }
+      const newPath = safePath(newRelative);
+      await fs.mkdir(path.dirname(newPath), { recursive: true });
+      await fs.rename(oldPath, newPath);
+      res.json({ success: true });
+    } catch {
+      res.status(500).json({ error: "Failed to rename" });
+    }
+  });
+
   // Delete file
   router.delete("/*splat", async (req, res) => {
     try {

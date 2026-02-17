@@ -47,7 +47,18 @@ body,
   background: var(--color-accent);
 }
 
-/* CodeMirror full height */
+/* Editable title above editor */
+.title-area {
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 24px 48px 0;
+}
+
+/* CodeMirror — let parent handle scrolling */
 .cm-editor {
-  height: 100%;
+  height: auto !important;
+}
+.cm-editor .cm-scroller {
+  overflow: visible !important;
 }

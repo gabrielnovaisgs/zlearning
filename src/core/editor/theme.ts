@@ -12,7 +12,7 @@ export const obsidianTheme = EditorView.theme(
     },
     ".cm-content": {
       fontFamily: "'Inter', system-ui, sans-serif",
-      padding: "24px 48px",
+      padding: "8px 48px 24px",
       maxWidth: "800px",
       margin: "0 auto",
       caretColor: "#cba6f7",
@@ -31,7 +31,7 @@ export const obsidianTheme = EditorView.theme(
       backgroundColor: "rgba(69, 71, 90, 0.3)",
     },
     ".cm-scroller": {
-      overflow: "auto",
+      overflow: "visible",
     },
 
     // Hidden syntax markers (invisible when cursor not on line)

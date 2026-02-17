@@ -6,6 +6,7 @@ export interface FileSystemService {
   writeFile(path: string, content: string): Promise<void>;
   createFile(path: string, content?: string): Promise<void>;
   createDirectory(path: string): Promise<void>;
+  renameFile(oldPath: string, newPath: string): Promise<void>;
   deleteFile(path: string): Promise<void>;
 }
 
@@ -49,6 +50,15 @@ export class HttpFileSystemService implements FileSystemService {
       body: JSON.stringify({ type: "directory" }),
     });
     if (!res.ok) throw new Error("Failed to create directory");
+  }
+
+  async renameFile(oldPath: string, newPath: string): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/${oldPath}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newPath }),
+    });
+    if (!res.ok) throw new Error("Failed to rename file");
   }
 
   async deleteFile(path: string): Promise<void> {

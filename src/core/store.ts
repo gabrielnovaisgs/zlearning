@@ -116,6 +116,35 @@ class Store {
     this.update({ expandedDirs });
   }
 
+  async renameFile(oldPath: string, newName: string): Promise<boolean> {
+    const dir = oldPath.includes("/") ? oldPath.substring(0, oldPath.lastIndexOf("/") + 1) : "";
+    const newPath = `${dir}${newName.endsWith(".md") ? newName : newName + ".md"}`;
+    if (newPath === oldPath) return true;
+    if (this.fileExists(newPath)) {
+      alert(`A file named "${newName}" already exists in this folder.`);
+      return false;
+    }
+    await this.fs.renameFile(oldPath, newPath);
+    await this.loadFileTree();
+    if (this.state.activeFile === oldPath) {
+      this.update({ activeFile: newPath });
+      const urlPath = "/" + newPath.replace(/\.md$/, "");
+      history.replaceState(null, "", urlPath);
+    }
+    return true;
+  }
+
+  private fileExists(path: string): boolean {
+    const find = (entries: FileTreeEntry[]): boolean => {
+      for (const entry of entries) {
+        if (entry.type === "file" && entry.path === path) return true;
+        if (entry.children && find(entry.children)) return true;
+      }
+      return false;
+    };
+    return find(this.state.fileTree);
+  }
+
   async duplicateFile(path: string) {
     const { content } = await this.fs.readFile(path);
     const dir = path.includes("/") ? path.substring(0, path.lastIndexOf("/") + 1) : "";

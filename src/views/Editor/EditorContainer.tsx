@@ -1,7 +1,70 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { createEditor, type EditorInstance } from "@core/editor/setup";
 import { store } from "@core/store";
 import { useStore } from "../hooks";
+
+function fileTitle(path: string): string {
+  const name = path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path;
+  return name.replace(/\.md$/, "");
+}
+
+function EditableTitle({ activeFile }: { activeFile: string }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(() => fileTitle(activeFile));
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setValue(fileTitle(activeFile));
+    setEditing(false);
+  }, [activeFile]);
+
+  const commit = useCallback(() => {
+    setEditing(false);
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === fileTitle(activeFile)) {
+      setValue(fileTitle(activeFile));
+      return;
+    }
+    store.renameFile(activeFile, trimmed).then((ok) => {
+      if (!ok) setValue(fileTitle(activeFile));
+    });
+  }, [value, activeFile]);
+
+  if (!editing) {
+    return (
+      <h1
+        onClick={() => {
+          setEditing(true);
+          requestAnimationFrame(() => inputRef.current?.focus());
+        }}
+        className="title-area cursor-text text-3xl font-bold text-text-primary outline-none"
+      >
+        {value}
+      </h1>
+    );
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      autoFocus
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commit();
+        }
+        if (e.key === "Escape") {
+          setValue(fileTitle(activeFile));
+          setEditing(false);
+        }
+      }}
+      className="title-area w-full bg-transparent text-3xl font-bold text-text-primary outline-none"
+    />
+  );
+}
 
 export function EditorContainer() {
   const { activeFile, fileContent, loading } = useStore();
@@ -9,7 +72,6 @@ export function EditorContainer() {
   const editorRef = useRef<EditorInstance | null>(null);
   const isExternalUpdate = useRef(false);
 
-  // Create editor once
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -23,7 +85,6 @@ export function EditorContainer() {
     return () => editor.destroy();
   }, []);
 
-  // Update content when file changes
   useEffect(() => {
     if (editorRef.current && activeFile) {
       isExternalUpdate.current = true;
@@ -33,24 +94,22 @@ export function EditorContainer() {
   }, [activeFile]);
 
   return (
-    <div className="relative flex h-full flex-1 flex-col bg-bg-primary">
+    <div className="relative flex h-full flex-1 flex-col bg-bg-primary overflow-y-auto">
       {activeFile ? (
-        <div className="flex items-center border-b border-border px-4 py-2">
-          <span className="text-sm text-text-muted">{activeFile}</span>
-        </div>
-      ) : null}
-      <div
-        ref={containerRef}
-        className="flex-1 overflow-hidden"
-        style={{ display: activeFile ? undefined : "none" }}
-      />
-      {!activeFile && (
-        <div className="flex flex-1 items-center justify-center">
-          <div className="text-center text-text-muted">
-            <div className="mb-2 text-4xl">📝</div>
-            <p>Select a file to start editing</p>
+        <>
+          <EditableTitle activeFile={activeFile} />
+          <div ref={containerRef} className="flex-1" />
+        </>
+      ) : (
+        <>
+          <div ref={containerRef} className="flex-1" style={{ display: "none" }} />
+          <div className="flex flex-1 items-center justify-center">
+            <div className="text-center text-text-muted">
+              <div className="mb-2 text-4xl">📝</div>
+              <p>Select a file to start editing</p>
+            </div>
           </div>
-        </div>
+        </>
       )}
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-bg-primary/80">
