@@ -2,8 +2,10 @@ import { EditorState } from "@codemirror/state";
 import { EditorView, keymap, drawSelection, highlightActiveLine } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
+import { languages } from "@codemirror/language-data";
+import { syntaxHighlighting } from "@codemirror/language";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
-import { obsidianTheme } from "./theme";
+import { obsidianTheme, codeHighlightStyle } from "./theme";
 import { markdownWidgets } from "./markdown-widgets";
 
 export interface EditorInstance {
@@ -30,7 +32,8 @@ export function createEditor(
       drawSelection(),
       highlightActiveLine(),
       closeBrackets(),
-      markdown({ base: markdownLanguage }),
+      markdown({ base: markdownLanguage, codeLanguages: languages }),
+      syntaxHighlighting(codeHighlightStyle),
       keymap.of([...defaultKeymap, ...historyKeymap, ...closeBracketsKeymap]),
       obsidianTheme,
       markdownWidgets,

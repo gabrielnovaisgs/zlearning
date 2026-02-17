@@ -1,4 +1,6 @@
 import { EditorView } from "@codemirror/view";
+import { HighlightStyle } from "@codemirror/language";
+import { tags as t } from "@lezer/highlight";
 
 export const obsidianTheme = EditorView.theme(
   {
@@ -163,3 +165,73 @@ export const obsidianTheme = EditorView.theme(
   },
   { dark: true }
 );
+
+// Catppuccin Mocha syntax highlighting for code blocks
+export const codeHighlightStyle = HighlightStyle.define([
+  // Keywords: if, else, return, function, const, let, var, class, etc.
+  { tag: t.keyword, color: "#cba6f7" },
+  { tag: t.controlKeyword, color: "#cba6f7" },
+  { tag: t.operatorKeyword, color: "#cba6f7" },
+  { tag: t.definitionKeyword, color: "#cba6f7" },
+  { tag: t.moduleKeyword, color: "#cba6f7" },
+
+  // Functions
+  { tag: t.function(t.variableName), color: "#89b4fa" },
+  { tag: t.function(t.definition(t.variableName)), color: "#89b4fa" },
+
+  // Variables and properties
+  { tag: t.variableName, color: "#cdd6f4" },
+  { tag: t.definition(t.variableName), color: "#cdd6f4" },
+  { tag: t.propertyName, color: "#89dceb" },
+  { tag: t.definition(t.propertyName), color: "#89dceb" },
+
+  // Strings
+  { tag: t.string, color: "#a6e3a1" },
+  { tag: t.special(t.string), color: "#a6e3a1" },
+
+  // Numbers
+  { tag: t.number, color: "#fab387" },
+  { tag: t.integer, color: "#fab387" },
+  { tag: t.float, color: "#fab387" },
+
+  // Boolean, null
+  { tag: t.bool, color: "#fab387" },
+  { tag: t.null, color: "#fab387" },
+
+  // Comments
+  { tag: t.comment, color: "#6c7086", fontStyle: "italic" },
+  { tag: t.lineComment, color: "#6c7086", fontStyle: "italic" },
+  { tag: t.blockComment, color: "#6c7086", fontStyle: "italic" },
+
+  // Types and classes
+  { tag: t.typeName, color: "#f9e2af" },
+  { tag: t.className, color: "#f9e2af" },
+  { tag: t.namespace, color: "#f9e2af" },
+
+  // Operators and punctuation
+  { tag: t.operator, color: "#89dceb" },
+  { tag: t.punctuation, color: "#9399b2" },
+  { tag: t.bracket, color: "#9399b2" },
+  { tag: t.separator, color: "#9399b2" },
+
+  // Regex
+  { tag: t.regexp, color: "#f38ba8" },
+
+  // Tags (HTML/JSX)
+  { tag: t.tagName, color: "#f38ba8" },
+  { tag: t.attributeName, color: "#f9e2af" },
+  { tag: t.attributeValue, color: "#a6e3a1" },
+
+  // Meta, annotations, decorators
+  { tag: t.meta, color: "#f5c2e7" },
+  { tag: t.annotation, color: "#f5c2e7" },
+
+  // Escape sequences
+  { tag: t.escape, color: "#f5c2e7" },
+
+  // Self/this
+  { tag: t.self, color: "#f38ba8" },
+
+  // Atoms
+  { tag: t.atom, color: "#fab387" },
+]);
