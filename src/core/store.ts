@@ -46,6 +46,11 @@ class Store {
     this.update({ loading: true});
     const { content } = await this.fs.readFile(path);
     this.update({ fileContent: content, loading: false,  activeFile: path  });
+    // Sync URL with active file (without .md extension for cleaner URLs)
+    const urlPath = "/" + path.replace(/\.md$/, "");
+    if (location.pathname !== urlPath) {
+      history.pushState(null, "", urlPath);
+    }
   }
 
   setFileContent(content: string) {
@@ -103,6 +108,7 @@ class Store {
     await this.fs.deleteFile(path);
     if (this.state.activeFile === path) {
       this.update({ activeFile: null, fileContent: "" });
+      history.pushState(null, "", "/");
     }
     await this.loadFileTree();
   }

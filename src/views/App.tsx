@@ -5,11 +5,21 @@ import { Sidebar } from "./Sidebar/Sidebar";
 import { EditorContainer } from "./Editor/EditorContainer";
 import { CommandPalette } from "./CommandPalette/CommandPalette";
 
+function openFileFromURL() {
+  const path = location.pathname.slice(1); // remove leading "/"
+  if (path) {
+    store.openFile(path.endsWith(".md") ? path : path + ".md");
+  }
+}
+
 export function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   useEffect(() => {
-    store.loadFileTree();
+    store.loadFileTree().then(() => openFileFromURL());
+
+    const onPopState = () => openFileFromURL();
+    window.addEventListener("popstate", onPopState);
 
     registry.register({
       id: "open-file",
@@ -19,7 +29,10 @@ export function App() {
     });
     registry.init();
 
-    return () => registry.destroy();
+    return () => {
+      registry.destroy();
+      window.removeEventListener("popstate", onPopState);
+    };
   }, []);
 
   return (

@@ -135,6 +135,14 @@ Keybindings do CodeMirror (`keymap.of()`) para formatacao de texto selecionado. 
 
 `Mod` = Ctrl no Linux/Windows, Cmd no Mac. `markdownKeymap` e inserido antes do `defaultKeymap` no setup para ter prioridade.
 
+### Roteamento por URL (store.ts + App.tsx)
+
+O caminho do arquivo ativo e refletido na URL do navegador (sem a extensao `.md`):
+- `store.openFile()` faz `history.pushState()` com o path (ex: `/notes/Getting Started`)
+- `store.deleteFile()` reseta a URL para `/` quando o arquivo ativo e deletado
+- Na inicializacao, `App.tsx` le `location.pathname` e abre o arquivo correspondente apos carregar a file tree
+- `popstate` listener permite navegar entre notas com os botoes voltar/avancar do browser
+
 ### Restricoes do CodeMirror 6
 
 - `Decoration.mark()` exige `from < to` — guard `if (from >= to) return` evita crash em linhas vazias
