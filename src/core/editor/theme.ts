@@ -83,14 +83,64 @@ export const obsidianTheme = EditorView.theme(
       color: "#fab387",
     },
 
-    // Code blocks
-    ".cm-md-code-block": {
+    // Code block — line decorations for block appearance
+    ".cm-md-codeblock-line": {
+      backgroundColor: "#181825",
+      paddingLeft: "52px",
+      position: "relative",
+      counterIncrement: "codeblock-line",
+    },
+    ".cm-md-codeblock-line::before": {
+      content: "counter(codeblock-line)",
+      position: "absolute",
+      left: "0",
+      width: "40px",
+      textAlign: "right",
+      paddingRight: "12px",
+      color: "#585b70",
+      fontSize: "0.85em",
       fontFamily: "'JetBrains Mono', monospace",
-      backgroundColor: "#313244",
-      borderRadius: "6px",
-      padding: "2px 8px",
+      userSelect: "none",
+      lineHeight: "inherit",
+    },
+    ".cm-md-codeblock-first": {
+      borderRadius: "8px 8px 0 0",
+      paddingTop: "12px",
+      counterReset: "codeblock-line",
+      counterIncrement: "codeblock-line",
+    },
+    ".cm-md-codeblock-last": {
+      borderRadius: "0 0 8px 8px",
+      paddingBottom: "12px",
+    },
+    // When there's only one content line (first + last)
+    ".cm-md-codeblock-first.cm-md-codeblock-last": {
+      borderRadius: "8px",
+    },
+    ".cm-md-codeblock-fence": {
+      backgroundColor: "#181825",
+      paddingLeft: "16px",
+    },
+    ".cm-md-codeblock-fence::before": {
+      content: "none",
+    },
+    ".cm-md-codeblock-content": {
+      fontFamily: "'JetBrains Mono', monospace",
       fontSize: "0.9em",
       color: "#cdd6f4",
+    },
+    // Language label
+    ".cm-md-codeblock-lang": {
+      position: "absolute",
+      right: "12px",
+      top: "8px",
+      fontSize: "0.75em",
+      fontFamily: "'JetBrains Mono', monospace",
+      color: "#585b70",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+      userSelect: "none",
+      pointerEvents: "none",
     },
 
     // Links

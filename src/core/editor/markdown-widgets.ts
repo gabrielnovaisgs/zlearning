@@ -42,6 +42,18 @@ class CheckboxWidget extends WidgetType {
   }
 }
 
+class CodeBlockLangWidget extends WidgetType {
+  constructor(private lang: string) {
+    super();
+  }
+  toDOM() {
+    const span = document.createElement("span");
+    span.className = "cm-md-codeblock-lang";
+    span.textContent = this.lang;
+    return span;
+  }
+}
+
 function getActiveLines(view: EditorView): Set<number> {
   const lines = new Set<number>();
   for (const range of view.state.selection.ranges) {
@@ -64,7 +76,12 @@ function buildDecorations(view: EditorView): DecorationSet {
   const activeLines = getActiveLines(view);
 
   const mark = (from: number, to: number, cls: string) => {
+    if (from >= to) return;
     decorations.push(Decoration.mark({ class: cls }).range(from, to));
+  };
+
+  const line = (pos: number, cls: string) => {
+    decorations.push(Decoration.line({ class: cls }).range(pos));
   };
 
   const widget = (pos: number, w: WidgetType, block = false) => {
@@ -83,10 +100,10 @@ function buildDecorations(view: EditorView): DecorationSet {
         const level = type.replace("ATXHeading", "");
         mark(from, to, `cm-md-header cm-md-header-${level}`);
         if (!active) {
-          const line = view.state.doc.lineAt(from);
-          const hashEnd = line.text.indexOf(" ") + 1;
+          const nodeLine = view.state.doc.lineAt(from);
+          const hashEnd = nodeLine.text.indexOf(" ") + 1;
           if (hashEnd > 0) {
-            mark(line.from, line.from + hashEnd, "cm-md-hide");
+            mark(nodeLine.from, nodeLine.from + hashEnd, "cm-md-hide");
           }
         }
       }
@@ -118,15 +135,60 @@ function buildDecorations(view: EditorView): DecorationSet {
         }
       }
 
-      // Code blocks (FencedCode)
+      // Code blocks (FencedCode) — line decorations for block styling
       if (type === "FencedCode") {
-        mark(from, to, "cm-md-code-block");
+        const doc = view.state.doc;
+        const firstLine = doc.lineAt(from);
+        const lastLine = doc.lineAt(to);
+
+        // Extract language from opening fence
+        const fenceText = firstLine.text.trim();
+        const langMatch = fenceText.match(/^`{3,}(\w+)/);
+        const lang = langMatch ? langMatch[1] : "";
+
+        // Content lines (between fences)
+        const contentStartLine = firstLine.number + 1;
+        const contentEndLine = lastLine.number - 1;
+
+        const isSingleFenceLine = firstLine.number === lastLine.number;
+
         if (!active) {
-          const firstLine = view.state.doc.lineAt(from);
+          // Hide fence lines
           mark(firstLine.from, firstLine.to, "cm-md-hide");
-          const lastLine = view.state.doc.lineAt(to);
-          if (lastLine.number !== firstLine.number) {
+          if (!isSingleFenceLine) {
             mark(lastLine.from, lastLine.to, "cm-md-hide");
+          }
+        }
+
+        // Apply line decorations for content lines
+        if (contentStartLine <= contentEndLine) {
+          for (let i = contentStartLine; i <= contentEndLine; i++) {
+            const lineObj = doc.line(i);
+            let cls = "cm-md-codeblock-line";
+            if (i === contentStartLine) cls += " cm-md-codeblock-first";
+            if (i === contentEndLine) cls += " cm-md-codeblock-last";
+
+            // Apply mark for monospace font on content
+            mark(lineObj.from, lineObj.to, "cm-md-codeblock-content");
+            line(lineObj.from, cls);
+          }
+
+          // Add language label widget on the first content line
+          if (lang && !active) {
+            const firstContentLine = doc.line(contentStartLine);
+            widget(firstContentLine.from, new CodeBlockLangWidget(lang));
+          }
+        }
+
+        // If cursor is active, also style the fence lines
+        if (active) {
+          line(firstLine.from, "cm-md-codeblock-line cm-md-codeblock-fence");
+          if (!isSingleFenceLine) {
+            line(lastLine.from, "cm-md-codeblock-line cm-md-codeblock-fence");
+          }
+          mark(firstLine.from, firstLine.to, "cm-md-codeblock-content");
+          if (!isSingleFenceLine) {
+            mark(lastLine.from, lastLine.to, "cm-md-codeblock-content");
           }
         }
       }
@@ -211,10 +273,8 @@ function buildDecorations(view: EditorView): DecorationSet {
   return Decoration.set(decorations, true);
 }
 
-// StateEffect to push new decorations into the StateField
 const setDecorations = StateEffect.define<DecorationSet>();
 
-// StateField holds the decorations and provides them (supports block widgets)
 const decorationField = StateField.define<DecorationSet>({
   create() {
     return Decoration.none;
@@ -230,10 +290,6 @@ const decorationField = StateField.define<DecorationSet>({
   provide: (field) => EditorView.decorations.from(field),
 });
 
-// Listener that recomputes decorations and pushes them via effect.
-// updateListener runs after the update cycle, so dispatching is safe.
-// The dispatched effect only changes the StateField (no doc/selection change),
-// so the listener won't re-trigger in a loop.
 const decorationUpdater = EditorView.updateListener.of((update) => {
   if (update.docChanged || update.viewportChanged || update.selectionSet) {
     const decos = buildDecorations(update.view);
