@@ -14,20 +14,25 @@ src/
   core/
     store.ts          # Estado global (observer pattern) com auto-save (1s debounce)
     types.ts          # Tipos TypeScript (FileTreeEntry, FileContent, AppState)
+    commands.ts       # Registry de comandos globais com atalhos de teclado (Ctrl+O, etc.)
     services/
       filesystem.ts   # Cliente HTTP para API de arquivos
     editor/
-      setup.ts        # Configuracao do CodeMirror (markdown, history, brackets)
+      setup.ts        # Configuracao do CodeMirror (markdown, history, brackets, keybindings)
       theme.ts        # Tema dark Catppuccin/Obsidian
+      keybindings.ts  # Atalhos de edicao markdown (Ctrl+B, Ctrl+I, etc.)
       markdown-widgets.ts  # Decoracoes de syntax highlighting para markdown
   views/
-    App.tsx           # Layout principal
+    App.tsx           # Layout principal + inicializacao do CommandRegistry
     Editor/
       EditorContainer.tsx  # Container do editor CodeMirror
     Sidebar/
       Sidebar.tsx     # Navegacao lateral redimensionavel
       FileTree.tsx    # Arvore hierarquica de arquivos
       FileTreeItem.tsx # Item individual da arvore
+    CommandPalette/
+      CommandPalette.tsx  # Dialog de busca fuzzy de arquivos (Ctrl+O)
+      fuzzy-match.ts     # Fuzzy match por subsequencia + flatten da file tree
     hooks.ts          # useStore() hook para sincronizar com store externo
 server/
   index.ts            # Express + Vite dev middleware (porta 3000)
@@ -72,7 +77,7 @@ StateEffect (setDecorations) → StateField (decorationField) → EditorView.dec
 | Bold/Italic | `mark` + `cm-md-bold`/`cm-md-italic` | Esconde `**`/`*` quando cursor fora |
 | Inline code | `mark` + `cm-md-code` | Esconde backticks quando cursor fora |
 | Code blocks | `line` + `cm-md-codeblock-line` | Bloco visual com CSS counters para line numbers, widget para label da linguagem |
-| Links | `mark` + `cm-md-link` | Esconde `[](url)` mostrando apenas o texto |
+| Links | `mark` + `cm-md-link` | Esconde `[](url)` mostrando apenas o texto, clique abre URL externa em nova aba |
 | Images | `widget` (ImageWidget, block) | Renderiza `<img>` abaixo da sintaxe |
 | Wiki links | `mark` + `cm-md-wikilink` (regex) | Esconde `[[]]`, clique navega para nota |
 | Checkboxes | `widget` (CheckboxWidget) | Substitui `[x]`/`[ ]` por checkbox visual |
@@ -97,6 +102,38 @@ Blocos de codigo usam `Decoration.line()` por linha (nao mark) para criar visual
 - Line numbers via CSS counters (`counter-reset`/`counter-increment`)
 - Label da linguagem via widget absoluto posicionado no canto superior direito
 - Syntax highlighting via `@codemirror/language-data` (deteccao automatica de linguagem)
+
+### Click handlers (markdown-widgets.ts)
+
+Um unico `EditorView.domEventHandlers` (`linkClickHandler`) trata cliques em links:
+- **Links externos** (`cm-md-link`): resolve o no `Link` na syntax tree, extrai a URL de `](url)` e abre com `window.open(url, "_blank", "noopener,noreferrer")`
+- **Wiki links** (`cm-md-wikilink`): resolve via regex na linha e navega com `store.openFile()`
+
+### Command Palette (commands.ts + CommandPalette/)
+
+Sistema de comandos globais com atalhos de teclado:
+- `CommandRegistry` com `register()`, `init()` (listener global de `keydown`), `destroy()`
+- Comando `open-file` (Ctrl+O / Cmd+O) abre o palette
+- `CommandPalette.tsx`: portal em `document.body`, input com fuzzy search, navegacao por teclado (ArrowUp/Down/Enter/Escape)
+- `fuzzy-match.ts`: achata file tree, fuzzy match por subsequencia com scoring (consecutivo, inicio de palavra, posicao)
+- Highlight dos caracteres que deram match no nome do arquivo
+
+### Atalhos de edicao markdown (keybindings.ts)
+
+Keybindings do CodeMirror (`keymap.of()`) para formatacao de texto selecionado. Suportam toggle: se o texto ja esta formatado, remove a formatacao.
+
+| Atalho | Acao | Marcador |
+|--------|------|----------|
+| `Mod-b` | Negrito | `**texto**` |
+| `Mod-i` | Italico | `*texto*` |
+| `Mod-k` | Link | `[texto](url)` |
+| `Mod-Shift-k` | Codigo inline | `` `texto` `` |
+| `Mod-Shift-x` | Tachado | `~~texto~~` |
+| `Mod-Shift-7` | Lista ordenada | `1. ` (prefixo) |
+| `Mod-Shift-8` | Lista nao-ordenada | `- ` (prefixo) |
+| `Mod-Shift-9` | Blockquote | `> ` (prefixo) |
+
+`Mod` = Ctrl no Linux/Windows, Cmd no Mac. `markdownKeymap` e inserido antes do `defaultKeymap` no setup para ter prioridade.
 
 ### Restricoes do CodeMirror 6
 
