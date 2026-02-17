@@ -12,11 +12,11 @@ export function FileTreeItem({ entry, depth }: Props) {
   const isExpanded = expandedDirs.has(entry.path);
   const isActive = entry.path === activeFile;
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (entry.type === "directory") {
       store.toggleDir(entry.path);
     } else {
-      store.openFile(entry.path);
+      await store.openFile(entry.path);
     }
   };
 

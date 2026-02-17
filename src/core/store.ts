@@ -43,9 +43,9 @@ class Store {
 
   async openFile(path: string) {
     if (path === this.state.activeFile) return;
-    this.update({ loading: true, activeFile: path });
+    this.update({ loading: true});
     const { content } = await this.fs.readFile(path);
-    this.update({ fileContent: content, loading: false });
+    this.update({ fileContent: content, loading: false,  activeFile: path  });
   }
 
   setFileContent(content: string) {
