@@ -322,32 +322,56 @@ const decorationUpdater = EditorView.updateListener.of((update) => {
   }
 });
 
-// Click handler for wiki links
-const wikiLinkClickHandler = EditorView.domEventHandlers({
+// Click handler for wiki links and external links
+const linkClickHandler = EditorView.domEventHandlers({
   click(event: MouseEvent, view: EditorView) {
     const target = event.target as HTMLElement;
-    if (!target.classList.contains("cm-md-wikilink")) return false;
 
-    const pos = view.posAtDOM(target);
-    const lineObj = view.state.doc.lineAt(pos);
-    const wikiLinkRe = /\[\[([^\]]+)\]\]/g;
-    let match: RegExpExecArray | null;
-    while ((match = wikiLinkRe.exec(lineObj.text)) !== null) {
-      const nameStart = lineObj.from + match.index + 2;
-      const nameEnd = nameStart + match[1].length;
-      if (pos >= nameStart && pos <= nameEnd) {
-        // Lazy import to avoid circular deps
-        import("@core/store").then(({ store }) => {
-          const resolved = store.resolveWikiLink(match![1]);
-          if (resolved) {
-            store.openFile(resolved);
-          }
-        });
-        return true;
+    // External links: click on the label text opens the URL in a new tab
+    if (target.classList.contains("cm-md-link")) {
+      const pos = view.posAtDOM(target);
+      const tree = syntaxTree(view.state);
+      let linkNode = tree.resolveInner(pos, 1);
+      // Walk up to find the Link node
+      while (linkNode && linkNode.name !== "Link") {
+        if (!linkNode.parent) break;
+        linkNode = linkNode.parent;
       }
+      if (linkNode?.name === "Link") {
+        const text = view.state.sliceDoc(linkNode.from, linkNode.to);
+        const urlMatch = text.match(/\]\(([^)]*)\)/);
+        if (urlMatch?.[1]) {
+          window.open(urlMatch[1], "_blank", "noopener,noreferrer");
+          return true;
+        }
+      }
+      return false;
     }
+
+    // Wiki links
+    if (target.classList.contains("cm-md-wikilink")) {
+      const pos = view.posAtDOM(target);
+      const lineObj = view.state.doc.lineAt(pos);
+      const wikiLinkRe = /\[\[([^\]]+)\]\]/g;
+      let match: RegExpExecArray | null;
+      while ((match = wikiLinkRe.exec(lineObj.text)) !== null) {
+        const nameStart = lineObj.from + match.index + 2;
+        const nameEnd = nameStart + match[1].length;
+        if (pos >= nameStart && pos <= nameEnd) {
+          import("@core/store").then(({ store }) => {
+            const resolved = store.resolveWikiLink(match![1]);
+            if (resolved) {
+              store.openFile(resolved);
+            }
+          });
+          return true;
+        }
+      }
+      return false;
+    }
+
     return false;
   },
 });
 
-export const markdownWidgets: Extension = [decorationField, decorationUpdater, wikiLinkClickHandler];
+export const markdownWidgets: Extension = [decorationField, decorationUpdater, linkClickHandler];
