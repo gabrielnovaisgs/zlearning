@@ -27,6 +27,16 @@ export function App() {
       shortcut: { ctrl: true, key: "o" },
       execute: () => setPaletteOpen(true),
     });
+    registry.register({
+      id: "new-file",
+      name: "New file",
+      shortcut: { ctrl: true, key: "n" },
+      execute: () => {
+        const active = store.getState().activeFile;
+        const dir = active?.includes("/") ? active.substring(0, active.lastIndexOf("/")) : "";
+        store.createUntitledFile(dir);
+      },
+    });
     registry.init();
 
     return () => {
