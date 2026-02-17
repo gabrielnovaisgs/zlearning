@@ -137,12 +137,40 @@ class Store {
   private fileExists(path: string): boolean {
     const find = (entries: FileTreeEntry[]): boolean => {
       for (const entry of entries) {
-        if (entry.type === "file" && entry.path === path) return true;
+        if (entry.path === path) return true;
         if (entry.children && find(entry.children)) return true;
       }
       return false;
     };
     return find(this.state.fileTree);
+  }
+
+  /** Move a file or directory to a target directory (empty string = root) */
+  async moveFile(sourcePath: string, targetDir: string) {
+    const name = sourcePath.includes("/")
+      ? sourcePath.substring(sourcePath.lastIndexOf("/") + 1)
+      : sourcePath;
+    const newPath = targetDir ? `${targetDir}/${name}` : name;
+    if (newPath === sourcePath) return;
+    // Prevent moving a directory into itself or its children
+    if (sourcePath === targetDir || targetDir.startsWith(sourcePath + "/")) return;
+    if (this.fileExists(newPath)) {
+      alert(`"${name}" already exists in the destination folder.`);
+      return;
+    }
+    await this.fs.renameFile(sourcePath, newPath);
+    // Expand target directory so the moved item is visible
+    if (targetDir) {
+      const expandedDirs = new Set(this.state.expandedDirs);
+      expandedDirs.add(targetDir);
+      this.update({ expandedDirs });
+    }
+    await this.loadFileTree();
+    if (this.state.activeFile === sourcePath) {
+      this.update({ activeFile: newPath });
+      const urlPath = "/" + newPath.replace(/\.md$/, "");
+      history.replaceState(null, "", urlPath);
+    }
   }
 
   async duplicateFile(path: string) {

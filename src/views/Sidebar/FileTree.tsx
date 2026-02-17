@@ -1,4 +1,6 @@
+import { useState } from "react";
 import type { FileTreeEntry } from "@core/types";
+import { store } from "@core/store";
 import { useStore } from "../hooks";
 import { FileTreeItem } from "./FileTreeItem";
 
@@ -8,6 +10,7 @@ interface Props {
 
 export function FileTree({ onContextMenu }: Props) {
   const { fileTree } = useStore();
+  const [dragOver, setDragOver] = useState(false);
 
   if (fileTree.length === 0) {
     return (
@@ -19,15 +22,41 @@ export function FileTree({ onContextMenu }: Props) {
     );
   }
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    // Only highlight when dragging over the container itself (not children)
+    if (e.target === e.currentTarget) {
+      setDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (e.target === e.currentTarget) {
+      setDragOver(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const sourcePath = e.dataTransfer.getData("text/plain");
+    if (sourcePath) {
+      store.moveFile(sourcePath, "");
+    }
+  };
+
   return (
     <div
-      className="flex flex-col gap-0.5 py-2"
+      className={`flex min-h-full flex-col gap-0.5 py-2 ${dragOver ? "bg-accent/10 rounded" : ""}`}
       onContextMenu={(e) => {
-        // Only fire for clicks on the container itself (empty area)
         if (e.target === e.currentTarget) {
           onContextMenu(e, null);
         }
       }}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
       {fileTree.map((entry) => (
         <FileTreeItem

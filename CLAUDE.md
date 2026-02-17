@@ -145,6 +145,14 @@ Clique direito na sidebar abre um `ContextMenu` (portal em `document.body`):
 - Duplicacao usa numeracao incremental: `arquivo (1).md`, `arquivo (2).md`, etc. (`store.duplicateFile()` verifica nomes existentes no mesmo diretorio)
 - `store.createDirectory()` expande os diretorios pai automaticamente
 
+### Drag and drop (FileTreeItem + FileTree)
+
+Arquivos e pastas podem ser movidos entre diretorios arrastando na sidebar:
+- `FileTreeItem`: `draggable` em todos os itens, `onDrop` aceita apenas em diretorios
+- `FileTree`: area raiz aceita drop para mover para o diretorio raiz (`docs/`)
+- `store.moveFile(source, targetDir)` usa `fs.renameFile` para mover, verifica conflito de nomes e impede mover diretorio para dentro de si mesmo
+- Visual feedback: highlight `bg-accent/20` no diretorio alvo durante o drag
+
 ### Roteamento por URL (store.ts + App.tsx)
 
 O caminho do arquivo ativo e refletido na URL do navegador (sem a extensao `.md`):
