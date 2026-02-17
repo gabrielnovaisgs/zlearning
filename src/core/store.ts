@@ -135,10 +135,12 @@ class Store {
 
   async renameFile(oldPath: string, newName: string): Promise<boolean> {
     const dir = oldPath.includes("/") ? oldPath.substring(0, oldPath.lastIndexOf("/") + 1) : "";
-    const newPath = `${dir}${newName.endsWith(".md") ? newName : newName + ".md"}`;
+    const isFile = oldPath.endsWith(".md");
+    const finalName = isFile && !newName.endsWith(".md") ? newName + ".md" : newName;
+    const newPath = `${dir}${finalName}`;
     if (newPath === oldPath) return true;
     if (this.fileExists(newPath)) {
-      alert(`A file named "${newName}" already exists in this folder.`);
+      alert(`"${newName}" already exists in this folder.`);
       return false;
     }
     await this.fs.renameFile(oldPath, newPath);

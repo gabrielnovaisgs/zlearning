@@ -6,9 +6,12 @@ import { FileTreeItem } from "./FileTreeItem";
 
 interface Props {
   onContextMenu: (e: React.MouseEvent, entry: FileTreeEntry | null) => void;
+  renamingPath: string | null;
+  onStartRename: (path: string) => void;
+  onEndRename: () => void;
 }
 
-export function FileTree({ onContextMenu }: Props) {
+export function FileTree({ onContextMenu, renamingPath, onStartRename, onEndRename }: Props) {
   const { fileTree } = useStore();
   const [dragOver, setDragOver] = useState(false);
 
@@ -63,7 +66,10 @@ export function FileTree({ onContextMenu }: Props) {
           key={entry.path}
           entry={entry}
           depth={0}
+          renamingPath={renamingPath}
           onContextMenu={onContextMenu}
+          onStartRename={onStartRename}
+          onEndRename={onEndRename}
         />
       ))}
     </div>

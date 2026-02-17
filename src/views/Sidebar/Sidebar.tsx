@@ -15,6 +15,7 @@ export function Sidebar() {
   const { sidebarWidth } = useStore();
   const resizing = useRef(false);
   const [menu, setMenu] = useState<MenuState | null>(null);
+  const [renamingPath, setRenamingPath] = useState<string | null>(null);
 
   /** Resolve the directory from the context menu target */
   const contextDir = (entry: FileTreeEntry | null): string => {
@@ -43,8 +44,13 @@ export function Sidebar() {
   const menuItems: MenuItem[] = [];
   if (menu) {
     const dir = contextDir(menu.entry);
+    if (menu.entry) {
+      menuItems.push({ label: "Rename", action: () => setRenamingPath(menu.entry!.path) });
+    }
     if (menu.entry?.type === "file") {
       menuItems.push({ label: "Duplicate", action: () => store.duplicateFile(menu.entry!.path) });
+    }
+    if (menu.entry) {
       menuItems.push({ label: "Delete", action: () => store.deleteFile(menu.entry!.path) });
     }
     menuItems.push({ label: "New file", action: () => handleNewFile(dir) });
@@ -92,7 +98,12 @@ export function Sidebar() {
             }
           }}
         >
-          <FileTree onContextMenu={handleContextMenu} />
+          <FileTree
+            onContextMenu={handleContextMenu}
+            renamingPath={renamingPath}
+            onStartRename={setRenamingPath}
+            onEndRename={() => setRenamingPath(null)}
+          />
         </div>
       </div>
       <div className="resize-handle" onMouseDown={handleMouseDown} />

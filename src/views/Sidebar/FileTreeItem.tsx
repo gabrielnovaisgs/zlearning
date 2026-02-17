@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { FileTreeEntry } from "@core/types";
 import { store } from "@core/store";
 import { useStore } from "../hooks";
@@ -6,14 +6,39 @@ import { useStore } from "../hooks";
 interface Props {
   entry: FileTreeEntry;
   depth: number;
+  renamingPath: string | null;
   onContextMenu: (e: React.MouseEvent, entry: FileTreeEntry) => void;
+  onStartRename: (path: string) => void;
+  onEndRename: () => void;
 }
 
-export function FileTreeItem({ entry, depth, onContextMenu }: Props) {
+export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStartRename, onEndRename }: Props) {
   const { activeFile, expandedDirs } = useStore();
   const [dragOver, setDragOver] = useState(false);
   const isExpanded = expandedDirs.has(entry.path);
   const isActive = entry.path === activeFile;
+  const isRenaming = renamingPath === entry.path;
+
+  const displayName = entry.type === "file" ? entry.name.replace(/\.md$/, "") : entry.name;
+  const [renameValue, setRenameValue] = useState(displayName);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isRenaming) {
+      setRenameValue(displayName);
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      });
+    }
+  }, [isRenaming]);
+
+  const commitRename = () => {
+    onEndRename();
+    const trimmed = renameValue.trim();
+    if (!trimmed || trimmed === displayName) return;
+    store.renameFile(entry.path, trimmed);
+  };
 
   const handleClick = async () => {
     if (entry.type === "directory") {
@@ -21,6 +46,11 @@ export function FileTreeItem({ entry, depth, onContextMenu }: Props) {
     } else {
       await store.openFile(entry.path);
     }
+  };
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onStartRename(entry.path);
   };
 
   const handleDragStart = (e: React.DragEvent) => {
@@ -37,7 +67,6 @@ export function FileTreeItem({ entry, depth, onContextMenu }: Props) {
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
-    // Only reset if leaving the button itself, not entering a child
     if (e.currentTarget.contains(e.relatedTarget as Node)) return;
     setDragOver(false);
   };
@@ -55,8 +84,9 @@ export function FileTreeItem({ entry, depth, onContextMenu }: Props) {
   return (
     <div>
       <button
-        draggable
-        onClick={handleClick}
+        draggable={!isRenaming}
+        onClick={isRenaming ? undefined : handleClick}
+        onDoubleClick={handleDoubleClick}
         onContextMenu={(e) => onContextMenu(e, entry)}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
@@ -76,14 +106,40 @@ export function FileTreeItem({ entry, depth, onContextMenu }: Props) {
         ) : (
           <span className="text-xs text-text-muted">📄</span>
         )}
-        <span className="truncate">
-          {entry.type === "file" ? entry.name.replace(/\.md$/, "") : entry.name}
-        </span>
+        {isRenaming ? (
+          <input
+            ref={inputRef}
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commitRename();
+              }
+              if (e.key === "Escape") {
+                onEndRename();
+              }
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 min-w-0 bg-bg-primary rounded px-1 text-sm text-text-primary outline-none border border-accent"
+          />
+        ) : (
+          <span className="truncate">{displayName}</span>
+        )}
       </button>
       {entry.type === "directory" && isExpanded && entry.children && (
         <div>
           {entry.children.map((child) => (
-            <FileTreeItem key={child.path} entry={child} depth={depth + 1} onContextMenu={onContextMenu} />
+            <FileTreeItem
+              key={child.path}
+              entry={child}
+              depth={depth + 1}
+              renamingPath={renamingPath}
+              onContextMenu={onContextMenu}
+              onStartRename={onStartRename}
+              onEndRename={onEndRename}
+            />
           ))}
         </div>
       )}
