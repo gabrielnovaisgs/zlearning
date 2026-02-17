@@ -83,6 +83,22 @@ class Store {
     await this.openFile(path);
   }
 
+  /** Resolve a wiki link path (e.g. "notes/Getting Started") to a file path */
+  resolveWikiLink(linkPath: string): string | null {
+    const target = linkPath.endsWith(".md") ? linkPath : `${linkPath}.md`;
+    const find = (entries: FileTreeEntry[]): string | null => {
+      for (const entry of entries) {
+        if (entry.type === "file" && entry.path === target) return entry.path;
+        if (entry.children) {
+          const found = find(entry.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    return find(this.state.fileTree);
+  }
+
   async deleteFile(path: string) {
     await this.fs.deleteFile(path);
     if (this.state.activeFile === path) {

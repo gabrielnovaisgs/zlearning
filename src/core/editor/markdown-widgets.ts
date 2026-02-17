@@ -88,6 +88,31 @@ function buildDecorations(view: EditorView): DecorationSet {
     decorations.push(Decoration.widget({ widget: w, block }).range(pos));
   };
 
+  // Wiki links [[note name]] — regex-based since the markdown parser doesn't know them
+  const wikiLinkRe = /\[\[([^\]]+)\]\]/g;
+  const doc = view.state.doc;
+  for (let i = 1; i <= doc.lines; i++) {
+    const lineObj = doc.line(i);
+    const lineActive = activeLines.has(i);
+    let match: RegExpExecArray | null;
+    wikiLinkRe.lastIndex = 0;
+    while ((match = wikiLinkRe.exec(lineObj.text)) !== null) {
+      const start = lineObj.from + match.index;
+      const end = start + match[0].length;
+      const nameStart = start + 2;
+      const nameEnd = end - 2;
+
+      mark(nameStart, nameEnd, "cm-md-wikilink");
+      if (!lineActive) {
+        mark(start, nameStart, "cm-md-hide");    // [[
+        mark(nameEnd, end, "cm-md-hide");         // ]]
+      } else {
+        mark(start, nameStart, "cm-md-syntax-dim");
+        mark(nameEnd, end, "cm-md-syntax-dim");
+      }
+    }
+  }
+
   tree.iterate({
     enter(node) {
       const from = node.from;
@@ -297,4 +322,32 @@ const decorationUpdater = EditorView.updateListener.of((update) => {
   }
 });
 
-export const markdownWidgets: Extension = [decorationField, decorationUpdater];
+// Click handler for wiki links
+const wikiLinkClickHandler = EditorView.domEventHandlers({
+  click(event: MouseEvent, view: EditorView) {
+    const target = event.target as HTMLElement;
+    if (!target.classList.contains("cm-md-wikilink")) return false;
+
+    const pos = view.posAtDOM(target);
+    const lineObj = view.state.doc.lineAt(pos);
+    const wikiLinkRe = /\[\[([^\]]+)\]\]/g;
+    let match: RegExpExecArray | null;
+    while ((match = wikiLinkRe.exec(lineObj.text)) !== null) {
+      const nameStart = lineObj.from + match.index + 2;
+      const nameEnd = nameStart + match[1].length;
+      if (pos >= nameStart && pos <= nameEnd) {
+        // Lazy import to avoid circular deps
+        import("@core/store").then(({ store }) => {
+          const resolved = store.resolveWikiLink(match![1]);
+          if (resolved) {
+            store.openFile(resolved);
+          }
+        });
+        return true;
+      }
+    }
+    return false;
+  },
+});
+
+export const markdownWidgets: Extension = [decorationField, decorationUpdater, wikiLinkClickHandler];

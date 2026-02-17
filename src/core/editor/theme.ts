@@ -150,6 +150,18 @@ export const obsidianTheme = EditorView.theme(
       cursor: "pointer",
     },
 
+    // Wiki links
+    ".cm-md-wikilink": {
+      color: "#cba6f7",
+      textDecoration: "underline",
+      textDecorationColor: "rgba(203, 166, 247, 0.4)",
+      textUnderlineOffset: "2px",
+      cursor: "pointer",
+      "&:hover": {
+        textDecorationColor: "#cba6f7",
+      },
+    },
+
     // Strikethrough
     ".cm-md-strikethrough": {
       textDecoration: "line-through",
