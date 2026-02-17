@@ -16,17 +16,22 @@ export function Sidebar() {
   const resizing = useRef(false);
   const [menu, setMenu] = useState<MenuState | null>(null);
 
-  const handleNewFile = async () => {
-    const name = prompt("File name (e.g. notes/my-file.md):");
-    if (!name) return;
-    const path = name.endsWith(".md") ? name : `${name}.md`;
-    await store.createFile(path);
+  /** Resolve the directory from the context menu target */
+  const contextDir = (entry: FileTreeEntry | null): string => {
+    if (!entry) return "";
+    if (entry.type === "directory") return entry.path;
+    return entry.path.includes("/") ? entry.path.substring(0, entry.path.lastIndexOf("/")) : "";
   };
 
-  const handleNewDirectory = async () => {
-    const name = prompt("Folder name (e.g. notes/subfolder):");
+  const handleNewFile = async (dir: string) => {
+    await store.createUntitledFile(dir);
+  };
+
+  const handleNewDirectory = async (dir: string) => {
+    const name = prompt("Folder name:");
     if (!name) return;
-    await store.createDirectory(name);
+    const path = dir ? `${dir}/${name}` : name;
+    await store.createDirectory(path);
   };
 
   const handleContextMenu = useCallback((e: React.MouseEvent, entry: FileTreeEntry | null) => {
@@ -37,12 +42,13 @@ export function Sidebar() {
 
   const menuItems: MenuItem[] = [];
   if (menu) {
+    const dir = contextDir(menu.entry);
     if (menu.entry?.type === "file") {
       menuItems.push({ label: "Duplicate", action: () => store.duplicateFile(menu.entry!.path) });
       menuItems.push({ label: "Delete", action: () => store.deleteFile(menu.entry!.path) });
     }
-    menuItems.push({ label: "New file", action: handleNewFile });
-    menuItems.push({ label: "New folder", action: handleNewDirectory });
+    menuItems.push({ label: "New file", action: () => handleNewFile(dir) });
+    menuItems.push({ label: "New folder", action: () => handleNewDirectory(dir) });
   }
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -70,7 +76,7 @@ export function Sidebar() {
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h1 className="text-sm font-semibold text-text-primary">Study MD</h1>
           <button
-            onClick={handleNewFile}
+            onClick={() => handleNewFile("")}
             className="rounded px-2 py-0.5 text-lg text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary"
             title="New file"
           >

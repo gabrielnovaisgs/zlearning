@@ -88,6 +88,23 @@ class Store {
     await this.openFile(path);
   }
 
+  async createUntitledFile(dir: string) {
+    const siblings = this.collectFileNames(dir ? dir + "/" : "");
+    let name = "Untitled.md";
+    let n = 1;
+    while (siblings.has(name)) {
+      name = `Untitled (${n}).md`;
+      n++;
+    }
+    const path = dir ? `${dir}/${name}` : name;
+    if (dir) {
+      const expandedDirs = new Set(this.state.expandedDirs);
+      expandedDirs.add(dir);
+      this.update({ expandedDirs });
+    }
+    await this.createFile(path);
+  }
+
   /** Resolve a wiki link path (e.g. "notes/Getting Started") to a file path */
   resolveWikiLink(linkPath: string): string | null {
     const target = linkPath.endsWith(".md") ? linkPath : `${linkPath}.md`;

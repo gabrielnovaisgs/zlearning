@@ -95,21 +95,19 @@ export function EditorContainer() {
 
   return (
     <div className="relative flex h-full flex-1 flex-col bg-bg-primary overflow-y-auto">
-      {activeFile ? (
-        <>
-          <EditableTitle activeFile={activeFile} />
-          <div ref={containerRef} className="flex-1" />
-        </>
-      ) : (
-        <>
-          <div ref={containerRef} className="flex-1" style={{ display: "none" }} />
-          <div className="flex flex-1 items-center justify-center">
-            <div className="text-center text-text-muted">
-              <div className="mb-2 text-4xl">📝</div>
-              <p>Select a file to start editing</p>
-            </div>
+      {activeFile && <EditableTitle activeFile={activeFile} />}
+      <div
+        ref={containerRef}
+        className="flex-1"
+        style={{ display: activeFile ? undefined : "none" }}
+      />
+      {!activeFile && (
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center text-text-muted">
+            <div className="mb-2 text-4xl">📝</div>
+            <p>Select a file to start editing</p>
           </div>
-        </>
+        </div>
       )}
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-bg-primary/80">
