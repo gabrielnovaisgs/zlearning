@@ -7,7 +7,7 @@ import {
   WidgetType,
 } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
-import { RangeSetBuilder } from "@codemirror/state";
+import { Range } from "@codemirror/state";
 
 class ImageWidget extends WidgetType {
   constructor(private url: string, private alt: string) {
@@ -61,9 +61,17 @@ function isLineActive(view: EditorView, pos: number, activeLines: Set<number>): 
 }
 
 function getDecorations(view: EditorView): DecorationSet {
-  const builder = new RangeSetBuilder<Decoration>();
+  const decorations: Range<Decoration>[] = [];
   const tree = syntaxTree(view.state);
   const activeLines = getActiveLines(view);
+
+  const mark = (from: number, to: number, cls: string) => {
+    decorations.push(Decoration.mark({ class: cls }).range(from, to));
+  };
+
+  const widget = (pos: number, w: WidgetType, block = false) => {
+    decorations.push(Decoration.widget({ widget: w, block }).range(pos));
+  };
 
   tree.iterate({
     enter(node) {
@@ -75,57 +83,55 @@ function getDecorations(view: EditorView): DecorationSet {
       // ATX headings
       if (/^ATXHeading[1-6]$/.test(type)) {
         const level = type.replace("ATXHeading", "");
-        builder.add(from, to, Decoration.mark({ class: `cm-md-header cm-md-header-${level}` }));
+        mark(from, to, `cm-md-header cm-md-header-${level}`);
 
         if (!active) {
           const line = view.state.doc.lineAt(from);
           const hashEnd = line.text.indexOf(" ") + 1;
           if (hashEnd > 0) {
-            builder.add(line.from, line.from + hashEnd, Decoration.mark({ class: "cm-md-hide" }));
+            mark(line.from, line.from + hashEnd, "cm-md-hide");
           }
         }
       }
 
       // Strong/Bold
       if (type === "StrongEmphasis") {
-        builder.add(from, to, Decoration.mark({ class: "cm-md-bold" }));
+        mark(from, to, "cm-md-bold");
         if (!active) {
-          builder.add(from, from + 2, Decoration.mark({ class: "cm-md-hide" }));
-          builder.add(to - 2, to, Decoration.mark({ class: "cm-md-hide" }));
+          mark(from, from + 2, "cm-md-hide");
+          mark(to - 2, to, "cm-md-hide");
         }
       }
 
       // Italic/Emphasis
       if (type === "Emphasis") {
-        builder.add(from, to, Decoration.mark({ class: "cm-md-italic" }));
+        mark(from, to, "cm-md-italic");
         if (!active) {
-          builder.add(from, from + 1, Decoration.mark({ class: "cm-md-hide" }));
-          builder.add(to - 1, to, Decoration.mark({ class: "cm-md-hide" }));
+          mark(from, from + 1, "cm-md-hide");
+          mark(to - 1, to, "cm-md-hide");
         }
       }
 
       // Inline code
       if (type === "InlineCode") {
-        builder.add(from, to, Decoration.mark({ class: "cm-md-code" }));
+        mark(from, to, "cm-md-code");
         if (!active) {
-          builder.add(from, from + 1, Decoration.mark({ class: "cm-md-hide" }));
-          builder.add(to - 1, to, Decoration.mark({ class: "cm-md-hide" }));
+          mark(from, from + 1, "cm-md-hide");
+          mark(to - 1, to, "cm-md-hide");
         }
       }
 
       // Code blocks (FencedCode)
       if (type === "FencedCode") {
-        builder.add(from, to, Decoration.mark({ class: "cm-md-code-block" }));
+        mark(from, to, "cm-md-code-block");
 
         if (!active) {
-          // Hide opening fence line (``` or ```language)
           const firstLine = view.state.doc.lineAt(from);
-          builder.add(firstLine.from, firstLine.to, Decoration.mark({ class: "cm-md-hide" }));
+          mark(firstLine.from, firstLine.to, "cm-md-hide");
 
-          // Hide closing fence line
           const lastLine = view.state.doc.lineAt(to);
           if (lastLine.number !== firstLine.number) {
-            builder.add(lastLine.from, lastLine.to, Decoration.mark({ class: "cm-md-hide" }));
+            mark(lastLine.from, lastLine.to, "cm-md-hide");
           }
         }
       }
@@ -138,10 +144,10 @@ function getDecorations(view: EditorView): DecorationSet {
         if (labelMatch && urlMatch) {
           const labelStart = from + 1;
           const labelEnd = from + 1 + labelMatch[1].length;
-          builder.add(labelStart, labelEnd, Decoration.mark({ class: "cm-md-link" }));
+          mark(labelStart, labelEnd, "cm-md-link");
           if (!active) {
-            builder.add(from, from + 1, Decoration.mark({ class: "cm-md-hide" }));
-            builder.add(labelEnd, to, Decoration.mark({ class: "cm-md-hide" }));
+            mark(from, from + 1, "cm-md-hide");
+            mark(labelEnd, to, "cm-md-hide");
           }
         }
       }
@@ -152,55 +158,49 @@ function getDecorations(view: EditorView): DecorationSet {
         const altMatch = text.match(/!\[([^\]]*)\]/);
         const urlMatch = text.match(/\]\(([^)]*)\)/);
         if (altMatch && urlMatch) {
-          builder.add(to, to, Decoration.widget({
-            widget: new ImageWidget(urlMatch[1], altMatch[1]),
-            block: true,
-          }));
+          widget(to, new ImageWidget(urlMatch[1], altMatch[1]), true);
           if (!active) {
-            builder.add(from, to, Decoration.mark({ class: "cm-md-hide" }));
+            mark(from, to, "cm-md-hide");
           }
         }
       }
 
       // Strikethrough
       if (type === "Strikethrough") {
-        builder.add(from, to, Decoration.mark({ class: "cm-md-strikethrough" }));
+        mark(from, to, "cm-md-strikethrough");
         if (!active) {
-          builder.add(from, from + 2, Decoration.mark({ class: "cm-md-hide" }));
-          builder.add(to - 2, to, Decoration.mark({ class: "cm-md-hide" }));
+          mark(from, from + 2, "cm-md-hide");
+          mark(to - 2, to, "cm-md-hide");
         }
       }
 
       // Blockquote
       if (type === "Blockquote") {
-        builder.add(from, to, Decoration.mark({ class: "cm-md-blockquote" }));
+        mark(from, to, "cm-md-blockquote");
       }
 
       // QuoteMark (the > character)
       if (type === "QuoteMark") {
         if (!active) {
-          builder.add(from, to, Decoration.mark({ class: "cm-md-hide" }));
+          mark(from, to, "cm-md-hide");
         } else {
-          builder.add(from, to, Decoration.mark({ class: "cm-md-syntax-dim" }));
+          mark(from, to, "cm-md-syntax-dim");
         }
       }
 
-      // Horizontal rule — replace with widget
+      // Horizontal rule
       if (type === "HorizontalRule") {
         if (!active) {
-          builder.add(from, to, Decoration.mark({ class: "cm-md-hide" }));
-          builder.add(to, to, Decoration.widget({
-            widget: new HorizontalRuleWidget(),
-            block: true,
-          }));
+          mark(from, to, "cm-md-hide");
+          widget(to, new HorizontalRuleWidget(), true);
         } else {
-          builder.add(from, to, Decoration.mark({ class: "cm-md-syntax-dim" }));
+          mark(from, to, "cm-md-syntax-dim");
         }
       }
 
       // List markers
       if (type === "ListMark") {
-        builder.add(from, to, Decoration.mark({ class: "cm-md-list-marker" }));
+        mark(from, to, "cm-md-list-marker");
       }
 
       // Task list
@@ -208,20 +208,17 @@ function getDecorations(view: EditorView): DecorationSet {
         const text = view.state.sliceDoc(from, to);
         const checked = text.includes("x") || text.includes("X");
         if (!active) {
-          builder.add(from, to, Decoration.mark({ class: "cm-md-hide" }));
-          builder.add(from, from, Decoration.widget({
-            widget: new CheckboxWidget(checked),
-          }));
+          mark(from, to, "cm-md-hide");
+          widget(from, new CheckboxWidget(checked));
         } else {
-          builder.add(from, to, Decoration.mark({
-            class: checked ? "cm-md-task-checked" : "cm-md-task-unchecked",
-          }));
+          mark(from, to, checked ? "cm-md-task-checked" : "cm-md-task-unchecked");
         }
       }
     },
   });
 
-  return builder.finish();
+  // Sort by position then build the RangeSet
+  return Decoration.set(decorations, true);
 }
 
 export const markdownWidgets = ViewPlugin.fromClass(
