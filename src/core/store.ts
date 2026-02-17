@@ -104,6 +104,51 @@ class Store {
     return find(this.state.fileTree);
   }
 
+  async createDirectory(path: string) {
+    await this.fs.createDirectory(path);
+    await this.loadFileTree();
+    // Expand parent dirs so the new folder is visible
+    const parts = path.split("/");
+    const expandedDirs = new Set(this.state.expandedDirs);
+    for (let i = 1; i < parts.length; i++) {
+      expandedDirs.add(parts.slice(0, i).join("/"));
+    }
+    this.update({ expandedDirs });
+  }
+
+  async duplicateFile(path: string) {
+    const { content } = await this.fs.readFile(path);
+    const dir = path.includes("/") ? path.substring(0, path.lastIndexOf("/") + 1) : "";
+    const name = path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path;
+    const base = name.replace(/\.md$/, "");
+
+    // Collect existing sibling names to find next available number
+    const siblings = this.collectFileNames(dir);
+    let n = 1;
+    while (siblings.has(`${base} (${n}).md`)) n++;
+
+    const newPath = `${dir}${base} (${n}).md`;
+    await this.fs.createFile(newPath, content);
+    await this.loadFileTree();
+    await this.openFile(newPath);
+  }
+
+  private collectFileNames(dir: string): Set<string> {
+    const names = new Set<string>();
+    const find = (entries: FileTreeEntry[], prefix: string) => {
+      for (const entry of entries) {
+        if (entry.type === "file" && prefix === dir) {
+          names.add(entry.name);
+        }
+        if (entry.children) {
+          find(entry.children, entry.path + "/");
+        }
+      }
+    };
+    find(this.state.fileTree, "");
+    return names;
+  }
+
   async deleteFile(path: string) {
     await this.fs.deleteFile(path);
     if (this.state.activeFile === path) {

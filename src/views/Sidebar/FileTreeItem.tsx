@@ -5,9 +5,10 @@ import { useStore } from "../hooks";
 interface Props {
   entry: FileTreeEntry;
   depth: number;
+  onContextMenu: (e: React.MouseEvent, entry: FileTreeEntry) => void;
 }
 
-export function FileTreeItem({ entry, depth }: Props) {
+export function FileTreeItem({ entry, depth, onContextMenu }: Props) {
   const { activeFile, expandedDirs } = useStore();
   const isExpanded = expandedDirs.has(entry.path);
   const isActive = entry.path === activeFile;
@@ -24,6 +25,7 @@ export function FileTreeItem({ entry, depth }: Props) {
     <div>
       <button
         onClick={handleClick}
+        onContextMenu={(e) => onContextMenu(e, entry)}
         className={`flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-sm transition-colors ${
           isActive
             ? "bg-bg-surface text-accent"
@@ -43,7 +45,7 @@ export function FileTreeItem({ entry, depth }: Props) {
       {entry.type === "directory" && isExpanded && entry.children && (
         <div>
           {entry.children.map((child) => (
-            <FileTreeItem key={child.path} entry={child} depth={depth + 1} />
+            <FileTreeItem key={child.path} entry={child} depth={depth + 1} onContextMenu={onContextMenu} />
           ))}
         </div>
       )}

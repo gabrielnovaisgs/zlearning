@@ -34,6 +34,8 @@ src/
       CommandPalette.tsx  # Dialog de busca fuzzy de arquivos (Ctrl+O)
       fuzzy-match.ts     # Fuzzy match por subsequencia + flatten da file tree
     hooks.ts          # useStore() hook para sincronizar com store externo
+    Sidebar/
+      ContextMenu.tsx # Menu de contexto generico (portal, posicao fixa)
 server/
   index.ts            # Express + Vite dev middleware (porta 3000)
   routes/
@@ -134,6 +136,14 @@ Keybindings do CodeMirror (`keymap.of()`) para formatacao de texto selecionado. 
 | `Mod-Shift-9` | Blockquote | `> ` (prefixo) |
 
 `Mod` = Ctrl no Linux/Windows, Cmd no Mac. `markdownKeymap` e inserido antes do `defaultKeymap` no setup para ter prioridade.
+
+### Menu de contexto (Sidebar)
+
+Clique direito na sidebar abre um `ContextMenu` (portal em `document.body`):
+- **Area vazia ou diretorio**: opcoes "New file" e "New folder"
+- **Arquivo**: opcoes "Duplicate", "Delete", "New file" e "New folder"
+- Duplicacao usa numeracao incremental: `arquivo (1).md`, `arquivo (2).md`, etc. (`store.duplicateFile()` verifica nomes existentes no mesmo diretorio)
+- `store.createDirectory()` expande os diretorios pai automaticamente
 
 ### Roteamento por URL (store.ts + App.tsx)
 

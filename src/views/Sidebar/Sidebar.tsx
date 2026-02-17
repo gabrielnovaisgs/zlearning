@@ -1,11 +1,20 @@
 import { store } from "@core/store";
+import type { FileTreeEntry } from "@core/types";
 import { useStore } from "../hooks";
 import { FileTree } from "./FileTree";
-import { useCallback, useRef } from "react";
+import { ContextMenu, type MenuItem } from "./ContextMenu";
+import { useCallback, useRef, useState } from "react";
+
+interface MenuState {
+  x: number;
+  y: number;
+  entry: FileTreeEntry | null;
+}
 
 export function Sidebar() {
   const { sidebarWidth } = useStore();
   const resizing = useRef(false);
+  const [menu, setMenu] = useState<MenuState | null>(null);
 
   const handleNewFile = async () => {
     const name = prompt("File name (e.g. notes/my-file.md):");
@@ -13,6 +22,28 @@ export function Sidebar() {
     const path = name.endsWith(".md") ? name : `${name}.md`;
     await store.createFile(path);
   };
+
+  const handleNewDirectory = async () => {
+    const name = prompt("Folder name (e.g. notes/subfolder):");
+    if (!name) return;
+    await store.createDirectory(name);
+  };
+
+  const handleContextMenu = useCallback((e: React.MouseEvent, entry: FileTreeEntry | null) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenu({ x: e.clientX, y: e.clientY, entry });
+  }, []);
+
+  const menuItems: MenuItem[] = [];
+  if (menu) {
+    if (menu.entry?.type === "file") {
+      menuItems.push({ label: "Duplicate", action: () => store.duplicateFile(menu.entry!.path) });
+      menuItems.push({ label: "Delete", action: () => store.deleteFile(menu.entry!.path) });
+    }
+    menuItems.push({ label: "New file", action: handleNewFile });
+    menuItems.push({ label: "New folder", action: handleNewDirectory });
+  }
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -46,11 +77,27 @@ export function Sidebar() {
             +
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-2">
-          <FileTree />
+        <div
+          className="flex-1 overflow-y-auto px-2"
+          onContextMenu={(e) => {
+            // Empty area context menu
+            if (e.target === e.currentTarget) {
+              handleContextMenu(e, null);
+            }
+          }}
+        >
+          <FileTree onContextMenu={handleContextMenu} />
         </div>
       </div>
       <div className="resize-handle" onMouseDown={handleMouseDown} />
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          items={menuItems}
+          onClose={() => setMenu(null)}
+        />
+      )}
     </div>
   );
 }
