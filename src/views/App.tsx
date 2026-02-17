@@ -7,8 +7,21 @@ import { CommandPalette } from "./CommandPalette/CommandPalette";
 
 function openFileFromURL() {
   const path = location.pathname.slice(1); // remove leading "/"
-  if (path) {
-    store.openFile(path.endsWith(".md") ? path : path + ".md");
+  if (!path) return;
+  if (path.endsWith(".md") || path.endsWith(".pdf")) {
+    store.openFile(path);
+  } else {
+    // Try .md first, fall back to .pdf by checking the file tree
+    const { fileTree } = store.getState();
+    const findFile = (entries: typeof fileTree): string | null => {
+      for (const e of entries) {
+        if (e.type === "file" && (e.path === path + ".md" || e.path === path + ".pdf")) return e.path;
+        if (e.children) { const f = findFile(e.children); if (f) return f; }
+      }
+      return null;
+    };
+    const resolved = findFile(fileTree) || path + ".md";
+    store.openFile(resolved);
   }
 }
 

@@ -5,7 +5,11 @@ import { useStore } from "../hooks";
 
 function fileTitle(path: string): string {
   const name = path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path;
-  return name.replace(/\.md$/, "");
+  return name.replace(/\.(md|pdf)$/, "");
+}
+
+function isPdf(path: string): boolean {
+  return path.endsWith(".pdf");
 }
 
 function EditableTitle({ activeFile }: { activeFile: string }) {
@@ -93,14 +97,24 @@ export function EditorContainer() {
     }
   }, [activeFile]);
 
+  const showEditor = activeFile && !isPdf(activeFile);
+  const showPdf = activeFile && isPdf(activeFile);
+
   return (
     <div className="relative flex h-full flex-1 flex-col bg-bg-primary overflow-y-auto">
       {activeFile && <EditableTitle activeFile={activeFile} />}
       <div
         ref={containerRef}
         className="flex-1"
-        style={{ display: activeFile ? undefined : "none" }}
+        style={{ display: showEditor ? undefined : "none" }}
       />
+      {showPdf && (
+        <iframe
+          src={`/api/files/raw/${activeFile}`}
+          className="flex-1 border-none"
+          title={fileTitle(activeFile)}
+        />
+      )}
       {!activeFile && (
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center text-text-muted">

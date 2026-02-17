@@ -34,7 +34,7 @@ async function buildTree(dirPath: string): Promise<FileTreeEntry[]> {
         type: "directory",
         children: await buildTree(fullPath),
       });
-    } else if (entry.name.endsWith(".md")) {
+    } else if (entry.name.endsWith(".md") || entry.name.endsWith(".pdf")) {
       result.push({
         name: entry.name,
         path: relativePath,
@@ -64,6 +64,17 @@ export function createFilesystemRouter(): Router {
       res.json(tree);
     } catch (err) {
       res.status(500).json({ error: "Failed to list files" });
+    }
+  });
+
+  // Serve raw file (for PDFs and other binary files)
+  router.get("/raw/*splat", async (req, res) => {
+    try {
+      const reqPath = (req.params.splat as string[]).join("/");
+      const filePath = safePath(reqPath);
+      res.sendFile(filePath);
+    } catch {
+      res.status(500).json({ error: "Failed to serve file" });
     }
   });
 

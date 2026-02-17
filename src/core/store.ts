@@ -43,11 +43,15 @@ class Store {
 
   async openFile(path: string) {
     if (path === this.state.activeFile) return;
-    this.update({ loading: true});
-    const { content } = await this.fs.readFile(path);
-    this.update({ fileContent: content, loading: false,  activeFile: path  });
-    // Sync URL with active file (without .md extension for cleaner URLs)
-    const urlPath = "/" + path.replace(/\.md$/, "");
+    this.update({ loading: true });
+    if (path.endsWith(".pdf")) {
+      // PDFs don't need text content — just set the active file
+      this.update({ fileContent: "", loading: false, activeFile: path });
+    } else {
+      const { content } = await this.fs.readFile(path);
+      this.update({ fileContent: content, loading: false, activeFile: path });
+    }
+    const urlPath = "/" + path.replace(/\.(md|pdf)$/, "");
     if (location.pathname !== urlPath) {
       history.pushState(null, "", urlPath);
     }
@@ -135,8 +139,8 @@ class Store {
 
   async renameFile(oldPath: string, newName: string): Promise<boolean> {
     const dir = oldPath.includes("/") ? oldPath.substring(0, oldPath.lastIndexOf("/") + 1) : "";
-    const isFile = oldPath.endsWith(".md");
-    const finalName = isFile && !newName.endsWith(".md") ? newName + ".md" : newName;
+    const ext = oldPath.match(/\.(md|pdf)$/)?.[0];
+    const finalName = ext && !newName.endsWith(ext) ? newName + ext : newName;
     const newPath = `${dir}${finalName}`;
     if (newPath === oldPath) return true;
     if (this.fileExists(newPath)) {
@@ -147,7 +151,7 @@ class Store {
     await this.loadFileTree();
     if (this.state.activeFile === oldPath) {
       this.update({ activeFile: newPath });
-      const urlPath = "/" + newPath.replace(/\.md$/, "");
+      const urlPath = "/" + newPath.replace(/\.(md|pdf)$/, "");
       history.replaceState(null, "", urlPath);
     }
     return true;
@@ -187,7 +191,7 @@ class Store {
     await this.loadFileTree();
     if (this.state.activeFile === sourcePath) {
       this.update({ activeFile: newPath });
-      const urlPath = "/" + newPath.replace(/\.md$/, "");
+      const urlPath = "/" + newPath.replace(/\.(md|pdf)$/, "");
       history.replaceState(null, "", urlPath);
     }
   }

@@ -167,9 +167,17 @@ O caminho do arquivo ativo e refletido na URL do navegador (sem a extensao `.md`
 - `Decoration.set(array, true)` com `true` para auto-sort, pois syntax tree nao garante ordem
 - Block decorations (line, widget block) so funcionam via `StateField.provide()`, nao via ViewPlugin
 
+### Visualizador de PDF
+
+Arquivos `.pdf` em `docs/` aparecem na file tree com icone 📕:
+- **Servidor**: `GET /api/files/raw/*` serve arquivos binarios diretamente via `res.sendFile()`
+- **Store**: `openFile()` detecta extensao `.pdf` e pula leitura de conteudo texto
+- **EditorContainer**: quando `activeFile` termina em `.pdf`, renderiza `<iframe>` apontando para `/api/files/raw/{path}` em vez do CodeMirror
+- **URL routing**: `openFileFromURL()` tenta resolver tanto `.md` quanto `.pdf` ao carregar a pagina
+
 ## Convencoes
 
-- Apenas arquivos `.md` sao processados
+- Arquivos `.md` e `.pdf` sao processados
 - Arquivos ficam em `docs/`
 - Tema dark com paleta Catppuccin Mocha
 - Path aliases: `@/` mapeia para `src/`, `@core/` mapeia para `src/core/`

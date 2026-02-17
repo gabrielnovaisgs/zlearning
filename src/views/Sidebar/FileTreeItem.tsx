@@ -19,7 +19,7 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
   const isActive = entry.path === activeFile;
   const isRenaming = renamingPath === entry.path;
 
-  const displayName = entry.type === "file" ? entry.name.replace(/\.md$/, "") : entry.name;
+  const displayName = entry.type === "file" ? entry.name.replace(/\.(md|pdf)$/, "") : entry.name;
   const [renameValue, setRenameValue] = useState(displayName);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -104,7 +104,7 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
         {entry.type === "directory" ? (
           <span className="text-xs text-text-muted">{isExpanded ? "▾" : "▸"}</span>
         ) : (
-          <span className="text-xs text-text-muted">📄</span>
+          <span className="text-xs text-text-muted">{entry.name.endsWith(".pdf") ? "📕" : "📄"}</span>
         )}
         {isRenaming ? (
           <input
