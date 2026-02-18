@@ -1,6 +1,7 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import { createFilesystemRouter } from "./routes/filesystem.js";
+import { createTranslateRouter } from "./routes/translate.js";
 
 async function start() {
   const app = express();
@@ -10,6 +11,7 @@ async function start() {
 
   // API routes
   app.use("/api/files", createFilesystemRouter());
+  app.use("/api/translate", createTranslateRouter());
 
   // Vite dev server as middleware
   const vite = await createViteServer({

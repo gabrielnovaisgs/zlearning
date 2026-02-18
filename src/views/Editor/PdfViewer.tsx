@@ -634,6 +634,7 @@ export function PdfViewer({ pdfPath }: Props) {
                             hideTipAndSelection
                           )
                         }
+                        textToTranslate={content.text ?? undefined}
                       />
                     )}
                     highlightTransform={(
@@ -684,6 +685,7 @@ export function PdfViewer({ pdfPath }: Props) {
                               setTip(highlight, (hl) => (
                                 <HighlightActionMenu
                                   currentColor={hl.comment.emoji}
+                                  highlightText={hl.content.text ?? undefined}
                                   onChangeColor={(newColor) => {
                                     changeHighlightColor(hl.id, newColor);
                                     hideTip();
