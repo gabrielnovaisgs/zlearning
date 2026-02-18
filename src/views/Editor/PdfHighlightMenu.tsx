@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { translateText } from "@core/services/translation";
+import { translateText, getExamples, type TranslationExample } from "@core/services/translation";
 
 const COLORS = [
   { id: "yellow", bg: "#fef08a", label: "Yellow" },
@@ -16,36 +16,56 @@ interface TranslationDialogProps {
   onClose: () => void;
 }
 
-function TranslationDialog({ original, onClose }: TranslationDialogProps) {
-  const [status, setStatus] = useState<"loading" | "done" | "error">("loading");
-  const [result, setResult] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
+function Spinner() {
+  return (
+    <svg className="animate-spin shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+      <path d="M12 2a10 10 0 0 1 10 10" />
+    </svg>
+  );
+}
 
-  // Kick off translation on mount
+function TranslationDialog({ original, onClose }: TranslationDialogProps) {
+  const [transStatus, setTransStatus] = useState<"loading" | "done" | "error">("loading");
+  const [translation, setTranslation] = useState("");
+  const [transError, setTransError] = useState("");
+
+  const [exStatus, setExStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [examples, setExamples] = useState<TranslationExample[]>([]);
+  const [exError, setExError] = useState("");
+
   useEffect(() => {
     translateText(original)
-      .then((t) => {
-        setResult(t);
-        setStatus("done");
-      })
+      .then((t) => { setTranslation(t); setTransStatus("done"); })
       .catch((err: unknown) => {
-        setErrorMsg(err instanceof Error ? err.message : "Falha na tradução");
-        setStatus("error");
+        setTransError(err instanceof Error ? err.message : "Falha na tradução");
+        setTransStatus("error");
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function fetchExamples() {
+    setExStatus("loading");
+    getExamples(original)
+      .then((ex) => { setExamples(ex); setExStatus("done"); })
+      .catch((err: unknown) => {
+        setExError(err instanceof Error ? err.message : "Falha ao buscar exemplos");
+        setExStatus("error");
+      });
+  }
+
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
       <div
-        className="w-full max-w-md rounded-xl bg-bg-secondary border border-border shadow-2xl p-5 flex flex-col gap-3"
+        className="w-full max-w-lg rounded-xl bg-bg-secondary border border-border shadow-2xl p-5 flex flex-col gap-3 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between shrink-0">
           <span className="text-xs font-semibold text-text-muted uppercase tracking-wide">
             Tradução — EN → PT
           </span>
@@ -67,27 +87,60 @@ function TranslationDialog({ original, onClose }: TranslationDialogProps) {
 
         {/* Translation */}
         <div className="rounded-lg bg-bg-surface border border-border px-3 py-2 min-h-15 flex items-center">
-          {status === "loading" && (
+          {transStatus === "loading" && (
             <div className="flex items-center gap-2 text-text-muted text-sm">
-              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
-                <path d="M12 2a10 10 0 0 1 10 10" />
-              </svg>
+              <Spinner />
               Traduzindo…
             </div>
           )}
-          {status === "error" && (
-            <p className="text-sm text-red-400">{errorMsg}</p>
+          {transStatus === "error" && (
+            <p className="text-sm text-red-400">{transError}</p>
           )}
-          {status === "done" && (
+          {transStatus === "done" && (
             <div className="w-full">
               <p className="text-[10px] text-text-muted mb-1">Português</p>
-              <p className="text-sm text-text-primary leading-relaxed">{result}</p>
+              <p className="text-sm text-text-primary leading-relaxed">{translation}</p>
             </div>
           )}
         </div>
 
-        <div className="flex justify-end">
+        {/* Examples section */}
+        {exStatus !== "idle" && (
+          <div className="flex flex-col gap-2">
+            <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Exemplos de uso</p>
+            {exStatus === "loading" && (
+              <div className="flex items-center gap-2 text-text-muted text-sm px-1">
+                <Spinner />
+                Buscando exemplos…
+              </div>
+            )}
+            {exStatus === "error" && (
+              <p className="text-sm text-red-400 px-1">{exError}</p>
+            )}
+            {exStatus === "done" && examples.map((ex, i) => (
+              <div key={i} className="rounded-lg bg-bg-surface border border-border px-3 py-2 flex flex-col gap-1">
+                <p className="text-sm text-text-primary leading-relaxed">{ex.original}</p>
+                <p className="text-xs text-text-muted leading-relaxed italic">{ex.translation}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="flex items-center justify-between shrink-0 pt-1">
+          <button
+            onClick={fetchExamples}
+            disabled={exStatus === "loading"}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border text-text-secondary hover:text-text-primary hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {exStatus === "loading" ? <Spinner /> : (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+              </svg>
+            )}
+            Exemplos
+          </button>
           <button
             onClick={onClose}
             className="px-3 py-1.5 text-xs rounded-lg bg-bg-hover text-text-secondary hover:text-text-primary transition-colors"
