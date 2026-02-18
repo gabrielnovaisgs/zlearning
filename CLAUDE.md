@@ -168,17 +168,52 @@ O caminho do arquivo ativo e refletido na URL do navegador (sem a extensao `.md`
 - `Decoration.set(array, true)` com `true` para auto-sort, pois syntax tree nao garante ordem
 - Block decorations (line, widget block) so funcionam via `StateField.provide()`, nao via ViewPlugin
 
-### Visualizador de PDF (PdfViewer.tsx)
+### Visualizador de PDF (PdfViewer.tsx + PdfHighlightMenu.tsx)
 
-Arquivos `.pdf` em `docs/` aparecem na file tree com icone 📕:
+Arquivos `.pdf` em `docs/` aparecem na file tree com icone 📕. Usa a biblioteca `react-pdf-highlighter` (`PdfLoader` + `PdfHighlighter`).
+
+**Infraestrutura**:
 - **Servidor**: `GET /api/files/raw/*` serve arquivos binarios diretamente via `res.sendFile()`
 - **Store**: `openFile()` detecta extensao `.pdf` e pula leitura de conteudo texto
-- **EditorContainer**: quando `activeFile` termina em `.pdf`, oculta titulo e editor markdown, renderiza `<PdfViewer>`
-- **PdfViewer**: split view com iframe do PDF (esquerda) + painel de notas redimensionavel (direita, 400px default)
-- **Notas do PDF**: arquivo `notes-<nome>.md` criado automaticamente no mesmo diretorio, com frontmatter `pdf: "[[path]]"` vinculando ao PDF
-- **Vinculacao**: qualquer nota `.md` pode ser vinculada a um PDF adicionando `pdf: "[[path]]"` no frontmatter
-- **Auto-save**: as notas usam uma instancia independente de `createEditor` com debounce de 1s
+- **EditorContainer**: quando `activeFile` termina em `.pdf`, renderiza `<PdfViewer>`
 - **URL routing**: `openFileFromURL()` tenta resolver tanto `.md` quanto `.pdf` ao carregar a pagina
+
+**Layout**:
+- Split view: area do PDF (esquerda, flexivel) + painel de notas redimensionavel (direita, 400px default)
+- Toolbar no topo: botao de TOC + navegacao de pagina (anterior/proxima + input numerico)
+- TOC sidebar opcionalmente visivel (225px), populada via `pdfDocument.getOutline()`
+
+**Navegacao e rastreamento de pagina**:
+- `IntersectionObserver` com `MutationObserver` monitora elementos `.page[data-page-number]` dentro do `.PdfHighlighter` scroll root
+- Pagina atual e sincronizada com o toolbar e usada para highlight no TOC
+- `scrollToPage(n)` usa `scrollIntoView({ behavior: "smooth" })` no elemento da pagina alvo
+- Outline resolve destinos de pagina via `pdfDoc.getDestination()` + `pdfDoc.getPageIndex()`
+
+**Highlights**:
+- Cores disponiveis: `yellow`, `green`, `blue`, `pink` (RGBA com alpha 0.45 via `HIGHLIGHT_COLORS`)
+- Persistencia em `highlights-<nome>.json` no mesmo diretorio do PDF
+- `ColorPicker` (em `PdfHighlightMenu.tsx`): aparece ao selecionar texto, permite escolher cor antes de criar o highlight
+- `HighlightActionMenu` (em `PdfHighlightMenu.tsx`): aparece ao clicar num highlight existente, permite trocar cor ou deletar
+- `highlight.comment.emoji` armazena o id da cor (campo reutilizado da API)
+- Highlight com pulso visual (`pdf-highlight-pulse`) quando scrollado via link
+
+**Citacoes automaticas**:
+- Ao criar highlight com texto, `buildCitation()` insere blockquote no editor de notas:
+  ```
+  > texto selecionado
+  >
+  > — [p. 42](pdf-highlight://uuid)
+  ```
+- Links `pdf-highlight://uuid` no editor markdown sao interceptados por `linkClickHandler` em `markdown-widgets.ts` e disparam `store.setPdfHighlightTarget(id)`, que faz o `PdfViewer` scrollar ate o highlight correspondente via `scrollViewerTo.current(hl)`
+
+**Notas do PDF**:
+- Arquivo `notes-<nome>.md` criado automaticamente no mesmo diretorio, com frontmatter `pdf: "[[path]]"` vinculando ao PDF
+- Qualquer nota `.md` pode ser vinculada a um PDF adicionando `pdf: "[[path]]"` no frontmatter
+- Auto-save com debounce de 1s via instancia independente de `createEditor`
+
+**Estado no store** (`pdfHighlightTarget: string | null`):
+- `store.setPdfHighlightTarget(id)` — define o highlight alvo
+- `store.clearPdfHighlightTarget()` — limpa apos o scroll ser executado
 
 ## Convencoes
 
