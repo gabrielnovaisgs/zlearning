@@ -162,6 +162,8 @@ export function PdfViewer({ pdfPath }: Props) {
 
   // ── Scroll control (set by PdfHighlighter's scrollRef) ───────────
   const scrollViewerTo = useRef<(hl: IHighlight) => void>(() => {});
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const highlighterRef = useRef<any>(null);
 
   // ── PDF navigation state ──────────────────────────────────────────
   const [numPages, setNumPages] = useState(0);
@@ -171,67 +173,65 @@ export function PdfViewer({ pdfPath }: Props) {
   const [showToc, setShowToc] = useState(false);
   const pdfWrapperRef = useRef<HTMLDivElement>(null);
 
-  // ── Page tracking via IntersectionObserver ────────────────────────
+  // ── Page tracking via scroll event ───────────────────────────────
   useEffect(() => {
     const wrapper = pdfWrapperRef.current;
     if (!wrapper) return;
 
-    const pageRatios = new Map<Element, number>();
-    let io: IntersectionObserver | null = null;
-    const observed = new Set<Element>();
+    let scrollRoot: HTMLElement | null = null;
 
-    const updatePage = () => {
-      let best = 0;
+    const handleScroll = () => {
+      if (!scrollRoot) return;
+      const pages = Array.from(
+        scrollRoot.querySelectorAll<HTMLElement>(".page[data-page-number]")
+      );
+      if (!pages.length) return;
+      const rootRect = scrollRoot.getBoundingClientRect();
       let bestPage = 1;
-      pageRatios.forEach((ratio, el) => {
-        if (ratio > best) {
-          best = ratio;
-          bestPage = parseInt((el as HTMLElement).dataset.pageNumber ?? "1");
+      let bestVisible = 0;
+      for (const page of pages) {
+        const rect = page.getBoundingClientRect();
+        const visible = Math.max(
+          0,
+          Math.min(rect.bottom, rootRect.bottom) - Math.max(rect.top, rootRect.top)
+        );
+        if (visible > bestVisible) {
+          bestVisible = visible;
+          bestPage = parseInt(page.dataset.pageNumber ?? "1");
         }
-      });
+      }
       setCurrentPage(bestPage);
       setPageInput(String(bestPage));
     };
 
-    const observePages = (root: Element) => {
-      root.querySelectorAll(".page[data-page-number]").forEach((el) => {
-        if (!observed.has(el)) {
-          observed.add(el);
-          io?.observe(el);
-        }
-      });
-    };
-
-    // Wait for PdfHighlighter to render its scroll container, then wire up
     const mo = new MutationObserver(() => {
-      if (!io) {
-        // PdfHighlighter renders a div with class "PdfHighlighter" that is the scroll root
-        const scrollRoot = wrapper.querySelector(".PdfHighlighter");
-        if (!scrollRoot) return;
-        io = new IntersectionObserver(
-          (entries) => {
-            entries.forEach((e) => pageRatios.set(e.target, e.intersectionRatio));
-            updatePage();
-          },
-          { root: scrollRoot, threshold: [0, 0.1, 0.3, 0.5, 0.75, 1.0] }
-        );
-        observePages(wrapper);
-      } else {
-        observePages(wrapper);
+      const found = wrapper.querySelector<HTMLElement>(".PdfHighlighter");
+      if (found && found !== scrollRoot) {
+        if (scrollRoot) scrollRoot.removeEventListener("scroll", handleScroll);
+        scrollRoot = found;
+        scrollRoot.addEventListener("scroll", handleScroll, { passive: true });
       }
     });
 
     mo.observe(wrapper, { childList: true, subtree: true });
-    return () => { mo.disconnect(); io?.disconnect(); };
+    return () => {
+      mo.disconnect();
+      if (scrollRoot) scrollRoot.removeEventListener("scroll", handleScroll);
+    };
   }, [pdfPath]);
 
-  // ── Scroll to page ────────────────────────────────────────────────
+  // ── Scroll to page via PDF.js viewer API ──────────────────────────
   const scrollToPage = useCallback(
     (pageNum: number) => {
       const clamped = Math.max(1, Math.min(pageNum, numPages || 1));
-      pdfWrapperRef.current
-        ?.querySelector(`.page[data-page-number="${clamped}"]`)
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setCurrentPage(clamped);
+      setPageInput(String(clamped));
+      // Use the internal PDFViewer from react-pdf-highlighter so page virtualization
+      // is handled correctly (scrollIntoView fails when the page isn't in the DOM).
+      const viewer = highlighterRef.current?.viewer;
+      if (viewer) {
+        viewer.scrollPageIntoView({ pageNumber: clamped });
+      }
     },
     [numPages]
   );
@@ -495,6 +495,7 @@ export function PdfViewer({ pdfPath }: Props) {
                 <>
                   <PdfDocMeta pdfDocument={pdfDocument} onLoad={handlePdfLoad} />
                   <PdfHighlighter
+                    ref={highlighterRef}
                     pdfDocument={pdfDocument}
                     enableAreaSelection={() => false}
                     onScrollChange={() => {}}
