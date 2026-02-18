@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { store } from "@core/store";
 import { registry } from "@core/commands";
 import { Sidebar } from "./Sidebar/Sidebar";
-import { EditorContainer } from "./Editor/EditorContainer";
+import { SplitView } from "./Editor/SplitView";
 import { CommandPalette } from "./CommandPalette/CommandPalette";
 
 function openFileFromURL() {
@@ -61,7 +61,7 @@ export function App() {
   return (
     <div className="flex h-screen bg-bg-primary text-text-primary">
       <Sidebar />
-      <EditorContainer />
+      <SplitView />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   );

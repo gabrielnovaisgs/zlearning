@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createEditor, type EditorInstance } from "@core/editor/setup";
 import { store } from "@core/store";
-import { useStore } from "../hooks";
 import { PdfViewer } from "./PdfViewer";
+
+interface Props {
+  filePath: string | null;
+  paneId: string;
+  isFocused: boolean;
+}
 
 function fileTitle(path: string): string {
   const name = path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path;
@@ -71,35 +76,61 @@ function EditableTitle({ activeFile }: { activeFile: string }) {
   );
 }
 
-export function EditorContainer() {
-  const { activeFile, fileContent, loading } = useStore();
+export function EditorContainer({ filePath, isFocused: _isFocused }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<EditorInstance | null>(null);
   const isExternalUpdate = useRef(false);
+  const filePathRef = useRef(filePath);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [loading, setLoading] = useState(false);
 
+  // Keep ref in sync with prop
+  useEffect(() => {
+    filePathRef.current = filePath;
+  }, [filePath]);
+
+  const scheduleSave = useCallback((path: string, content: string) => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      store.fs.writeFile(path, content);
+    }, 1000);
+  }, []);
+
+  // Create editor once
   useEffect(() => {
     if (!containerRef.current) return;
 
     const editor = createEditor(containerRef.current, (content) => {
-      if (!isExternalUpdate.current) {
-        store.setFileContent(content);
+      const path = filePathRef.current;
+      if (!isExternalUpdate.current && path && !isPdf(path)) {
+        scheduleSave(path, content);
       }
     });
 
     editorRef.current = editor;
-    return () => editor.destroy();
-  }, []);
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      editor.destroy();
+    };
+  }, [scheduleSave]);
 
+  // Load file content when filePath changes
   useEffect(() => {
-    if (editorRef.current && activeFile && !isPdf(activeFile)) {
-      isExternalUpdate.current = true;
-      editorRef.current.setContent(fileContent);
-      isExternalUpdate.current = false;
-    }
-  }, [activeFile]);
+    if (!filePath || isPdf(filePath)) return;
 
-  const showMarkdown = !!activeFile && !isPdf(activeFile);
-  const showPdf = !!activeFile && isPdf(activeFile);
+    setLoading(true);
+    store.fs.readFile(filePath).then(({ content }) => {
+      if (editorRef.current) {
+        isExternalUpdate.current = true;
+        editorRef.current.setContent(content);
+        isExternalUpdate.current = false;
+      }
+      setLoading(false);
+    });
+  }, [filePath]);
+
+  const showMarkdown = !!filePath && !isPdf(filePath);
+  const showPdf = !!filePath && isPdf(filePath);
 
   return (
     <div className="relative flex h-full flex-1 flex-col bg-bg-primary">
@@ -108,15 +139,15 @@ export function EditorContainer() {
         className="flex flex-1 flex-col overflow-y-auto"
         style={{ display: showMarkdown ? undefined : "none" }}
       >
-        {showMarkdown && <EditableTitle activeFile={activeFile} />}
+        {showMarkdown && <EditableTitle activeFile={filePath} />}
         <div ref={containerRef} className="flex-1" />
       </div>
 
       {/* PDF viewer with notes panel */}
-      {showPdf && <PdfViewer pdfPath={activeFile} />}
+      {showPdf && <PdfViewer pdfPath={filePath} />}
 
       {/* Empty state */}
-      {!activeFile && (
+      {!filePath && (
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center text-text-muted">
             <div className="mb-2 text-4xl">📝</div>
