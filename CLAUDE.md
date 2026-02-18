@@ -41,12 +41,15 @@ server/
   index.ts            # Express + Vite dev middleware (porta 3000)
   routes/
     filesystem.ts     # API REST de arquivos (CRUD em docs/) com protecao contra path traversal
+    translate.ts      # POST /api/translate e POST /api/translate/examples (traducao via LLM)
+  services/
+    llm.ts            # Abstracao de provedores LLM (interface LLMProvider + OpenRouterProvider)
 docs/                 # Diretorio raiz das notas markdown
 ```
 
 ## Comandos
 
-- `npm run dev` — Inicia servidor Express + Vite dev (porta 3000)
+- `npm run dev` — Inicia servidor Express + Vite dev (porta 3000) — carrega `.env` via `--env-file=.env`
 - `npm run build` — Build de producao
 - `npm run preview` — Preview do build
 
@@ -57,6 +60,8 @@ docs/                 # Diretorio raiz das notas markdown
 - `PUT /api/files/*` — Atualiza conteudo de um arquivo
 - `POST /api/files/*` — Cria arquivo ou diretorio
 - `DELETE /api/files/*` — Remove arquivo ou diretorio
+- `POST /api/translate` — Traduz texto (`{ text, from?, to? }` → `{ translation }`)
+- `POST /api/translate/examples` — Retorna exemplos de uso (`{ text, from?, to? }` → `{ examples: [{original, translation}] }`)
 
 ## Arquitetura do Editor Markdown
 
@@ -226,6 +231,17 @@ Arquivos `.pdf` em `docs/` aparecem na file tree com icone 📕. Usa a bibliotec
 **Estado no store** (`pdfHighlightTarget: string | null`):
 - `store.setPdfHighlightTarget(id)` — define o highlight alvo
 - `store.clearPdfHighlightTarget()` — limpa apos o scroll ser executado
+
+**Traducao e exemplos** (`server/services/llm.ts` + `server/routes/translate.ts` + `src/core/services/translation.ts`):
+- `LLMProvider` interface com `complete(prompt): Promise<string>` — permite adicionar novos provedores (ex: Ollama) sem mudar o resto
+- `OpenRouterProvider` implementa a interface; modelo default `google/gemma-3n-e2b-it:free`; requer `OPEN_ROUTER_API_KEY` no `.env`
+- `createLLMProvider()` factory — ponto unico para trocar de provedor no futuro
+- `POST /api/translate` — traduz texto livre via LLM
+- `POST /api/translate/examples` — pede 3 frases de exemplo em JSON; `extractJson()` lida com fences de markdown e texto extra ao redor do array
+- Frontend: `translateText()` e `getExamples()` em `src/core/services/translation.ts`
+- `TranslationDialog` (em `PdfHighlightMenu.tsx`): portal fixo que bloqueia `mousedown` e `click` no backdrop para impedir que o listener do `react-pdf-highlighter` (registrado no `document`) desmonte o tip e feche o dialog; fecha apenas pelo botao X ou "Fechar"
+- Botao "Exemplos" no rodape do dialog — busca exemplos somente quando clicado (nao na abertura); exibe original + traducao em cards separados
+- Tanto `ColorPicker` (selecao nova) quanto `HighlightActionMenu` (highlight existente) expoe o botao "Traduzir"
 
 ## Convencoes
 
