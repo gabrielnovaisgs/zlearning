@@ -177,13 +177,23 @@ export function PdfViewer({ pdfPath }: Props) {
   // null = "auto" (PDF.js fit-width inicial). Após carga ou zoom explícito torna-se numérico,
   // bloqueando o ResizeObserver do PdfHighlighter que chamaria handleScaleValue("auto").
   const [scale, setScale] = useState<number | null>(null);
+  const [zoomInput, setZoomInput] = useState<string>("");
+  const zoomEditingRef = useRef(false);
 
   const applyZoom = useCallback((newScale: number) => {
     const clamped = Math.round(Math.max(0.1, Math.min(5.0, newScale)) * 100) / 100;
     setScale(clamped);
+    setZoomInput(String(Math.round(clamped * 100)));
     const viewer = highlighterRef.current?.viewer;
     if (viewer) viewer.currentScaleValue = String(clamped);
   }, []);
+
+  // Keep input in sync with scale (e.g. after PDF load or Ctrl+scroll)
+  useEffect(() => {
+    if (!zoomEditingRef.current) {
+      setZoomInput(scale !== null ? String(Math.round(scale * 100)) : "");
+    }
+  }, [scale]);
 
   // Sync display scale with viewer's auto-computed scale after PDF loads
   useEffect(() => {
@@ -402,7 +412,12 @@ export function PdfViewer({ pdfPath }: Props) {
   useEffect(() => {
     if (!pdfHighlightTarget) return;
     const hl = highlights.find((h) => h.id === pdfHighlightTarget);
-    if (hl) scrollViewerTo.current(hl);
+    if (hl) {
+      scrollViewerTo.current(hl);
+      const page = hl.position.pageNumber;
+      setCurrentPage(page);
+      setPageInput(String(page));
+    }
     store.clearPdfHighlightTarget();
   }, [pdfHighlightTarget, highlights]);
 
@@ -515,13 +530,39 @@ export function PdfViewer({ pdfPath }: Props) {
                 <path d="M3.5 5.5h4" />
               </svg>
             </button>
-            <button
-              onClick={() => applyZoom(1.0)}
-              title="Redefinir zoom (100%)"
-              className="text-xs text-text-muted hover:text-text-primary w-12 text-center px-1 py-0.5 rounded hover:bg-bg-hover transition-colors tabular-nums"
-            >
-              {scale !== null ? `${Math.round(scale * 100)}%` : "…"}
-            </button>
+            <div className="flex items-center">
+              <input
+                type="text"
+                value={zoomInput}
+                onChange={(e) => setZoomInput(e.target.value)}
+                onFocus={(e) => {
+                  zoomEditingRef.current = true;
+                  setZoomInput(scale !== null ? String(Math.round(scale * 100)) : "100");
+                  e.currentTarget.select();
+                }}
+                onBlur={() => {
+                  zoomEditingRef.current = false;
+                  const n = parseInt(zoomInput);
+                  if (!isNaN(n) && n >= 10 && n <= 500) applyZoom(n / 100);
+                  else setZoomInput(scale !== null ? String(Math.round(scale * 100)) : "");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const n = parseInt(zoomInput);
+                    if (!isNaN(n) && n >= 10 && n <= 500) applyZoom(n / 100);
+                    else setZoomInput(scale !== null ? String(Math.round(scale * 100)) : "");
+                    e.currentTarget.blur();
+                  }
+                  if (e.key === "Escape") {
+                    zoomEditingRef.current = false;
+                    setZoomInput(scale !== null ? String(Math.round(scale * 100)) : "");
+                    e.currentTarget.blur();
+                  }
+                }}
+                className="w-9 text-center bg-bg-surface border border-border rounded-l px-1 py-0.5 text-xs text-text-primary focus:outline-none focus:border-accent tabular-nums"
+              />
+              <span className="px-1 py-0.5 text-xs text-text-muted bg-bg-surface border border-l-0 border-border rounded-r select-none">%</span>
+            </div>
             <button
               onClick={() => applyZoom((highlighterRef.current?.viewer?.currentScale ?? scale ?? 1.0) + 0.1)}
               title="Aumentar zoom"
@@ -532,6 +573,13 @@ export function PdfViewer({ pdfPath }: Props) {
                 <path d="M9 9l3.5 3.5" />
                 <path d="M5.5 3.5v4M3.5 5.5h4" />
               </svg>
+            </button>
+            <button
+              onClick={() => applyZoom(1.0)}
+              title="Redefinir zoom para 100%"
+              className="ml-1 px-2 py-0.5 text-xs text-text-muted hover:text-text-primary bg-bg-surface border border-border rounded hover:bg-bg-hover transition-colors"
+            >
+              reset
             </button>
           </div>
         </div>
