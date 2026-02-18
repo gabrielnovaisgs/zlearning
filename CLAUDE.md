@@ -180,14 +180,26 @@ Arquivos `.pdf` em `docs/` aparecem na file tree com icone 📕. Usa a bibliotec
 
 **Layout**:
 - Split view: area do PDF (esquerda, flexivel) + painel de notas redimensionavel (direita, 400px default)
-- Toolbar no topo: botao de TOC + navegacao de pagina (anterior/proxima + input numerico)
+- Toolbar 3 colunas: [TOC toggle] | [navegacao de pagina centralizada] | [controles de zoom]
 - TOC sidebar opcionalmente visivel (225px), populada via `pdfDocument.getOutline()`
 
 **Navegacao e rastreamento de pagina**:
-- `IntersectionObserver` com `MutationObserver` monitora elementos `.page[data-page-number]` dentro do `.PdfHighlighter` scroll root
-- Pagina atual e sincronizada com o toolbar e usada para highlight no TOC
-- `scrollToPage(n)` usa `scrollIntoView({ behavior: "smooth" })` no elemento da pagina alvo
+- Page tracking via **scroll event listener** no container `.PdfHighlighter` (substituiu IntersectionObserver, que falhava com virtualizacao do PDF.js). `MutationObserver` aguarda o container aparecer no DOM e anexa o listener.
+- `scrollToPage(n)` usa `highlighterRef.current.viewer.scrollPageIntoView({ pageNumber })` — API interna do PDF.js via ref no `PdfHighlighter`. Evita o `querySelector` que falha quando a pagina nao esta no DOM (virtualizacao) e nao dispara o ciclo de disconnect/reconnect que causava o warning de `createRoot`.
+- Ao clicar em link `pdf-highlight://uuid` nas notas, `currentPage` e `pageInput` sao atualizados diretamente de `hl.position.pageNumber` (sem depender do scroll listener).
 - Outline resolve destinos de pagina via `pdfDoc.getDestination()` + `pdfDoc.getPageIndex()`
+
+**Controle de zoom**:
+- `scale: number | null` — `null` = "auto" (PDF.js calcula fit-width no carregamento); torna-se numerico apos 150ms via leitura de `viewer.currentScale`, ou apos zoom explicito
+- `pdfScaleValue={scale !== null ? String(scale) : "auto"}` e passado ao `PdfHighlighter`. Isso bloqueia o `ResizeObserver` interno da biblioteca (debounce 500ms) que chamava `handleScaleValue()` → `viewer.currentScaleValue = "auto"`, revertendo o zoom a cada resize de componente vizinho (painel de notas, menu de selecao)
+- `applyZoom(newScale)` — clamp [0.1, 5.0], arredonda 2 casas, atualiza `scale` + `viewer.currentScaleValue`
+- Ctrl+wheel: listener `wheel` com `passive: false` no `pdfWrapperRef`; le `viewer.currentScale` como base, aplica delta ±0.1
+- Toolbar: lupa− | `[input]%` | lupa+ | botao "reset" (volta para 100%)
+- `zoomInput` state (string) + `zoomEditingRef` (ref booleano): sync `scale → zoomInput` via `useEffect` apenas quando input nao esta focado; `onFocus` seleciona tudo; `onBlur`/Enter valida (10–500%) e aplica; Escape descarta sem aplicar
+- Scroll horizontal disponivel automaticamente quando zoom extrapola a largura: o container interno do `PdfHighlighter` ja tem `overflow: auto`
+
+**Dependencia critica**:
+- `pdfjs-dist` pinado em `4.4.168` (peer dep exata de `react-pdf-highlighter@8.0.0-rc.0`). A biblioteca hardcoda o worker URL para essa versao em `https://unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs`. Versoes superiores (ex: v5) causam "Junk found after end of compressed data" (worker vs modulo principal em versoes diferentes) e warnings de `createRoot` (API de paginas do PDF.js mudou, quebrando o ciclo de highlight layers).
 
 **Highlights**:
 - Cores disponiveis: `yellow`, `green`, `blue`, `pink` (RGBA com alpha 0.45 via `HIGHLIGHT_COLORS`)
