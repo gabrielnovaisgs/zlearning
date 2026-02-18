@@ -173,6 +173,42 @@ export function PdfViewer({ pdfPath }: Props) {
   const [showToc, setShowToc] = useState(false);
   const pdfWrapperRef = useRef<HTMLDivElement>(null);
 
+  // ── Zoom ──────────────────────────────────────────────────────────
+  // null = "auto" (PDF.js fit-width inicial). Após carga ou zoom explícito torna-se numérico,
+  // bloqueando o ResizeObserver do PdfHighlighter que chamaria handleScaleValue("auto").
+  const [scale, setScale] = useState<number | null>(null);
+
+  const applyZoom = useCallback((newScale: number) => {
+    const clamped = Math.round(Math.max(0.1, Math.min(5.0, newScale)) * 100) / 100;
+    setScale(clamped);
+    const viewer = highlighterRef.current?.viewer;
+    if (viewer) viewer.currentScaleValue = String(clamped);
+  }, []);
+
+  // Sync display scale with viewer's auto-computed scale after PDF loads
+  useEffect(() => {
+    if (numPages === 0) return;
+    const timer = setTimeout(() => {
+      const s = highlighterRef.current?.viewer?.currentScale;
+      if (s && s > 0) setScale(Math.round(s * 100) / 100);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [numPages]);
+
+  // Ctrl+wheel zoom
+  useEffect(() => {
+    const wrapper = pdfWrapperRef.current;
+    if (!wrapper) return;
+    const handleWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      const currentScale = highlighterRef.current?.viewer?.currentScale ?? scale ?? 1.0;
+      applyZoom(currentScale + (e.deltaY > 0 ? -0.1 : 0.1));
+    };
+    wrapper.addEventListener("wheel", handleWheel, { passive: false });
+    return () => wrapper.removeEventListener("wheel", handleWheel);
+  }, [applyZoom, scale]);
+
   // ── Page tracking via scroll event ───────────────────────────────
   useEffect(() => {
     const wrapper = pdfWrapperRef.current;
@@ -271,6 +307,7 @@ export function PdfViewer({ pdfPath }: Props) {
     setPageInput("1");
     setNumPages(0);
     setOutline([]);
+    setScale(null);
 
     (async () => {
       try {
@@ -396,70 +433,107 @@ export function PdfViewer({ pdfPath }: Props) {
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
 
         {/* ── Toolbar ─────────────────────────────────────────────── */}
-        <div className="flex items-center gap-2 px-2 py-1 bg-bg-secondary border-b border-border shrink-0">
-          {/* TOC toggle */}
-          <button
-            title="Índice"
-            onClick={() => setShowToc((v) => !v)}
-            className={`p-1.5 rounded transition-colors ${
-              showToc
-                ? "bg-accent/20 text-accent"
-                : "text-text-muted hover:text-text-primary hover:bg-bg-hover"
-            }`}
-          >
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
-              <rect x="2" y="2.5" width="11" height="1.5" rx="0.75" />
-              <rect x="2" y="6.75" width="8" height="1.5" rx="0.75" />
-              <rect x="2" y="11" width="9" height="1.5" rx="0.75" />
-            </svg>
-          </button>
+        <div className="flex items-center px-2 py-1 bg-bg-secondary border-b border-border shrink-0">
+          {/* Left: TOC toggle */}
+          <div className="flex items-center">
+            <button
+              title="Índice"
+              onClick={() => setShowToc((v) => !v)}
+              className={`p-1.5 rounded transition-colors ${
+                showToc
+                  ? "bg-accent/20 text-accent"
+                  : "text-text-muted hover:text-text-primary hover:bg-bg-hover"
+              }`}
+            >
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
+                <rect x="2" y="2.5" width="11" height="1.5" rx="0.75" />
+                <rect x="2" y="6.75" width="8" height="1.5" rx="0.75" />
+                <rect x="2" y="11" width="9" height="1.5" rx="0.75" />
+              </svg>
+            </button>
+          </div>
 
-          {/* Page navigation — centered */}
-          {numPages > 0 && (
-            <div className="flex items-center gap-1 mx-auto">
-              <button
-                onClick={() => scrollToPage(currentPage - 1)}
-                disabled={currentPage <= 1}
-                className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                title="Página anterior"
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 11L5 7l4-4" />
-                </svg>
-              </button>
+          {/* Center: page navigation */}
+          <div className="flex flex-1 justify-center">
+            {numPages > 0 && (
               <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  value={pageInput}
-                  onChange={(e) => setPageInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
+                <button
+                  onClick={() => scrollToPage(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="Página anterior"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 11L5 7l4-4" />
+                  </svg>
+                </button>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={pageInput}
+                    onChange={(e) => setPageInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const n = parseInt(pageInput);
+                        if (!isNaN(n)) scrollToPage(n);
+                      }
+                      if (e.key === "Escape") setPageInput(String(currentPage));
+                    }}
+                    onBlur={() => {
                       const n = parseInt(pageInput);
                       if (!isNaN(n)) scrollToPage(n);
-                    }
-                    if (e.key === "Escape") setPageInput(String(currentPage));
-                  }}
-                  onBlur={() => {
-                    const n = parseInt(pageInput);
-                    if (!isNaN(n)) scrollToPage(n);
-                    else setPageInput(String(currentPage));
-                  }}
-                  className="w-9 text-center bg-bg-surface border border-border rounded px-1 py-0.5 text-xs text-text-primary focus:outline-none focus:border-accent"
-                />
-                <span className="text-xs text-text-muted">/ {numPages}</span>
+                      else setPageInput(String(currentPage));
+                    }}
+                    className="w-9 text-center bg-bg-surface border border-border rounded px-1 py-0.5 text-xs text-text-primary focus:outline-none focus:border-accent"
+                  />
+                  <span className="text-xs text-text-muted">/ {numPages}</span>
+                </div>
+                <button
+                  onClick={() => scrollToPage(currentPage + 1)}
+                  disabled={currentPage >= numPages}
+                  className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="Próxima página"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 3l4 4-4 4" />
+                  </svg>
+                </button>
               </div>
-              <button
-                onClick={() => scrollToPage(currentPage + 1)}
-                disabled={currentPage >= numPages}
-                className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                title="Próxima página"
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 3l4 4-4 4" />
-                </svg>
-              </button>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Right: zoom controls */}
+          <div className="flex items-center gap-0.5">
+            <button
+              onClick={() => applyZoom((highlighterRef.current?.viewer?.currentScale ?? scale ?? 1.0) - 0.1)}
+              title="Diminuir zoom"
+              className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="5.5" cy="5.5" r="3.5" />
+                <path d="M9 9l3.5 3.5" />
+                <path d="M3.5 5.5h4" />
+              </svg>
+            </button>
+            <button
+              onClick={() => applyZoom(1.0)}
+              title="Redefinir zoom (100%)"
+              className="text-xs text-text-muted hover:text-text-primary w-12 text-center px-1 py-0.5 rounded hover:bg-bg-hover transition-colors tabular-nums"
+            >
+              {scale !== null ? `${Math.round(scale * 100)}%` : "…"}
+            </button>
+            <button
+              onClick={() => applyZoom((highlighterRef.current?.viewer?.currentScale ?? scale ?? 1.0) + 0.1)}
+              title="Aumentar zoom"
+              className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="5.5" cy="5.5" r="3.5" />
+                <path d="M9 9l3.5 3.5" />
+                <path d="M5.5 3.5v4M3.5 5.5h4" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* ── Content row: TOC + PDF viewer ───────────────────────── */}
@@ -497,6 +571,7 @@ export function PdfViewer({ pdfPath }: Props) {
                   <PdfHighlighter
                     ref={highlighterRef}
                     pdfDocument={pdfDocument}
+                    pdfScaleValue={scale !== null ? String(scale) : "auto"}
                     enableAreaSelection={() => false}
                     onScrollChange={() => {}}
                     scrollRef={(scrollTo) => {
