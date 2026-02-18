@@ -11,6 +11,7 @@ class Store {
     loading: false,
     sidebarWidth: 260,
     expandedDirs: new Set(),
+    pdfHighlightTarget: null,
   };
 
   private listeners = new Set<Listener>();
@@ -227,6 +228,14 @@ class Store {
     };
     find(this.state.fileTree, "");
     return names;
+  }
+
+  navigateToPdfHighlight(id: string) {
+    this.update({ pdfHighlightTarget: id });
+  }
+
+  clearPdfHighlightTarget() {
+    this.update({ pdfHighlightTarget: null });
   }
 
   async deleteFile(path: string) {

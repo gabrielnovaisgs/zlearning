@@ -341,7 +341,15 @@ const linkClickHandler = EditorView.domEventHandlers({
         const text = view.state.sliceDoc(linkNode.from, linkNode.to);
         const urlMatch = text.match(/\]\(([^)]*)\)/);
         if (urlMatch?.[1]) {
-          window.open(urlMatch[1], "_blank", "noopener,noreferrer");
+          const url = urlMatch[1];
+          if (url.startsWith("pdf-highlight://")) {
+            const id = url.slice("pdf-highlight://".length);
+            import("@core/store").then(({ store }) => {
+              store.navigateToPdfHighlight(id);
+            });
+            return true;
+          }
+          window.open(url, "_blank", "noopener,noreferrer");
           return true;
         }
       }
