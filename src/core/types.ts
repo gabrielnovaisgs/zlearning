@@ -10,14 +10,6 @@ export interface FileContent {
   path: string;
 }
 
-export interface PdfHighlight {
-  id: string;
-  page: number;
-  text: string;
-  color: string;
-  rects: Array<{ x: number; y: number; width: number; height: number }>;
-}
-
 export interface AppState {
   fileTree: FileTreeEntry[];
   activeFile: string | null;

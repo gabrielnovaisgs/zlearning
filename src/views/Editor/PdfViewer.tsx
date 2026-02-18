@@ -1,13 +1,24 @@
 import { useEffect, useRef, useCallback, useState } from "react";
+import {
+  PdfLoader,
+  PdfHighlighter,
+} from "react-pdf-highlighter";
+import type { IHighlight, NewHighlight } from "react-pdf-highlighter";
+import "react-pdf-highlighter/dist/style.css";
 import { createEditor, type EditorInstance } from "@core/editor/setup";
 import { HttpFileSystemService } from "@core/services/filesystem";
 import { store } from "@core/store";
 import { useStore } from "../hooks";
-import { PdfRenderer, type SelectionInfo } from "./PdfRenderer";
-import { PdfHighlightMenu } from "./PdfHighlightMenu";
-import type { PdfHighlight } from "@core/types";
+import { ColorPicker } from "./PdfHighlightMenu";
 
 const fs = new HttpFileSystemService();
+
+const HIGHLIGHT_COLORS: Record<string, string> = {
+  yellow: "rgba(253, 224, 71, 0.45)",
+  green: "rgba(74, 222, 128, 0.45)",
+  blue: "rgba(96, 165, 250, 0.45)",
+  pink: "rgba(244, 114, 182, 0.45)",
+};
 
 // ── Path helpers ───────────────────────────────────────────────────
 function notesPathFor(pdfPath: string): string {
@@ -36,7 +47,6 @@ function frontmatter(pdfPath: string): string {
   return `---\npdf: "[[${pdfPath.replace(/\.pdf$/, "")}]]"\n---\n\n`;
 }
 
-// ── Citation inserted in notes ─────────────────────────────────────
 function buildCitation(text: string, page: number, id: string): string {
   return `\n> ${text.replace(/\n/g, " ")}\n>\n> — [p. ${page}](pdf-highlight://${id})\n\n`;
 }
@@ -59,11 +69,11 @@ export function PdfViewer({ pdfPath }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   // ── Highlights ────────────────────────────────────────────────────
-  const [highlights, setHighlights] = useState<PdfHighlight[]>([]);
+  const [highlights, setHighlights] = useState<IHighlight[]>([]);
   const highlightsPath = useRef("");
 
-  // ── Selection menu ────────────────────────────────────────────────
-  const [selection, setSelection] = useState<SelectionInfo | null>(null);
+  // ── Scroll control (set by PdfHighlighter's scrollRef) ───────────
+  const scrollViewerTo = useRef<(hl: IHighlight) => void>(() => {});
 
   // ── Create notes editor once ──────────────────────────────────────
   const scheduleSave = useCallback((content: string) => {
@@ -90,10 +100,8 @@ export function PdfViewer({ pdfPath }: Props) {
     notesPath.current = np;
     highlightsPath.current = hp;
     setHighlights([]);
-    setSelection(null);
 
     (async () => {
-      // Load notes
       try {
         const { content } = await fs.readFile(np);
         editorRef.current?.setContent(content);
@@ -104,59 +112,70 @@ export function PdfViewer({ pdfPath }: Props) {
         store.loadFileTree();
       }
 
-      // Load highlights
       try {
         const { content } = await fs.readFile(hp);
-        setHighlights(JSON.parse(content) as PdfHighlight[]);
+        const loaded = JSON.parse(content);
+        // Filter out highlights saved in the old format (pre-react-pdf-highlighter)
+        const valid = Array.isArray(loaded)
+          ? loaded.filter((h: unknown) => {
+              const hl = h as Record<string, unknown>;
+              const pos = hl?.position as Record<string, unknown> | undefined;
+              return typeof pos?.pageNumber === "number";
+            })
+          : [];
+        setHighlights(valid as IHighlight[]);
       } catch {
-        // No highlights file yet — start empty
+        // No highlights file yet
       }
     })();
   }, [pdfPath]);
 
-  // ── Save highlights to JSON ───────────────────────────────────────
-  const saveHighlights = useCallback((updated: PdfHighlight[]) => {
+  // ── Save highlights ───────────────────────────────────────────────
+  const saveHighlights = useCallback((updated: IHighlight[]) => {
     if (highlightsPath.current) {
       fs.writeFile(highlightsPath.current, JSON.stringify(updated, null, 2));
     }
   }, []);
 
-  // ── Handle highlight creation ─────────────────────────────────────
-  const handleHighlight = useCallback(
-    (color: string) => {
-      if (!selection) return;
-
+  // ── Add highlight from selection ──────────────────────────────────
+  const addHighlight = useCallback(
+    (newHl: NewHighlight, color: string, hideTip: () => void) => {
       const id = crypto.randomUUID();
-      const hl: PdfHighlight = {
+      const hl: IHighlight = {
+        ...newHl,
         id,
-        page: selection.page,
-        text: selection.text,
-        color,
-        rects: selection.rects,
+        comment: { text: "", emoji: color },
       };
 
       const updated = [...highlights, hl];
       setHighlights(updated);
       saveHighlights(updated);
 
-      // Insert citation into notes editor
+      const text = newHl.content.text ?? "";
+      const page = newHl.position.pageNumber;
       const editor = editorRef.current;
-      if (editor) {
+      if (editor && text) {
         const view = editor.view;
         const docEnd = view.state.doc.length;
-        const citation = buildCitation(selection.text, selection.page, id);
+        const citation = buildCitation(text, page, id);
         view.dispatch({
           changes: { from: docEnd, to: docEnd, insert: citation },
           selection: { anchor: docEnd + citation.length },
         });
       }
 
-      // Clear browser selection + hide menu
-      window.getSelection()?.removeAllRanges();
-      setSelection(null);
+      hideTip();
     },
-    [selection, highlights, saveHighlights]
+    [highlights, saveHighlights]
   );
+
+  // ── Scroll to highlight when store target changes ─────────────────
+  useEffect(() => {
+    if (!pdfHighlightTarget) return;
+    const hl = highlights.find((h) => h.id === pdfHighlightTarget);
+    if (hl) scrollViewerTo.current(hl);
+    store.clearPdfHighlightTarget();
+  }, [pdfHighlightTarget, highlights]);
 
   // ── Panel resize ──────────────────────────────────────────────────
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -179,30 +198,77 @@ export function PdfViewer({ pdfPath }: Props) {
     document.addEventListener("mouseup", onUp);
   }, []);
 
-  // ── Handle scrollTarget from store ────────────────────────────────
-  const handleScrollTargetHandled = useCallback(() => {
-    store.clearPdfHighlightTarget();
-  }, []);
-
   return (
     <div className="flex flex-1 min-h-0">
-      {/* PDF renderer (replaces the old iframe) */}
-      <PdfRenderer
-        pdfPath={pdfPath}
-        highlights={highlights}
-        scrollTarget={pdfHighlightTarget}
-        onScrollTargetHandled={handleScrollTargetHandled}
-        onSelection={setSelection}
-      />
-
-      {/* Selection highlight menu */}
-      {selection && (
-        <PdfHighlightMenu
-          anchorRect={selection.anchorRect}
-          onHighlight={handleHighlight}
-          onDismiss={() => setSelection(null)}
-        />
-      )}
+      {/* PDF viewer */}
+      <div className="flex-1 relative overflow-hidden">
+        <PdfLoader
+          url={`/api/files/raw/${pdfPath}`}
+          beforeLoad={
+            <div className="flex items-center justify-center h-full text-text-muted text-sm">
+              Carregando PDF…
+            </div>
+          }
+        >
+          {(pdfDocument) => (
+            <PdfHighlighter
+              pdfDocument={pdfDocument}
+              enableAreaSelection={() => false}
+              onScrollChange={() => {}}
+              scrollRef={(scrollTo) => {
+                scrollViewerTo.current = scrollTo;
+              }}
+              onSelectionFinished={(position, content, hideTipAndSelection) => (
+                <ColorPicker
+                  onPick={(color) =>
+                    addHighlight(
+                      { position, content, comment: { text: "", emoji: color } },
+                      color,
+                      hideTipAndSelection
+                    )
+                  }
+                />
+              )}
+              highlightTransform={(
+                highlight,
+                index,
+                _setTip,
+                _hideTip,
+                _viewportToScaled,
+                _screenshot,
+                isScrolledTo
+              ) => {
+                const color =
+                  HIGHLIGHT_COLORS[highlight.comment.emoji] ??
+                  HIGHLIGHT_COLORS.yellow;
+                return (
+                  <div
+                    key={index}
+                    className={isScrolledTo ? "pdf-highlight-pulse" : ""}
+                    style={{ position: "absolute", pointerEvents: "none" }}
+                  >
+                    {highlight.position.rects.map((rect, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          position: "absolute",
+                          left: rect.left,
+                          top: rect.top,
+                          width: rect.width,
+                          height: rect.height,
+                          backgroundColor: color,
+                          mixBlendMode: "multiply",
+                        }}
+                      />
+                    ))}
+                  </div>
+                );
+              }}
+              highlights={highlights}
+            />
+          )}
+        </PdfLoader>
+      </div>
 
       {/* Notes panel */}
       <div className="flex" ref={panelRef} style={{ width: 400 }}>
