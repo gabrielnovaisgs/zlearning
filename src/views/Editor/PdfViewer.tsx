@@ -9,7 +9,7 @@ import { createEditor, type EditorInstance } from "@core/editor/setup";
 import { HttpFileSystemService } from "@core/services/filesystem";
 import { store } from "@core/store";
 import { useStore } from "../hooks";
-import { ColorPicker } from "./PdfHighlightMenu";
+import { ColorPicker, HighlightActionMenu } from "./PdfHighlightMenu";
 
 const fs = new HttpFileSystemService();
 
@@ -169,6 +169,28 @@ export function PdfViewer({ pdfPath }: Props) {
     [highlights, saveHighlights]
   );
 
+  // ── Change highlight color ────────────────────────────────────────
+  const changeHighlightColor = useCallback(
+    (id: string, color: string) => {
+      const updated = highlights.map((h) =>
+        h.id === id ? { ...h, comment: { ...h.comment, emoji: color } } : h
+      );
+      setHighlights(updated);
+      saveHighlights(updated);
+    },
+    [highlights, saveHighlights]
+  );
+
+  // ── Delete highlight ──────────────────────────────────────────────
+  const deleteHighlight = useCallback(
+    (id: string) => {
+      const updated = highlights.filter((h) => h.id !== id);
+      setHighlights(updated);
+      saveHighlights(updated);
+    },
+    [highlights, saveHighlights]
+  );
+
   // ── Scroll to highlight when store target changes ─────────────────
   useEffect(() => {
     if (!pdfHighlightTarget) return;
@@ -232,8 +254,8 @@ export function PdfViewer({ pdfPath }: Props) {
               highlightTransform={(
                 highlight,
                 index,
-                _setTip,
-                _hideTip,
+                setTip,
+                hideTip,
                 _viewportToScaled,
                 _screenshot,
                 isScrolledTo
@@ -241,13 +263,15 @@ export function PdfViewer({ pdfPath }: Props) {
                 const color =
                   HIGHLIGHT_COLORS[highlight.comment.emoji] ??
                   HIGHLIGHT_COLORS.yellow;
+                const { boundingRect, rects } = highlight.position;
                 return (
                   <div
                     key={index}
                     className={isScrolledTo ? "pdf-highlight-pulse" : ""}
-                    style={{ position: "absolute", pointerEvents: "none" }}
+                    style={{ position: "absolute" }}
                   >
-                    {highlight.position.rects.map((rect, i) => (
+                    {/* Visual color rects (non-interactive) */}
+                    {rects.map((rect, i) => (
                       <div
                         key={i}
                         style={{
@@ -258,9 +282,37 @@ export function PdfViewer({ pdfPath }: Props) {
                           height: rect.height,
                           backgroundColor: color,
                           mixBlendMode: "multiply",
+                          pointerEvents: "none",
                         }}
                       />
                     ))}
+                    {/* Invisible click target over bounding rect */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: boundingRect.left,
+                        top: boundingRect.top,
+                        width: boundingRect.width,
+                        height: boundingRect.height,
+                        cursor: "pointer",
+                        opacity: 0,
+                      }}
+                      onClick={() =>
+                        setTip(highlight, (hl) => (
+                          <HighlightActionMenu
+                            currentColor={hl.comment.emoji}
+                            onChangeColor={(newColor) => {
+                              changeHighlightColor(hl.id, newColor);
+                              hideTip();
+                            }}
+                            onDelete={() => {
+                              deleteHighlight(hl.id);
+                              hideTip();
+                            }}
+                          />
+                        ))
+                      }
+                    />
                   </div>
                 );
               }}

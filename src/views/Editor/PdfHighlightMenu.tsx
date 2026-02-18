@@ -5,11 +5,12 @@ const COLORS = [
   { id: "pink", bg: "#f9a8d4", label: "Pink" },
 ] as const;
 
-interface Props {
+// ── Color picker shown on text selection ──────────────────────────
+interface ColorPickerProps {
   onPick: (color: string) => void;
 }
 
-export function ColorPicker({ onPick }: Props) {
+export function ColorPicker({ onPick }: ColorPickerProps) {
   return (
     <div className="flex items-center gap-2 rounded-lg bg-bg-secondary border border-border shadow-2xl px-3 py-2">
       <span className="text-xs text-text-muted shrink-0">Destacar:</span>
@@ -26,6 +27,55 @@ export function ColorPicker({ onPick }: Props) {
           }}
         />
       ))}
+    </div>
+  );
+}
+
+// ── Action menu shown when clicking an existing highlight ─────────
+interface HighlightActionMenuProps {
+  currentColor: string;
+  onChangeColor: (color: string) => void;
+  onDelete: () => void;
+}
+
+export function HighlightActionMenu({
+  currentColor,
+  onChangeColor,
+  onDelete,
+}: HighlightActionMenuProps) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-bg-secondary border border-border shadow-2xl px-3 py-2">
+      {COLORS.map((c) => (
+        <button
+          key={c.id}
+          title={c.label}
+          className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 shrink-0 ${
+            c.id === currentColor
+              ? "border-white/80 scale-110 ring-2 ring-white/30"
+              : "border-white/20 hover:border-white/80"
+          }`}
+          style={{ backgroundColor: c.bg }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onChangeColor(c.id);
+          }}
+        />
+      ))}
+      <div className="w-px h-4 bg-border shrink-0" />
+      <button
+        title="Deletar marcação"
+        className="flex items-center justify-center w-6 h-6 rounded text-text-muted hover:text-red-400 hover:bg-bg-hover transition-colors shrink-0"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDelete();
+        }}
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+          <path d="M2 2l8 8M10 2l-8 8" />
+        </svg>
+      </button>
     </div>
   );
 }
