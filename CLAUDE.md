@@ -12,8 +12,8 @@ Editor e leitor de notas markdown similar ao Obsidian, com interface dark mode e
 ```
 src/
   core/
-    store.ts          # Estado global (observer pattern) com auto-save (1s debounce)
-    types.ts          # Tipos TypeScript (FileTreeEntry, FileContent, AppState)
+    store.ts          # Estado global (observer pattern); panes/tabs; auto-save por EditorContainer
+    types.ts          # Tipos TypeScript (FileTreeEntry, FileContent, Tab, Pane, AppState)
     commands.ts       # Registry de comandos globais com atalhos de teclado (Ctrl+O, etc.)
     services/
       filesystem.ts   # Cliente HTTP para API de arquivos
@@ -25,7 +25,10 @@ src/
   views/
     App.tsx           # Layout principal + inicializacao do CommandRegistry
     Editor/
-      EditorContainer.tsx  # Container do editor CodeMirror + roteamento PDF/Markdown
+      SplitView.tsx        # Flex container de PaneViews + ResizeHandle entre panes
+      PaneView.tsx         # Pane individual: TabBar + EditorContainer + drop zones
+      TabBar.tsx           # Barra de abas: tabs draggaveis, botao split, fechar pane
+      EditorContainer.tsx  # Editor CodeMirror ou PdfViewer; recebe filePath/paneId/isFocused
       PdfViewer.tsx        # Split view: iframe PDF + painel de notas com editor independente
     Sidebar/
       Sidebar.tsx     # Navegacao lateral redimensionavel
@@ -159,6 +162,51 @@ Arquivos e pastas podem ser movidos entre diretorios arrastando na sidebar:
 - `store.moveFile(source, targetDir)` usa `fs.renameFile` para mover, verifica conflito de nomes e impede mover diretorio para dentro de si mesmo
 - Visual feedback: highlight `bg-accent/20` no diretorio alvo durante o drag
 
+### Multi-tab e Split Pane (SplitView + PaneView + TabBar + store)
+
+O app suporta N paineis horizontais side-by-side, cada um com multiplas abas.
+
+**Modelo de dados** (`types.ts`):
+```typescript
+Tab  { id, path }
+Pane { id, tabs, activeTabId, flexRatio }   // flexRatio = largura proporcional no flex container
+AppState.panes: Pane[]                       // lista ordenada esq→dir
+AppState.activePaneId: string
+AppState.activeFile: string | null           // derivado: active pane → active tab → path
+```
+
+**Store** (`store.ts`):
+- `update()` deriva `activeFile` automaticamente a cada mudanca de estado
+- `openFile(path, paneId?)` — cria nova tab ou ativa existente no pane alvo; nao carrega conteudo (EditorContainer faz isso localmente)
+- `closeTab(tabId, paneId)` — se ultima tab com N>1 panes → fecha o pane
+- `activateTab(tabId, paneId)` / `setActivePaneId(paneId)` — foco
+- `splitPane(paneId, 'left'|'right')` — insere novo pane com `flexRatio = original/2`, copia a tab ativa; retorna o novo paneId
+- `closePane(paneId)` — remove pane, distribui ratio ao vizinho adjacente
+- `resizePane(leftId, rightId, newLeft, newRight)` — ajusta ratios dos dois panes ao arrastar handle
+- `moveTabToPane(tabId, fromId, toId, index?)` — move tab entre panes; fecha fromPane se ficar vazio
+- `renameFile`/`deleteFile`/`moveFile` atualizam `tab.path` em todos os panes
+
+**EditorContainer** agora recebe props `{ filePath, paneId, isFocused }`:
+- Gerencia conteudo localmente: `useEffect([filePath])` carrega via `store.fs.readFile()`
+- `scheduleSave` local (1s debounce) chama `store.fs.writeFile()` diretamente
+- `filePathRef` (ref) garante que o callback do CodeMirror sempre usa o path atual
+
+**Layout de panes** (`SplitView`):
+```
+SplitView (flex row)
+  PaneView [flex: ratio]
+    ResizeHandle (w-1, cursor-col-resize)
+  PaneView [flex: ratio]
+    ...
+```
+`ResizeHandle`: mousedown captura startX + ratios iniciais, mousemove calcula `ratioDelta = delta/containerWidth * totalRatio`, aplica via `store.resizePane`.
+
+**Drag and drop de tabs**:
+- Tab drag: `dataTransfer.setData({ tabId, paneId })`
+- Drop na TabBar: `moveTabToPane` (sem split)
+- Drop na zona esq/dir do PaneView: `splitPane` + `moveTabToPane` para o novo pane
+- Overlay visual (`bg-accent/15 border-accent`) indica o lado de drop
+
 ### Roteamento por URL (store.ts + App.tsx)
 
 O caminho do arquivo ativo e refletido na URL do navegador (sem a extensao `.md`):
@@ -166,6 +214,7 @@ O caminho do arquivo ativo e refletido na URL do navegador (sem a extensao `.md`
 - `store.deleteFile()` reseta a URL para `/` quando o arquivo ativo e deletado
 - Na inicializacao, `App.tsx` le `location.pathname` e abre o arquivo correspondente apos carregar a file tree
 - `popstate` listener permite navegar entre notas com os botoes voltar/avancar do browser
+- URL reflete sempre o arquivo ativo no **pane focado**; mudar `activePaneId` atualiza a URL
 
 ### Restricoes do CodeMirror 6
 
@@ -179,8 +228,8 @@ Arquivos `.pdf` em `docs/` aparecem na file tree com icone 📕. Usa a bibliotec
 
 **Infraestrutura**:
 - **Servidor**: `GET /api/files/raw/*` serve arquivos binarios diretamente via `res.sendFile()`
-- **Store**: `openFile()` detecta extensao `.pdf` e pula leitura de conteudo texto
-- **EditorContainer**: quando `activeFile` termina em `.pdf`, renderiza `<PdfViewer>`
+- **Store**: `openFile()` apenas cria/ativa a tab — nao carrega conteudo (nem para `.md` nem `.pdf`)
+- **EditorContainer**: recebe `filePath` como prop; quando termina em `.pdf`, renderiza `<PdfViewer>`
 - **URL routing**: `openFileFromURL()` tenta resolver tanto `.md` quanto `.pdf` ao carregar a pagina
 
 **Layout**:

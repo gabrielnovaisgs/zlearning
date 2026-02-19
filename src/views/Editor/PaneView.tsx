@@ -28,8 +28,8 @@ export function PaneView({ pane, isFocused }: PaneViewProps) {
       const { tabId, paneId: fromPaneId } = data as { tabId: string; paneId: string };
 
       if (side !== null) {
-        // Split and move the dragged tab into the new pane
-        const newPaneId = store.splitPane(pane.id, side);
+        // Split without copying the active tab — moveTabToPane will place the dragged tab
+        const newPaneId = store.splitPane(pane.id, side, false);
         if (newPaneId) {
           store.moveTabToPane(tabId, fromPaneId, newPaneId);
         }

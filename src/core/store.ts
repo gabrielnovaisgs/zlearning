@@ -138,8 +138,8 @@ class Store {
     }
   }
 
-  /** Creates a new pane adjacent to paneId, copies the active tab. Returns new pane id. */
-  splitPane(paneId: string, direction: "left" | "right"): string {
+  /** Creates a new pane adjacent to paneId. Copies the active tab by default. Returns new pane id. */
+  splitPane(paneId: string, direction: "left" | "right", copyActiveTab = true): string {
     const panes = [...this.state.panes];
     const idx = panes.findIndex((p) => p.id === paneId);
     if (idx === -1) return "";
@@ -148,7 +148,7 @@ class Store {
     const activeTab = sourcePane.tabs.find((t) => t.id === sourcePane.activeTabId);
     const newRatio = sourcePane.flexRatio / 2;
 
-    const newTabEntry: Tab | undefined = activeTab
+    const newTabEntry: Tab | undefined = copyActiveTab && activeTab
       ? { id: crypto.randomUUID(), path: activeTab.path }
       : undefined;
 
