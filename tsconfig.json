@@ -14,7 +14,8 @@
     "noEmit": true,
     "paths": {
       "@core/*": ["./src/core/*"],
-      "@views/*": ["./src/views/*"]
+      "@views/*": ["./src/views/*"],
+      "@components/*": ["./src/views/components/*"]
     }
   },
   "include": ["src"],
