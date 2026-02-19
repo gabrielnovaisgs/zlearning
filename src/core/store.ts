@@ -58,15 +58,22 @@ class Store {
     const pane = panes[paneIdx];
     const activeTab = pane.tabs.find((t) => t.id === pane.activeTabId);
 
+    const existingTab = pane.tabs.find((t) => t.path === path);
+
     if (activeTab && activeTab.path === null) {
-      // Replace the new-tab placeholder with this file
-      panes[paneIdx] = {
-        ...pane,
-        tabs: pane.tabs.map((t) => t.id === activeTab.id ? { ...t, path } : t),
-        activeTabId: activeTab.id,
-      };
+      if (existingTab) {
+        // File already open in another tab: activate it and discard the null tab
+        const newTabs = pane.tabs.filter((t) => t.id !== activeTab.id);
+        panes[paneIdx] = { ...pane, tabs: newTabs, activeTabId: existingTab.id };
+      } else {
+        // Replace the new-tab placeholder with this file
+        panes[paneIdx] = {
+          ...pane,
+          tabs: pane.tabs.map((t) => t.id === activeTab.id ? { ...t, path } : t),
+          activeTabId: activeTab.id,
+        };
+      }
     } else {
-      const existingTab = pane.tabs.find((t) => t.path === path);
       if (existingTab) {
         panes[paneIdx] = { ...pane, activeTabId: existingTab.id };
       } else {
