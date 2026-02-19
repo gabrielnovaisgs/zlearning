@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createEditor, type EditorInstance } from "@core/editor/setup";
 import { store } from "@core/store";
+import { registry } from "@core/commands";
 import { PdfViewer } from "./PdfViewer";
 
 interface Props {
@@ -146,12 +147,33 @@ export function EditorContainer({ filePath, isFocused: _isFocused }: Props) {
       {/* PDF viewer with notes panel */}
       {showPdf && <PdfViewer pdfPath={filePath} />}
 
-      {/* Empty state */}
+      {/* New tab screen */}
       {!filePath && (
         <div className="flex flex-1 items-center justify-center">
-          <div className="text-center text-text-muted">
-            <div className="mb-2 text-4xl">📝</div>
-            <p>Select a file to start editing</p>
+          <div className="flex flex-col items-center gap-6">
+            <p className="text-text-muted text-sm">O que deseja fazer?</p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => registry.execute("open-file")}
+                className="flex flex-col items-center gap-3 px-8 py-6 rounded-xl border border-border bg-bg-secondary hover:bg-bg-secondary/80 hover:border-accent/50 transition-colors group w-44"
+              >
+                <span className="text-3xl">📂</span>
+                <div className="text-center">
+                  <div className="text-text-primary text-sm font-medium group-hover:text-accent transition-colors">Abrir arquivo</div>
+                  <div className="text-text-muted text-xs mt-1">Ctrl+O</div>
+                </div>
+              </button>
+              <button
+                onClick={() => store.createUntitledFile("")}
+                className="flex flex-col items-center gap-3 px-8 py-6 rounded-xl border border-border bg-bg-secondary hover:bg-bg-secondary/80 hover:border-accent/50 transition-colors group w-44"
+              >
+                <span className="text-3xl">✏️</span>
+                <div className="text-center">
+                  <div className="text-text-primary text-sm font-medium group-hover:text-accent transition-colors">Novo arquivo</div>
+                  <div className="text-text-muted text-xs mt-1">Ctrl+N</div>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -56,13 +56,23 @@ class Store {
     if (paneIdx === -1) return;
 
     const pane = panes[paneIdx];
-    const existingTab = pane.tabs.find((t) => t.path === path);
+    const activeTab = pane.tabs.find((t) => t.id === pane.activeTabId);
 
-    if (existingTab) {
-      panes[paneIdx] = { ...pane, activeTabId: existingTab.id };
+    if (activeTab && activeTab.path === null) {
+      // Replace the new-tab placeholder with this file
+      panes[paneIdx] = {
+        ...pane,
+        tabs: pane.tabs.map((t) => t.id === activeTab.id ? { ...t, path } : t),
+        activeTabId: activeTab.id,
+      };
     } else {
-      const newTab: Tab = { id: crypto.randomUUID(), path };
-      panes[paneIdx] = { ...pane, tabs: [...pane.tabs, newTab], activeTabId: newTab.id };
+      const existingTab = pane.tabs.find((t) => t.path === path);
+      if (existingTab) {
+        panes[paneIdx] = { ...pane, activeTabId: existingTab.id };
+      } else {
+        const newTab: Tab = { id: crypto.randomUUID(), path };
+        panes[paneIdx] = { ...pane, tabs: [...pane.tabs, newTab], activeTabId: newTab.id };
+      }
     }
 
     const urlPath = "/" + path.replace(/\.(md|pdf)$/, "");
@@ -70,6 +80,18 @@ class Store {
       history.pushState(null, "", urlPath);
     }
 
+    this.update({ panes, activePaneId: targetPaneId });
+  }
+
+  openNewTab(paneId?: string) {
+    const targetPaneId = paneId ?? this.state.activePaneId;
+    const panes = [...this.state.panes];
+    const paneIdx = panes.findIndex((p) => p.id === targetPaneId);
+    if (paneIdx === -1) return;
+
+    const pane = panes[paneIdx];
+    const newTab: Tab = { id: crypto.randomUUID(), path: null };
+    panes[paneIdx] = { ...pane, tabs: [...pane.tabs, newTab], activeTabId: newTab.id };
     this.update({ panes, activePaneId: targetPaneId });
   }
 
@@ -105,7 +127,7 @@ class Store {
     // Update URL if active tab changed
     const activePaneAfter = panes.find((p) => p.id === this.state.activePaneId);
     const activeTabAfter = activePaneAfter?.tabs.find((t) => t.id === activePaneAfter.activeTabId);
-    const urlPath = activeTabAfter ? "/" + activeTabAfter.path.replace(/\.(md|pdf)$/, "") : "/";
+    const urlPath = activeTabAfter?.path ? "/" + activeTabAfter.path.replace(/\.(md|pdf)$/, "") : "/";
     if (location.pathname !== urlPath) {
       history.pushState(null, "", urlPath);
     }
@@ -120,7 +142,7 @@ class Store {
     this.update({ panes, activePaneId: paneId });
 
     const tab = panes[paneIdx].tabs.find((t) => t.id === tabId);
-    if (tab) {
+    if (tab?.path) {
       const urlPath = "/" + tab.path.replace(/\.(md|pdf)$/, "");
       if (location.pathname !== urlPath) history.pushState(null, "", urlPath);
     }
@@ -132,7 +154,7 @@ class Store {
 
     const pane = this.state.panes.find((p) => p.id === paneId);
     const tab = pane?.tabs.find((t) => t.id === pane.activeTabId);
-    if (tab) {
+    if (tab?.path) {
       const urlPath = "/" + tab.path.replace(/\.(md|pdf)$/, "");
       if (location.pathname !== urlPath) history.pushState(null, "", urlPath);
     }
@@ -148,7 +170,7 @@ class Store {
     const activeTab = sourcePane.tabs.find((t) => t.id === sourcePane.activeTabId);
     const newRatio = sourcePane.flexRatio / 2;
 
-    const newTabEntry: Tab | undefined = copyActiveTab && activeTab
+    const newTabEntry: Tab | undefined = copyActiveTab && activeTab && activeTab.path !== null
       ? { id: crypto.randomUUID(), path: activeTab.path }
       : undefined;
 
@@ -197,7 +219,7 @@ class Store {
 
     const pane = panes.find((p) => p.id === activePaneId);
     const tab = pane?.tabs.find((t) => t.id === pane.activeTabId);
-    const urlPath = tab ? "/" + tab.path.replace(/\.(md|pdf)$/, "") : "/";
+    const urlPath = tab?.path ? "/" + tab.path.replace(/\.(md|pdf)$/, "") : "/";
     if (location.pathname !== urlPath) history.pushState(null, "", urlPath);
   }
 

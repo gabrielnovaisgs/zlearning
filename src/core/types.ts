@@ -12,7 +12,8 @@ export interface FileContent {
 
 export interface Tab {
   id: string;
-  path: string;
+  /** null = new-tab placeholder (no file selected yet) */
+  path: string | null;
 }
 
 export interface Pane {

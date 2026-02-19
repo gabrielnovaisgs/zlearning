@@ -2,12 +2,14 @@ import { store } from "@core/store";
 import type { Pane } from "@core/types";
 import { useStore } from "../hooks";
 
-function fileTitle(path: string): string {
+function fileTitle(path: string | null): string {
+  if (!path) return "New Tab";
   const name = path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path;
   return name.replace(/\.(md|pdf)$/, "");
 }
 
-function fileIcon(path: string): string {
+function fileIcon(path: string | null): string {
+  if (!path) return "✦";
   return path.endsWith(".pdf") ? "📕" : "📄";
 }
 
@@ -36,8 +38,9 @@ export function TabBar({ pane }: TabBarProps) {
       {pane.tabs.map((tab) => (
         <div
           key={tab.id}
-          draggable
+          draggable={tab.path !== null}
           onDragStart={(e) => {
+            if (!tab.path) return;
             e.dataTransfer.setData(
               "text/plain",
               JSON.stringify({ tabId: tab.id, paneId: pane.id })
@@ -55,7 +58,7 @@ export function TabBar({ pane }: TabBarProps) {
                 : "text-text-muted hover:text-text-primary hover:bg-bg-primary/50"
             }`}
         >
-          <span className="text-xs">{fileIcon(tab.path)}</span>
+          <span className={`text-xs ${!tab.path ? "text-accent" : ""}`}>{fileIcon(tab.path)}</span>
           <span className="max-w-32 truncate">{fileTitle(tab.path)}</span>
           <button
             onClick={(e) => {
@@ -69,6 +72,18 @@ export function TabBar({ pane }: TabBarProps) {
           </button>
         </div>
       ))}
+
+      {/* New tab button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          store.openNewTab(pane.id);
+        }}
+        className="px-2 py-1 text-text-muted hover:text-text-primary shrink-0 text-base leading-none"
+        title="New tab"
+      >
+        +
+      </button>
 
       {/* Spacer */}
       <div className="flex-1 min-w-2" />
