@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { store } from "@core/store";
 import type { Pane } from "@core/types";
 import { TabBar } from "./TabBar";
@@ -17,6 +17,12 @@ function getDropSide(e: React.DragEvent): "left" | "right" {
 export function PaneView({ pane, isFocused }: PaneViewProps) {
   const [dropSide, setDropSide] = useState<"left" | "right" | null>(null);
   const activeTab = pane.tabs.find((t) => t.id === pane.activeTabId);
+
+  useEffect(() => {
+    const clear = () => setDropSide(null);
+    document.addEventListener("dragend", clear);
+    return () => document.removeEventListener("dragend", clear);
+  }, []);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
