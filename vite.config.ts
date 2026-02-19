@@ -9,6 +9,7 @@ export default defineConfig({
     alias: {
       "@core": path.resolve(__dirname, "src/core"),
       "@views": path.resolve(__dirname, "src/views"),
+      "@components": path.resolve(__dirname, "src/views/components"),
     },
   },
 });

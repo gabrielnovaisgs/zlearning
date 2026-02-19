@@ -1,8 +1,21 @@
-import { useState, useEffect, useRef, useMemo } from "react";
-import { createPortal } from "react-dom";
+import { useState, useEffect, useMemo } from "react";
 import { store } from "@core/store";
 import { useStore } from "../hooks";
 import { flattenFiles, fuzzyMatch } from "./fuzzy-match";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@components/ui/dialog";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@components/ui/command";
 
 interface Props {
   open: boolean;
@@ -11,106 +24,60 @@ interface Props {
 
 export function CommandPalette({ open, onClose }: Props) {
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
   const { fileTree } = useStore();
 
   const files = useMemo(() => flattenFiles(fileTree), [fileTree]);
   const results = useMemo(() => fuzzyMatch(query, files), [query, files]);
 
-  // Reset state when opening
   useEffect(() => {
-    if (open) {
-      setQuery("");
-      setSelected(0);
-    }
+    if (open) setQuery("");
   }, [open]);
 
-  // Keep selected in bounds
-  useEffect(() => {
-    setSelected(0);
-  }, [query]);
-
-  // Scroll selected item into view
-  useEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
-    const item = list.children[selected] as HTMLElement | undefined;
-    item?.scrollIntoView({ block: "nearest" });
-  }, [selected]);
-
-  if (!open) return null;
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        setSelected((s) => Math.min(s + 1, results.length - 1));
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        setSelected((s) => Math.max(s - 1, 0));
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (results[selected]) {
-          store.openFile(results[selected].path);
-          onClose();
-        }
-        break;
-      case "Escape":
-        onClose();
-        break;
+  function handleOpenChange(o: boolean) {
+    if (!o) {
+      setQuery("");
+      onClose();
     }
-  };
+  }
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-bg-primary/80"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-lg bg-bg-secondary border border-border rounded-lg shadow-2xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={handleKeyDown}
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        className="overflow-hidden p-0 top-[15vh] translate-y-0 max-w-lg"
+        showCloseButton={false}
       >
-        <input
-          ref={inputRef}
-          autoFocus
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Open file..."
-          className="w-full px-4 py-3 bg-transparent text-text-primary placeholder-text-muted outline-none border-b border-border"
-        />
-        <div ref={listRef} className="max-h-80 overflow-y-auto">
-          {results.map((file, i) => (
-            <div
-              key={file.path}
-              className={`px-4 py-2 cursor-pointer ${
-                i === selected ? "bg-bg-hover" : ""
-              }`}
-              onMouseEnter={() => setSelected(i)}
-              onClick={() => {
-                store.openFile(file.path);
-                onClose();
-              }}
-            >
-              <div className="text-sm text-text-primary">
-                <HighlightedName name={file.name} matches={file.matches} />
-              </div>
-              <div className="text-xs text-text-muted">{file.path}</div>
-            </div>
-          ))}
-          {results.length === 0 && query && (
-            <div className="px-4 py-6 text-center text-text-muted text-sm">
-              No files found
-            </div>
-          )}
-        </div>
-      </div>
-    </div>,
-    document.body
+        <DialogHeader className="sr-only">
+          <DialogTitle>Open file</DialogTitle>
+          <DialogDescription>Search for a file to open</DialogDescription>
+        </DialogHeader>
+        <Command shouldFilter={false} className="bg-transparent">
+          <CommandInput
+            value={query}
+            onValueChange={setQuery}
+            placeholder="Open file..."
+          />
+          <CommandList className="max-h-80">
+            <CommandEmpty>No files found</CommandEmpty>
+            {results.map((file) => (
+              <CommandItem
+                key={file.path}
+                value={file.path}
+                onSelect={() => {
+                  store.openFile(file.path);
+                  handleOpenChange(false);
+                }}
+                className="flex flex-col items-start gap-0.5 px-4 py-2 rounded-none cursor-pointer"
+              >
+                <span className="text-sm">
+                  <HighlightedName name={file.name} matches={file.matches} />
+                </span>
+                <span className="text-xs text-muted-foreground">{file.path}</span>
+              </CommandItem>
+            ))}
+          </CommandList>
+        </Command>
+      </DialogContent>
+    </Dialog>
   );
 }
 
