@@ -6,6 +6,8 @@ export interface Example {
   translation: string;
 }
 
+const isDev = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test" || "development";
+
 function extractJson(raw: string): unknown {
   // Strip markdown code fences if present
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -32,7 +34,11 @@ export function createTranslateRouter(): Router {
       res.status(400).json({ error: "text is required" });
       return;
     }
-    return res.status(200).json({ translation: `${text} (translated from ${from} to ${to})` }); // MOCK
+
+    if (isDev) {
+      res.status(200).json({ translation: `${text} (translated from ${from} to ${to})` });
+      return;
+    }
 
     try {
       const provider = createLLMProvider();
@@ -62,6 +68,25 @@ export function createTranslateRouter(): Router {
 
     if (!text || typeof text !== "string" || !text.trim()) {
       res.status(400).json({ error: "text is required" });
+      return;
+    }
+
+    if (isDev) {
+      const examples: Example[] = [
+        {
+          original: `Example 1 using "${text}"`,
+          translation: `Exemplo 1 usando "${text}"`,
+        },
+        {
+          original: `Example 2 with "${text}"`,
+          translation: `Exemplo 2 com "${text}"`,
+        },
+        {
+          original: `Example 3 about "${text}"`,
+          translation: `Exemplo 3 sobre "${text}"`,
+        },
+      ];
+      res.json({ examples });
       return;
     }
 
