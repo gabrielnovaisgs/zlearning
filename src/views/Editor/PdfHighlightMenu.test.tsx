@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ColorPicker, HighlightActionMenu } from "./PdfHighlightMenu";
-import { TranslationDialog } from "./TranslationDialog";
 import * as translationService from "@core/services/translation";
 
 vi.mock("@core/services/translation");
