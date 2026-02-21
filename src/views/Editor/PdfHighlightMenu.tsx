@@ -71,12 +71,17 @@ function TranslationDialog({ original, onClose }: TranslationDialogProps) {
         {/* stopPropagation prevents react-pdf-highlighter's document listener
             from closing the ColorPicker / HighlightActionMenu */}
         <DialogOverlay
+          className="bg-black/50"
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         />
         <DialogPrimitive.Content
           className="fixed top-[50%] left-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-xl bg-bg-secondary border border-border shadow-2xl p-5 flex flex-col gap-3 max-h-[90vh] overflow-y-auto outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
-          onInteractOutside={(e) => e.preventDefault()}
+          onPointerDownCapture={(e) => {
+            e.stopPropagation();
+  
+          }}
+         
         >
           {/* Header */}
           <DialogHeader>
@@ -244,7 +249,7 @@ export function HighlightActionMenu({
 
   return (
     <>
-      <div className="flex items-center gap-2 rounded-lg bg-bg-secondary border border-border shadow-2xl px-3 py-2">
+      <div className="flex items-center gap-2 rounded-lg bg-secondary border border-border shadow-2xl px-3 py-2">
         {COLORS.map((c) => (
           <button
             key={c.id}
@@ -255,21 +260,17 @@ export function HighlightActionMenu({
                 : "border-white/20 hover:border-white/80"
             }`}
             style={{ backgroundColor: c.bg }}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
+            onClick={() => {
               onChangeColor(c.id);
             }}
           />
         ))}
         <div className="w-px h-4 bg-border shrink-0" />
         {highlightText && (
-          <button
+          <Button
             title="Traduzir marcação"
             className="flex items-center gap-1 px-2 py-0.5 rounded text-xs text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors shrink-0"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
+            onClick={() => {
               setDialogOpen(true);
             }}
           >
@@ -282,21 +283,19 @@ export function HighlightActionMenu({
               <path d="M14 18h6" />
             </svg>
             Traduzir
-          </button>
+          </Button>
         )}
-        <button
+        <Button
           title="Deletar marcação"
           className="flex items-center justify-center w-6 h-6 rounded text-text-muted hover:text-red-400 hover:bg-bg-hover transition-colors shrink-0"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
+          onClick={() => {
             onDelete();
           }}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <path d="M2 2l8 8M10 2l-8 8" />
           </svg>
-        </button>
+        </Button>
       </div>
       {dialogOpen && highlightText && (
         <TranslationDialog

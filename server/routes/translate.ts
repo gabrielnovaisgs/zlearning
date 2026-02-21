@@ -32,6 +32,7 @@ export function createTranslateRouter(): Router {
       res.status(400).json({ error: "text is required" });
       return;
     }
+    return res.status(200).json({ translation: `${text} (translated from ${from} to ${to})` }); // MOCK
 
     try {
       const provider = createLLMProvider();
