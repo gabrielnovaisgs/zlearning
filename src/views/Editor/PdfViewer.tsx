@@ -9,7 +9,7 @@ import { createEditor, type EditorInstance } from "@core/editor/setup";
 import { HttpFileSystemService } from "@core/services/filesystem";
 import { store } from "@core/store";
 import { useStore } from "../hooks";
-import { ColorPicker, HighlightActionMenu } from "./PdfHighlightMenu";
+import { HighlightMenu } from "./PdfHighlightMenu";
 
 const fs = new HttpFileSystemService();
 
@@ -626,8 +626,8 @@ export function PdfViewer({ pdfPath }: Props) {
                       scrollViewerTo.current = scrollTo;
                     }}
                     onSelectionFinished={(position, content, hideTipAndSelection) => (
-                      <ColorPicker
-                        onPick={(color) =>
+                      <HighlightMenu
+                        onColorSelect={(color) =>
                           addHighlight(
                             { position, content, comment: { text: "", emoji: color } },
                             color,
@@ -635,6 +635,8 @@ export function PdfViewer({ pdfPath }: Props) {
                           )
                         }
                         textToTranslate={content.text ?? undefined}
+                        showLabel
+                        useMouseDownForColor
                       />
                     )}
                     highlightTransform={(
@@ -683,17 +685,17 @@ export function PdfViewer({ pdfPath }: Props) {
                             }}
                             onClick={() =>
                               setTip(highlight, (hl) => (
-                                <HighlightActionMenu
-                                  currentColor={hl.comment.emoji}
-                                  highlightText={hl.content.text ?? undefined}
-                                  onChangeColor={(newColor) => {
+                                <HighlightMenu
+                                  onColorSelect={(newColor) => {
                                     changeHighlightColor(hl.id, newColor);
                                     hideTip();
                                   }}
+                                  selectedColor={hl.comment.emoji}
                                   onDelete={() => {
                                     deleteHighlight(hl.id);
                                     hideTip();
                                   }}
+                                  textToTranslate={hl.content.text ?? undefined}
                                 />
                               ))
                             }

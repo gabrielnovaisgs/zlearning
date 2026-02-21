@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ColorPicker, HighlightActionMenu } from "./PdfHighlightMenu";
+import { HighlightMenu } from "./PdfHighlightMenu";
 import * as translationService from "@core/services/translation";
 
 vi.mock("@core/services/translation");
@@ -12,48 +12,64 @@ const mockGetExamples = vi.fn();
 vi.mocked(translationService.translateText).mockImplementation(mockTranslateText);
 vi.mocked(translationService.getExamples).mockImplementation(mockGetExamples);
 
-describe("ColorPicker", () => {
+describe("HighlightMenu - Selection Mode", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("renders 4 color buttons", () => {
-    const { container } = render(<ColorPicker onPick={vi.fn()} />);
+    const { container } = render(
+      <HighlightMenu
+        onColorSelect={vi.fn()}
+        showLabel
+        useMouseDownForColor
+      />
+    );
     const buttons = container.querySelectorAll("button");
     // 4 color buttons
     expect(buttons.length).toBeGreaterThanOrEqual(4);
   });
 
-  it("calls onPick with correct color when color button clicked", async () => {
+  it("calls onColorSelect with correct color when color button clicked", async () => {
     const user = userEvent.setup();
-    const onPick = vi.fn();
-    const { container } = render(<ColorPicker onPick={onPick} />);
+    const onColorSelect = vi.fn();
+    const { container } = render(
+      <HighlightMenu
+        onColorSelect={onColorSelect}
+        showLabel
+        useMouseDownForColor
+      />
+    );
 
     const colorButtons = container.querySelectorAll(
       ".w-6.h-6.rounded-full"
     );
     expect(colorButtons.length).toBe(4);
 
-    // Click first color (yellow)
-    await user.click(colorButtons[0] as HTMLButtonElement);
-    expect(onPick).toHaveBeenCalledWith("yellow");
-
-    // Click second color (green)
-    await user.click(colorButtons[1] as HTMLButtonElement);
-    expect(onPick).toHaveBeenCalledWith("green");
+    // Click first color (yellow) - using onMouseDown
+    await user.pointer({ keys: "[MouseLeft]", target: colorButtons[0] as HTMLButtonElement });
+    expect(onColorSelect).toHaveBeenCalledWith("yellow");
   });
 
   it("does not render translate button without textToTranslate", () => {
-    render(<ColorPicker onPick={vi.fn()} />);
+    render(
+      <HighlightMenu
+        onColorSelect={vi.fn()}
+        showLabel
+        useMouseDownForColor
+      />
+    );
     const translateBtn = screen.queryByText(/Traduzir/i);
     expect(translateBtn).not.toBeInTheDocument();
   });
 
   it("renders translate button when textToTranslate provided", () => {
     render(
-      <ColorPicker
-        onPick={vi.fn()}
+      <HighlightMenu
+        onColorSelect={vi.fn()}
         textToTranslate="Sample text to translate"
+        showLabel
+        useMouseDownForColor
       />
     );
     const translateBtn = screen.queryByText(/Traduzir/i);
@@ -65,9 +81,11 @@ describe("ColorPicker", () => {
     mockTranslateText.mockResolvedValue("Texto de amostra para traduzir");
 
     render(
-      <ColorPicker
-        onPick={vi.fn()}
+      <HighlightMenu
+        onColorSelect={vi.fn()}
         textToTranslate="Sample text to translate"
+        showLabel
+        useMouseDownForColor
       />
     );
 
@@ -87,9 +105,11 @@ describe("ColorPicker", () => {
     mockTranslateText.mockReturnValue(promise);
 
     render(
-      <ColorPicker
-        onPick={vi.fn()}
+      <HighlightMenu
+        onColorSelect={vi.fn()}
         textToTranslate="Sample text to translate"
+        showLabel
+        useMouseDownForColor
       />
     );
 
@@ -107,9 +127,11 @@ describe("ColorPicker", () => {
     mockTranslateText.mockResolvedValue(translatedText);
 
     render(
-      <ColorPicker
-        onPick={vi.fn()}
+      <HighlightMenu
+        onColorSelect={vi.fn()}
         textToTranslate="Sample text to translate"
+        showLabel
+        useMouseDownForColor
       />
     );
 
@@ -127,9 +149,11 @@ describe("ColorPicker", () => {
     mockTranslateText.mockRejectedValue(new Error(errorMsg));
 
     render(
-      <ColorPicker
-        onPick={vi.fn()}
+      <HighlightMenu
+        onColorSelect={vi.fn()}
         textToTranslate="Sample text to translate"
+        showLabel
+        useMouseDownForColor
       />
     );
 
@@ -151,9 +175,11 @@ describe("ColorPicker", () => {
     mockGetExamples.mockResolvedValue(examples);
 
     render(
-      <ColorPicker
-        onPick={vi.fn()}
+      <HighlightMenu
+        onColorSelect={vi.fn()}
         textToTranslate="Sample text to translate"
+        showLabel
+        useMouseDownForColor
       />
     );
 
@@ -185,9 +211,11 @@ describe("ColorPicker", () => {
     mockGetExamples.mockReturnValue(promise);
 
     render(
-      <ColorPicker
-        onPick={vi.fn()}
+      <HighlightMenu
+        onColorSelect={vi.fn()}
         textToTranslate="Sample text to translate"
+        showLabel
+        useMouseDownForColor
       />
     );
 
@@ -216,9 +244,11 @@ describe("ColorPicker", () => {
     mockGetExamples.mockRejectedValue(new Error(errorMsg));
 
     render(
-      <ColorPicker
-        onPick={vi.fn()}
+      <HighlightMenu
+        onColorSelect={vi.fn()}
         textToTranslate="Sample text to translate"
+        showLabel
+        useMouseDownForColor
       />
     );
 
@@ -245,9 +275,11 @@ describe("ColorPicker", () => {
     mockTranslateText.mockResolvedValue("Tradução");
 
     render(
-      <ColorPicker
-        onPick={vi.fn()}
+      <HighlightMenu
+        onColorSelect={vi.fn()}
         textToTranslate="Sample text to translate"
+        showLabel
+        useMouseDownForColor
       />
     );
 
@@ -275,9 +307,11 @@ describe("ColorPicker", () => {
     mockTranslateText.mockResolvedValue("Tradução");
 
     render(
-      <ColorPicker
-        onPick={vi.fn()}
+      <HighlightMenu
+        onColorSelect={vi.fn()}
         textToTranslate={originalText}
+        showLabel
+        useMouseDownForColor
       />
     );
 
@@ -290,16 +324,16 @@ describe("ColorPicker", () => {
   });
 });
 
-describe("HighlightActionMenu", () => {
+describe("HighlightMenu - Action Mode", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("renders 4 color buttons", () => {
     const { container } = render(
-      <HighlightActionMenu
-        currentColor="yellow"
-        onChangeColor={vi.fn()}
+      <HighlightMenu
+        onColorSelect={vi.fn()}
+        selectedColor="yellow"
         onDelete={vi.fn()}
       />
     );
@@ -309,9 +343,9 @@ describe("HighlightActionMenu", () => {
 
   it("highlights current color with ring", () => {
     const { container } = render(
-      <HighlightActionMenu
-        currentColor="green"
-        onChangeColor={vi.fn()}
+      <HighlightMenu
+        onColorSelect={vi.fn()}
+        selectedColor="green"
         onDelete={vi.fn()}
       />
     );
@@ -326,29 +360,29 @@ describe("HighlightActionMenu", () => {
     expect(foundGreen).toBe(true);
   });
 
-  it("calls onChangeColor when different color clicked", async () => {
+  it("calls onColorSelect when different color clicked", async () => {
     const user = userEvent.setup();
-    const onChangeColor = vi.fn();
+    const onColorSelect = vi.fn();
     const { container } = render(
-      <HighlightActionMenu
-        currentColor="yellow"
-        onChangeColor={onChangeColor}
+      <HighlightMenu
+        onColorSelect={onColorSelect}
+        selectedColor="yellow"
         onDelete={vi.fn()}
       />
     );
 
     const colorButtons = container.querySelectorAll(".w-6.h-6.rounded-full");
     await user.click(colorButtons[1] as HTMLButtonElement); // green
-    expect(onChangeColor).toHaveBeenCalledWith("green");
+    expect(onColorSelect).toHaveBeenCalledWith("green");
   });
 
   it("calls onDelete when delete button clicked", async () => {
     const user = userEvent.setup();
     const onDelete = vi.fn();
     const { container } = render(
-      <HighlightActionMenu
-        currentColor="yellow"
-        onChangeColor={vi.fn()}
+      <HighlightMenu
+        onColorSelect={vi.fn()}
+        selectedColor="yellow"
         onDelete={onDelete}
       />
     );
@@ -362,11 +396,11 @@ describe("HighlightActionMenu", () => {
     expect(onDelete).toHaveBeenCalled();
   });
 
-  it("does not render translate button without highlightText", () => {
+  it("does not render translate button without textToTranslate", () => {
     render(
-      <HighlightActionMenu
-        currentColor="yellow"
-        onChangeColor={vi.fn()}
+      <HighlightMenu
+        onColorSelect={vi.fn()}
+        selectedColor="yellow"
         onDelete={vi.fn()}
       />
     );
@@ -374,13 +408,13 @@ describe("HighlightActionMenu", () => {
     expect(translateBtn).not.toBeInTheDocument();
   });
 
-  it("renders translate button when highlightText provided", () => {
+  it("renders translate button when textToTranslate provided", () => {
     render(
-      <HighlightActionMenu
-        currentColor="yellow"
-        onChangeColor={vi.fn()}
+      <HighlightMenu
+        onColorSelect={vi.fn()}
+        selectedColor="yellow"
         onDelete={vi.fn()}
-        highlightText="Some highlight text"
+        textToTranslate="Some highlight text"
       />
     );
     const translateBtn = screen.queryByText(/Traduzir/i);
@@ -392,11 +426,11 @@ describe("HighlightActionMenu", () => {
     mockTranslateText.mockResolvedValue("Tradução");
 
     render(
-      <HighlightActionMenu
-        currentColor="yellow"
-        onChangeColor={vi.fn()}
+      <HighlightMenu
+        onColorSelect={vi.fn()}
+        selectedColor="yellow"
         onDelete={vi.fn()}
-        highlightText="Some highlight text"
+        textToTranslate="Some highlight text"
       />
     );
 
@@ -413,15 +447,15 @@ describe("HighlightActionMenu", () => {
 
   it("closes TranslationDialog and allows color change after closing", async () => {
     const user = userEvent.setup();
-    const onChangeColor = vi.fn();
+    const onColorSelect = vi.fn();
     mockTranslateText.mockResolvedValue("Tradução");
 
     const { container } = render(
-      <HighlightActionMenu
-        currentColor="yellow"
-        onChangeColor={onChangeColor}
+      <HighlightMenu
+        onColorSelect={onColorSelect}
+        selectedColor="yellow"
         onDelete={vi.fn()}
-        highlightText="Some highlight text"
+        textToTranslate="Some highlight text"
       />
     );
 
@@ -450,6 +484,6 @@ describe("HighlightActionMenu", () => {
     // Should still be able to change color
     const colorButtons = container.querySelectorAll(".w-6.h-6.rounded-full");
     await user.click(colorButtons[2] as HTMLButtonElement); // blue
-    expect(onChangeColor).toHaveBeenCalledWith("blue");
+    expect(onColorSelect).toHaveBeenCalledWith("blue");
   });
 });

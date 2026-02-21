@@ -60,7 +60,7 @@ export function TranslationDialog({ original, onClose }: TranslationDialogProps)
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogPortal>
         {/* stopPropagation prevents react-pdf-highlighter's document listener
-            from closing the ColorPicker / HighlightActionMenu */}
+            from closing the HighlightMenu */}
         <DialogOverlay
           className="bg-black/50"
           onMouseDown={(e) => e.stopPropagation()}
