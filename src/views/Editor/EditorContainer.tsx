@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { createEditor, type EditorInstance } from "@core/editor/setup";
 import { store } from "@core/store";
 import { registry } from "@core/commands";
-import { PdfViewer } from "./PdfViewer";
+import { PdfViewer } from "../PdfViewer/PdfViewer";
 
 interface Props {
   filePath: string | null;

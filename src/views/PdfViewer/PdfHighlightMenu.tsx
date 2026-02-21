@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@components/ui/button";
-import { TranslationDialog } from "./TranslationDialog";
+import { TranslationDialog } from "../Editor/TranslationDialog";
 
 const COLORS = [
   { id: "yellow", bg: "#fef08a", label: "Yellow" },
