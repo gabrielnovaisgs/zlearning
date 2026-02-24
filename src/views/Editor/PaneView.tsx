@@ -2,11 +2,17 @@ import { useState, useEffect } from "react";
 import { store } from "@core/store";
 import type { Pane } from "@core/types";
 import { TabBar } from "./TabBar";
-import { EditorContainer } from "./EditorContainer";
+import { EditorContainer, EditorType } from "./EditorContainer";
 
 interface PaneViewProps {
   pane: Pane;
   isFocused: boolean;
+}
+
+function getEditorType(path: string | null | undefined): EditorType {
+  if (!path) return EditorType.NewTab;
+  if (path.endsWith(".pdf")) return EditorType.Pdf;
+  return EditorType.Markdown;
 }
 
 function getDropSide(e: React.DragEvent): "left" | "right" {
@@ -70,6 +76,7 @@ export function PaneView({ pane, isFocused }: PaneViewProps) {
       </div>
       <EditorContainer
         key={pane.id}
+        type={getEditorType(activeTab?.path)}
         filePath={activeTab?.path ?? null}
         paneId={pane.id}
         isFocused={isFocused}
