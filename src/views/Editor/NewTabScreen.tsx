@@ -1,4 +1,4 @@
-import { registry } from "@core/commands";
+import { registry } from "@core/commands/CommandRegistry";
 import { store } from "@core/store";
 
 

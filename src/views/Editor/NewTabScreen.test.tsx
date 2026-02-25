@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NewTabScreen } from "./NewTabScreen";
-import * as registryModule from "@core/commands";
+import * as registryModule from "@core/commands/CommandRegistry";
 import * as storeModule from "@core/store";
 
 // Mock dependencies

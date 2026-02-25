@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { store } from "@core/store";
-import { registry } from "@core/commands";
+import { registry } from "@core/commands/CommandRegistry";
 import { Sidebar } from "./Sidebar/Sidebar";
 import { SplitView } from "./Editor/SplitView";
-import { CommandPalette } from "./CommandPalette/CommandPalette";
+import { CommandPalette } from "./Commands/OpenFilePalette";
 
 function openFileFromURL() {
   const path = location.pathname.slice(1); // remove leading "/"
@@ -25,9 +25,11 @@ function openFileFromURL() {
   }
 }
 
+
 export function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
 
+  
   useEffect(() => {
     store.loadFileTree().then(() => openFileFromURL());
 
