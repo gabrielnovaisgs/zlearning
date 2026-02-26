@@ -5,16 +5,32 @@ type Listener = () => void;
 
 const defaultPaneId = crypto.randomUUID();
 
+function toUrlPath(path: string | null): string {
+  return path ? "/" + path.replace(/\.(md|pdf)$/, "") : "/";
+}
+
+/** Remove the pane at `idx`, distributing its flexRatio to the adjacent pane. */
+function removePaneAt(panes: Pane[], idx: number): Pane[] {
+  const removedRatio = panes[idx].flexRatio;
+  const result = panes.filter((_, i) => i !== idx);
+  const adjacentIdx = idx < result.length ? idx : idx - 1;
+  result[adjacentIdx] = {
+    ...result[adjacentIdx],
+    flexRatio: result[adjacentIdx].flexRatio + removedRatio,
+  };
+  return result;
+}
+
 class Store {
   private state: AppState = {
     fileTree: [],
     activeFile: null,
+    activePaneId: defaultPaneId,
     loading: false,
     sidebarWidth: 260,
     expandedDirs: new Set(),
     pdfHighlightTarget: null,
     panes: [{ id: defaultPaneId, tabs: [], activeTabId: null, flexRatio: 1 }],
-    activePaneId: defaultPaneId,
   };
 
   private listeners = new Set<Listener>();
@@ -34,14 +50,28 @@ class Store {
     for (const listener of this.listeners) listener();
   }
 
-  private update(partial: Partial<AppState>) {
+  private update(partial: Partial<AppState>, urlMode: "push" | "replace" = "push") {
+    const prevActiveFile = this.state.activeFile;
     const next = { ...this.state, ...partial };
     // Derive activeFile from active pane's active tab
     const pane = next.panes.find((p) => p.id === next.activePaneId);
     const tab = pane?.tabs.find((t) => t.id === pane.activeTabId);
     next.activeFile = tab?.path ?? null;
     this.state = next;
+    if (next.activeFile !== prevActiveFile) {
+      this.syncUrl(urlMode);
+    }
     this.emit();
+  }
+
+  private syncUrl(mode: "push" | "replace") {
+    const urlPath = toUrlPath(this.state.activeFile);
+    if (location.pathname === urlPath) return;
+    if (mode === "replace") {
+      history.replaceState(null, "", urlPath);
+    } else {
+      history.pushState(null, "", urlPath);
+    }
   }
 
   async loadFileTree() {
@@ -80,11 +110,6 @@ class Store {
         const newTab: Tab = { id: crypto.randomUUID(), path };
         panes[paneIdx] = { ...pane, tabs: [...pane.tabs, newTab], activeTabId: newTab.id };
       }
-    }
-
-    const urlPath = "/" + path.replace(/\.(md|pdf)$/, "");
-    if (location.pathname !== urlPath) {
-      history.pushState(null, "", urlPath);
     }
 
     this.update({ panes, activePaneId: targetPaneId });
@@ -130,14 +155,6 @@ class Store {
 
     panes[paneIdx] = { ...pane, tabs: newTabs, activeTabId: newActiveTabId };
     this.update({ panes });
-
-    // Update URL if active tab changed
-    const activePaneAfter = panes.find((p) => p.id === this.state.activePaneId);
-    const activeTabAfter = activePaneAfter?.tabs.find((t) => t.id === activePaneAfter.activeTabId);
-    const urlPath = activeTabAfter?.path ? "/" + activeTabAfter.path.replace(/\.(md|pdf)$/, "") : "/";
-    if (location.pathname !== urlPath) {
-      history.pushState(null, "", urlPath);
-    }
   }
 
   activateTab(tabId: string, paneId: string) {
@@ -147,24 +164,11 @@ class Store {
 
     panes[paneIdx] = { ...panes[paneIdx], activeTabId: tabId };
     this.update({ panes, activePaneId: paneId });
-
-    const tab = panes[paneIdx].tabs.find((t) => t.id === tabId);
-    if (tab?.path) {
-      const urlPath = "/" + tab.path.replace(/\.(md|pdf)$/, "");
-      if (location.pathname !== urlPath) history.pushState(null, "", urlPath);
-    }
   }
 
   setActivePaneId(paneId: string) {
     if (this.state.activePaneId === paneId) return;
     this.update({ activePaneId: paneId });
-
-    const pane = this.state.panes.find((p) => p.id === paneId);
-    const tab = pane?.tabs.find((t) => t.id === pane.activeTabId);
-    if (tab?.path) {
-      const urlPath = "/" + tab.path.replace(/\.(md|pdf)$/, "");
-      if (location.pathname !== urlPath) history.pushState(null, "", urlPath);
-    }
   }
 
   /** Creates a new pane adjacent to paneId. Copies the active tab by default. Returns new pane id. */
@@ -208,26 +212,15 @@ class Store {
     const idx = panes.findIndex((p) => p.id === paneId);
     if (idx === -1) return;
 
-    const removedRatio = panes[idx].flexRatio;
-    panes.splice(idx, 1);
-
-    const adjacentIdx = idx < panes.length ? idx : idx - 1;
-    panes[adjacentIdx] = {
-      ...panes[adjacentIdx],
-      flexRatio: panes[adjacentIdx].flexRatio + removedRatio,
-    };
+    const newPanes = removePaneAt(panes, idx);
+    const adjacentIdx = idx < newPanes.length ? idx : idx - 1;
 
     let activePaneId = this.state.activePaneId;
     if (activePaneId === paneId) {
-      activePaneId = panes[adjacentIdx].id;
+      activePaneId = newPanes[adjacentIdx].id;
     }
 
-    this.update({ panes, activePaneId });
-
-    const pane = panes.find((p) => p.id === activePaneId);
-    const tab = pane?.tabs.find((t) => t.id === pane.activeTabId);
-    const urlPath = tab?.path ? "/" + tab.path.replace(/\.(md|pdf)$/, "") : "/";
-    if (location.pathname !== urlPath) history.pushState(null, "", urlPath);
+    this.update({ panes: newPanes, activePaneId });
   }
 
   resizePane(leftPaneId: string, rightPaneId: string, newLeftRatio: number, newRightRatio: number) {
@@ -270,13 +263,7 @@ class Store {
     // If fromPane is now empty and there are multiple panes, close it
     if (newFromTabs.length === 0 && newPanes.length > 1) {
       const fromIdx = newPanes.findIndex((p) => p.id === fromPaneId);
-      const removedRatio = newPanes[fromIdx].flexRatio;
-      newPanes = newPanes.filter((p) => p.id !== fromPaneId);
-      const adjIdx = fromIdx < newPanes.length ? fromIdx : fromIdx - 1;
-      newPanes[adjIdx] = {
-        ...newPanes[adjIdx],
-        flexRatio: newPanes[adjIdx].flexRatio + removedRatio,
-      };
+      newPanes = removePaneAt(newPanes, fromIdx);
     }
 
     this.update({ panes: newPanes, activePaneId: toPaneId });
@@ -366,11 +353,7 @@ class Store {
       ...p,
       tabs: p.tabs.map((t) => (t.path === oldPath ? { ...t, path: newPath } : t)),
     }));
-    this.update({ panes });
-
-    if (this.state.activeFile === newPath) {
-      history.replaceState(null, "", "/" + newPath.replace(/\.(md|pdf)$/, ""));
-    }
+    this.update({ panes }, "replace");
     return true;
   }
 
@@ -409,11 +392,7 @@ class Store {
       ...p,
       tabs: p.tabs.map((t) => (t.path === sourcePath ? { ...t, path: newPath } : t)),
     }));
-    this.update({ panes });
-
-    if (this.state.activeFile === newPath) {
-      history.replaceState(null, "", "/" + newPath.replace(/\.(md|pdf)$/, ""));
-    }
+    this.update({ panes }, "replace");
   }
 
   async duplicateFile(path: string) {
@@ -457,7 +436,6 @@ class Store {
   }
 
   async deleteFile(path: string) {
-    const wasActive = this.state.activeFile === path;
     await this.fs.deleteFile(path);
 
     // Close all tabs with this path across all panes
@@ -477,10 +455,7 @@ class Store {
       for (const emptyPane of panes.filter((p) => p.tabs.length === 0)) {
         if (panes.length <= 1) break;
         const idx = panes.findIndex((p) => p.id === emptyPane.id);
-        const removedRatio = panes[idx].flexRatio;
-        panes = panes.filter((p) => p.id !== emptyPane.id);
-        const adjIdx = idx < panes.length ? idx : idx - 1;
-        panes[adjIdx] = { ...panes[adjIdx], flexRatio: panes[adjIdx].flexRatio + removedRatio };
+        panes = removePaneAt(panes, idx);
       }
     }
 
@@ -490,11 +465,6 @@ class Store {
     }
 
     this.update({ panes, activePaneId });
-
-    if (wasActive && this.state.activeFile === null) {
-      history.pushState(null, "", "/");
-    }
-
     await this.loadFileTree();
   }
 }

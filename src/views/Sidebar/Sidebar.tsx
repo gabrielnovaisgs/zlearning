@@ -12,7 +12,7 @@ interface MenuState {
 }
 
 export function Sidebar() {
-  const { sidebarWidth } = useStore();
+  const sidebarWidth = useStore((s) => s.sidebarWidth);
   const resizing = useRef(false);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [renamingPath, setRenamingPath] = useState<string | null>(null);

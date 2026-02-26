@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { FileTreeEntry } from "@core/types";
 import { store } from "@core/store";
-import { useStore } from "../hooks";
+import { useStore, shallowEqual } from "../hooks";
 
 interface Props {
   entry: FileTreeEntry;
@@ -13,7 +13,10 @@ interface Props {
 }
 
 export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStartRename, onEndRename }: Props) {
-  const { activeFile, expandedDirs } = useStore();
+  const { activeFile, expandedDirs } = useStore(
+    (s) => ({ activeFile: s.activeFile, expandedDirs: s.expandedDirs }),
+    shallowEqual
+  );
   const [dragOver, setDragOver] = useState(false);
   const isExpanded = expandedDirs.has(entry.path);
   const isActive = entry.path === activeFile;

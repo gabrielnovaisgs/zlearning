@@ -12,7 +12,7 @@ interface Props {
 }
 
 export function FileTree({ onContextMenu, renamingPath, onStartRename, onEndRename }: Props) {
-  const { fileTree } = useStore();
+  const fileTree = useStore((s) => s.fileTree);
   const [dragOver, setDragOver] = useState(false);
 
   if (fileTree.length === 0) {

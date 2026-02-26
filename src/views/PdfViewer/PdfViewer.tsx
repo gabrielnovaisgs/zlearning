@@ -24,7 +24,7 @@ interface Props {
 }
 
 export function PdfViewer({ pdfPath }: Props) {
-  const { pdfHighlightTarget } = useStore();
+  const pdfHighlightTarget = useStore((s) => s.pdfHighlightTarget);
 
   // ── Panel resize ──────────────────────────────────────────────────
   const resizing = useRef(false);

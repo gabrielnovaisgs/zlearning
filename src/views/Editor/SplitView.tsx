@@ -1,6 +1,6 @@
 import { Fragment, useCallback } from "react";
 import { store } from "@core/store";
-import { useStore } from "../hooks";
+import { useStore, shallowEqual } from "../hooks";
 import { PaneView } from "./PaneView";
 
 interface ResizeHandleProps {
@@ -53,7 +53,10 @@ function ResizeHandle({ leftPaneId, rightPaneId }: ResizeHandleProps) {
 }
 
 export function SplitView() {
-  const { panes, activePaneId } = useStore();
+  const { panes, activePaneId } = useStore(
+    (s) => ({ panes: s.panes, activePaneId: s.activePaneId }),
+    shallowEqual
+  );
 
   return (
     <div className="flex flex-1 min-w-0 min-h-0 overflow-hidden">

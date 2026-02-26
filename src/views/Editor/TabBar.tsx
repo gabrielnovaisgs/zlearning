@@ -18,7 +18,7 @@ interface TabBarProps {
 }
 
 export function TabBar({ pane }: TabBarProps) {
-  const { panes } = useStore();
+  const panes = useStore((s) => s.panes);
 
   const handleTabBarDrop = (e: React.DragEvent) => {
     e.preventDefault();

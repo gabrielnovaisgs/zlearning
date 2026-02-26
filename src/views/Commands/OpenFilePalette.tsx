@@ -24,7 +24,7 @@ interface Props {
 
 export function CommandPalette({ open, onClose }: Props) {
   const [query, setQuery] = useState("");
-  const { fileTree } = useStore();
+  const fileTree = useStore((s) => s.fileTree);
 
   const files = useMemo(() => flattenFiles(fileTree), [fileTree]);
   const results = useMemo(() => fuzzyMatch(query, files), [query, files]);
