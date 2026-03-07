@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useSyncExternalStore } from "react";
 import { store } from "@core/store";
+import { sidebarStore } from "@core/sidebar-store";
 import type { AppState } from "@core/types";
 
 export function shallowEqual<T>(a: T, b: T): boolean {
@@ -28,6 +29,23 @@ export function useStore<T>(
         return lastResult.current.value; // referência estável → sem re-render
       }
       lastResult.current = { value: next };
+      return next;
+    }
+  );
+}
+
+
+export function useSidebarStore() {
+  const lastResult = useRef<Set<string> | null>(null);
+
+  return useSyncExternalStore(
+    (cb) => sidebarStore.subscribe(cb),
+    () => {
+      const next = sidebarStore.getState();
+      if (lastResult.current !== null && shallowEqual(lastResult.current, next)) {
+        return lastResult.current; // referência estável → sem re-render
+      }
+      lastResult.current = next;
       return next;
     }
   );

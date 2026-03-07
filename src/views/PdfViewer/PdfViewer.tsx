@@ -1,8 +1,7 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, useSyncExternalStore } from "react";
 import type { IHighlight, NewHighlight } from "react-pdf-highlighter";
 import { HttpFileSystemService } from "@core/services/filesystem";
-import { store } from "@core/store";
-import { useStore } from "../hooks";
+import { pdfStore } from "@core/pdf-store";
 import { PdfController } from "./PdfController";
 import { PdfNotesEditor, buildCitation, type EditorInstance } from "./PdfNotesEditor";
 
@@ -24,7 +23,10 @@ interface Props {
 }
 
 export function PdfViewer({ pdfPath }: Props) {
-  const pdfHighlightTarget = useStore((s) => s.pdfHighlightTarget);
+  const pdfHighlightTarget = useSyncExternalStore(
+    (cb) => pdfStore.subscribe(cb),
+    () => pdfStore.getState()
+  );
 
   // ── Panel resize ──────────────────────────────────────────────────
   const resizing = useRef(false);
@@ -148,7 +150,7 @@ export function PdfViewer({ pdfPath }: Props) {
       const page = hl.position.pageNumber;
       setCurrentPage(page);
     }
-    store.clearPdfHighlightTarget();
+    pdfStore.clearTarget();
   }, [pdfHighlightTarget, highlights]);
 
   // ── Panel resize ──────────────────────────────────────────────────

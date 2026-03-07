@@ -1,6 +1,5 @@
 import { store } from "@core/store";
 import type { FileTreeEntry } from "@core/types";
-import { useStore } from "../hooks";
 import { FileTree } from "./FileTree";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { useCallback, useRef, useState } from "react";
@@ -12,7 +11,7 @@ interface MenuState {
 }
 
 export function Sidebar() {
-  const sidebarWidth = useStore((s) => s.sidebarWidth);
+  const [sidebarWidth, setSidebarWidth] = useState(260);
   const resizing = useRef(false);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
@@ -63,7 +62,7 @@ export function Sidebar() {
 
     const onMouseMove = (e: MouseEvent) => {
       if (resizing.current) {
-        store.setSidebarWidth(e.clientX);
+        setSidebarWidth(Math.max(180, Math.min(500, e.clientX)));
       }
     };
     const onMouseUp = () => {

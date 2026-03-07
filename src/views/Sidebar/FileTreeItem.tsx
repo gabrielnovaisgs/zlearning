@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import type { FileTreeEntry } from "@core/types";
 import { store } from "@core/store";
-import { useStore, shallowEqual } from "../hooks";
+import { sidebarStore } from "@core/sidebar-store";
+import { useSidebarStore, useStore } from "../hooks";
+
 
 interface Props {
   entry: FileTreeEntry;
@@ -13,11 +15,10 @@ interface Props {
 }
 
 export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStartRename, onEndRename }: Props) {
-  const { activeFile, expandedDirs } = useStore(
-    (s) => ({ activeFile: s.activeFile, expandedDirs: s.expandedDirs }),
-    shallowEqual
-  );
+  const activeFile = useStore((s) => s.activeFile);
+
   const [dragOver, setDragOver] = useState(false);
+  const expandedDirs = useSidebarStore();
   const isExpanded = expandedDirs.has(entry.path);
   const isActive = entry.path === activeFile;
   const isRenaming = renamingPath === entry.path;
@@ -45,7 +46,7 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
 
   const handleClick = async () => {
     if (entry.type === "directory") {
-      store.toggleDir(entry.path);
+      sidebarStore.toggle(entry.path);
     } else {
       await store.openFile(entry.path);
     }

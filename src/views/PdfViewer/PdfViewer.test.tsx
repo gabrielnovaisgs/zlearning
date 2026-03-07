@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event";
 import { PdfViewer } from "./PdfViewer";
 import * as editorSetup from "@core/editor/setup";
 import { HttpFileSystemService } from "@core/services/filesystem";
-import * as storeModule from "@core/store";
 
 // Mock dependencies
 vi.mock("react-pdf-highlighter", () => ({
@@ -41,10 +40,12 @@ vi.mock("react-pdf-highlighter", () => ({
 vi.mock("@core/editor/setup");
 vi.mock("@core/services/filesystem");
 vi.mock("@core/store");
-vi.mock("../hooks", () => ({
-  useStore: () => ({
-    pdfHighlightTarget: null,
-  }),
+vi.mock("@core/pdf-store", () => ({
+  pdfStore: {
+    getState: vi.fn(() => null),
+    subscribe: vi.fn(() => () => {}),
+    clearTarget: vi.fn(),
+  },
 }));
 
 const mockCreateEditor = vi.fn();
@@ -54,19 +55,8 @@ const mockFs = {
   createFile: vi.fn(),
 } as any;
 
-const mockStore = {
-  clearPdfHighlightTarget: vi.fn(),
-  loadFileTree: vi.fn(),
-} as any;
-
 vi.mocked(editorSetup.createEditor).mockImplementation(mockCreateEditor);
 vi.mocked(HttpFileSystemService).mockImplementation(() => mockFs);
-
-// Mock the store object itself
-Object.defineProperty(storeModule, "store", {
-  value: mockStore,
-  configurable: true,
-});
 
 describe("PdfViewer", () => {
   beforeEach(() => {

@@ -28,10 +28,6 @@ export interface AppState {
   fileTree: FileTreeEntry[];
   /** Derived: active pane → active tab → path */
   activeFile: string | null;
-  loading: boolean;
-  sidebarWidth: number;
-  expandedDirs: Set<string>;
-  pdfHighlightTarget: string | null;
   panes: Pane[];
   activePaneId: string;
 }

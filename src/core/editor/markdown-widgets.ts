@@ -344,8 +344,8 @@ const linkClickHandler = EditorView.domEventHandlers({
           const url = urlMatch[1];
           if (url.startsWith("pdf-highlight://")) {
             const id = url.slice("pdf-highlight://".length);
-            import("@core/store").then(({ store }) => {
-              store.navigateToPdfHighlight(id);
+            import("@core/pdf-store").then(({ pdfStore }) => {
+              pdfStore.setTarget(id);
             });
             return true;
           }
