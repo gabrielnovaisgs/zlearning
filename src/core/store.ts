@@ -1,8 +1,7 @@
+import { create } from "zustand";
 import type { AppState, FileTreeEntry, Pane, Tab } from "./types";
 import { HttpFileSystemService, type FileSystemService } from "./services/filesystem";
 import { sidebarStore } from "./sidebar-store";
-
-type Listener = () => void;
 
 const defaultPaneId = crypto.randomUUID();
 
@@ -27,423 +26,436 @@ function removePaneAt(panes: Pane[], idx: number): Pane[] {
   return result;
 }
 
-class Store {
-  private state: AppState = {
-    fileTree: [],
-    activeFile: null,
-    activePaneId: defaultPaneId,
-    panes: [{ id: defaultPaneId, tabs: [], activeTabId: null, flexRatio: 1 }],
-  };
+// ── Zustand store ──────────────────────────────────────────────────────────
 
-  private listeners = new Set<Listener>();
+export const appStore = create<AppState>()(() => ({
+  fileTree: [],
+  activeFile: null,
+  activePaneId: defaultPaneId,
+  panes: [{ id: defaultPaneId, tabs: [], activeTabId: null, flexRatio: 1 }],
+}));
 
-  readonly fs: FileSystemService = new HttpFileSystemService();
+// ── Internal helpers ───────────────────────────────────────────────────────
 
-  getState(): AppState {
-    return this.state;
-  }
+function update(partial: Partial<AppState>, urlMode: "push" | "replace" = "push") {
+  const current = appStore.getState();
+  const next = { ...current, ...partial };
+  const pane = findPaneById(next.panes, next.activePaneId)?.pane;
+  const tab = pane?.tabs.find((t) => t.id === pane.activeTabId);
+  const activeFile = tab?.path ?? null;
+  const prevActiveFile = current.activeFile;
 
-  subscribe(listener: Listener): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  }
+  appStore.setState({ ...partial, activeFile });
 
-  private emit() {
-    for (const listener of this.listeners) listener();
-  }
-
-  private update(partial: Partial<AppState>, urlMode: "push" | "replace" = "push") {
-    const prevActiveFile = this.state.activeFile;
-    const next = { ...this.state, ...partial };
-    // Derive activeFile from active pane's active tab
-    const pane = findPaneById(next.panes, next.activePaneId)?.pane;
-    const tab = pane?.tabs.find((t) => t.id === pane.activeTabId);
-    next.activeFile = tab?.path ?? null;
-    this.state = next;
-    if (next.activeFile !== prevActiveFile) {
-      this.syncUrl(urlMode);
-    }
-    this.emit();
-  }
-
-  private syncUrl(mode: "push" | "replace") {
-    const urlPath = toUrlPath(this.state.activeFile);
-    if (location.pathname === urlPath) return;
-    if (mode === "replace") {
-      history.replaceState(null, "", urlPath);
-    } else {
-      history.pushState(null, "", urlPath);
-    }
-  }
-
-  async loadFileTree() {
-    const fileTree = await this.fs.listFiles();
-    this.update({ fileTree });
-  }
-
-  openFile(path: string, paneId?: string) {
-    const targetPaneId = paneId ?? this.state.activePaneId;
-    const panes = [...this.state.panes];
-    const found = findPaneById(panes, targetPaneId);
-    if (!found) return;
-    const { pane, idx: paneIdx } = found;
-
-    const activeTab = pane.tabs.find((t) => t.id === pane.activeTabId);
-
-    const existingTab = pane.tabs.find((t) => t.path === path);
-
-    if (activeTab && activeTab.path === null) {
-      if (existingTab) {
-        // File already open in another tab: activate it and discard the null tab
-        const newTabs = pane.tabs.filter((t) => t.id !== activeTab.id);
-        panes[paneIdx] = { ...pane, tabs: newTabs, activeTabId: existingTab.id };
+  if (activeFile !== prevActiveFile) {
+    const urlPath = toUrlPath(activeFile);
+    if (location.pathname !== urlPath) {
+      if (urlMode === "replace") {
+        history.replaceState(null, "", urlPath);
       } else {
-        // Replace the new-tab placeholder with this file
-        panes[paneIdx] = {
-          ...pane,
-          tabs: pane.tabs.map((t) => t.id === activeTab.id ? { ...t, path } : t),
-          activeTabId: activeTab.id,
-        };
-      }
-    } else {
-      if (existingTab) {
-        panes[paneIdx] = { ...pane, activeTabId: existingTab.id };
-      } else {
-        const newTab: Tab = { id: crypto.randomUUID(), path };
-        panes[paneIdx] = { ...pane, tabs: [...pane.tabs, newTab], activeTabId: newTab.id };
+        history.pushState(null, "", urlPath);
       }
     }
-
-    this.update({ panes, activePaneId: targetPaneId });
-  }
-
-  openNewTab(paneId?: string) {
-    const targetPaneId = paneId ?? this.state.activePaneId;
-    const panes = [...this.state.panes];
-    const found = findPaneById(panes, targetPaneId);
-    if (!found) return;
-    const { pane, idx: paneIdx } = found;
-
-    const newTab: Tab = { id: crypto.randomUUID(), path: null };
-    panes[paneIdx] = { ...pane, tabs: [...pane.tabs, newTab], activeTabId: newTab.id };
-    this.update({ panes, activePaneId: targetPaneId });
-  }
-
-  // ── Tab/Pane management ────────────────────────────────────────────
-
-  closeTab(tabId: string, paneId: string) {
-    const panes = [...this.state.panes];
-    const found = findPaneById(panes, paneId);
-    if (!found) return;
-    const { pane, idx: paneIdx } = found;
-
-    const tabIdx = pane.tabs.findIndex((t) => t.id === tabId);
-    if (tabIdx === -1) return;
-
-    const newTabs = pane.tabs.filter((t) => t.id !== tabId);
-
-    if (newTabs.length === 0 && panes.length > 1) {
-      this.closePane(paneId);
-      return;
-    }
-
-    let newActiveTabId = pane.activeTabId;
-    if (newActiveTabId === tabId) {
-      newActiveTabId =
-        newTabs.length === 0
-          ? null
-          : newTabs[Math.min(tabIdx, newTabs.length - 1)].id;
-    }
-
-    panes[paneIdx] = { ...pane, tabs: newTabs, activeTabId: newActiveTabId };
-    this.update({ panes });
-  }
-
-  activateTab(tabId: string, paneId: string) {
-    const panes = [...this.state.panes];
-    const found = findPaneById(panes, paneId);
-    if (!found) return;
-    const { idx: paneIdx } = found;
-
-    panes[paneIdx] = { ...panes[paneIdx], activeTabId: tabId };
-    this.update({ panes, activePaneId: paneId });
-  }
-
-  setActivePaneId(paneId: string) {
-    if (this.state.activePaneId === paneId) return;
-    this.update({ activePaneId: paneId });
-  }
-
-  /** Creates a new pane adjacent to paneId. Copies the active tab by default. Returns new pane id. */
-  splitPane(paneId: string, direction: "left" | "right", copyActiveTab = true): string {
-    const panes = [...this.state.panes];
-    const found = findPaneById(panes, paneId);
-    if (!found) return "";
-    const { pane: sourcePane, idx } = found;
-    const activeTab = sourcePane.tabs.find((t) => t.id === sourcePane.activeTabId);
-    const newRatio = sourcePane.flexRatio / 2;
-
-    const newTabEntry: Tab | undefined = copyActiveTab && activeTab && activeTab.path !== null
-      ? { id: crypto.randomUUID(), path: activeTab.path }
-      : undefined;
-
-    const newPaneId = crypto.randomUUID();
-    const newPane: Pane = {
-      id: newPaneId,
-      tabs: newTabEntry ? [newTabEntry] : [],
-      activeTabId: newTabEntry?.id ?? null,
-      flexRatio: newRatio,
-    };
-
-    panes[idx] = { ...sourcePane, flexRatio: newRatio };
-
-    if (direction === "right") {
-      panes.splice(idx + 1, 0, newPane);
-    } else {
-      panes.splice(idx, 0, newPane);
-    }
-
-    this.update({ panes, activePaneId: newPaneId });
-    return newPaneId;
-  }
-
-  closePane(paneId: string) {
-    const panes = [...this.state.panes];
-    if (panes.length <= 1) return;
-
-    const found = findPaneById(panes, paneId);
-    if (!found) return;
-    const { idx } = found;
-
-    const newPanes = removePaneAt(panes, idx);
-    const adjacentIdx = idx < newPanes.length ? idx : idx - 1;
-
-    let activePaneId = this.state.activePaneId;
-    if (activePaneId === paneId) {
-      activePaneId = newPanes[adjacentIdx].id;
-    }
-
-    this.update({ panes: newPanes, activePaneId });
-  }
-
-  resizePane(leftPaneId: string, rightPaneId: string, newLeftRatio: number, newRightRatio: number) {
-    const panes = this.state.panes.map((p) => {
-      if (p.id === leftPaneId) return { ...p, flexRatio: newLeftRatio };
-      if (p.id === rightPaneId) return { ...p, flexRatio: newRightRatio };
-      return p;
-    });
-    this.update({ panes });
-  }
-
-  moveTabToPane(tabId: string, fromPaneId: string, toPaneId: string, index?: number) {
-    if (fromPaneId === toPaneId) return;
-
-    const fromPane = findPaneById(this.state.panes, fromPaneId)?.pane;
-    const toPane = findPaneById(this.state.panes, toPaneId)?.pane;
-    if (!fromPane || !toPane) return;
-
-    const tab = fromPane.tabs.find((t) => t.id === tabId);
-    if (!tab) return;
-
-    const newFromTabs = fromPane.tabs.filter((t) => t.id !== tabId);
-    const removedIdx = fromPane.tabs.findIndex((t) => t.id === tabId);
-    const newFromActiveTabId =
-      fromPane.activeTabId === tabId
-        ? newFromTabs.length === 0
-          ? null
-          : newFromTabs[Math.min(removedIdx, newFromTabs.length - 1)].id
-        : fromPane.activeTabId;
-
-    const insertAt = index ?? toPane.tabs.length;
-    const newToTabs = [...toPane.tabs.slice(0, insertAt), tab, ...toPane.tabs.slice(insertAt)];
-
-    let newPanes = this.state.panes.map((p) => {
-      if (p.id === fromPaneId) return { ...p, tabs: newFromTabs, activeTabId: newFromActiveTabId };
-      if (p.id === toPaneId) return { ...p, tabs: newToTabs, activeTabId: tab.id };
-      return p;
-    });
-
-    // If fromPane is now empty and there are multiple panes, close it
-    if (newFromTabs.length === 0 && newPanes.length > 1) {
-      const fromIdx = findPaneById(newPanes, fromPaneId)!.idx;
-      newPanes = removePaneAt(newPanes, fromIdx);
-    }
-
-    this.update({ panes: newPanes, activePaneId: toPaneId });
-  }
-
-  // ── File operations ────────────────────────────────────────────────
-
-  async createFile(path: string) {
-    await this.fs.createFile(path);
-    await this.loadFileTree();
-    this.openFile(path);
-  }
-
-  async createUntitledFile(dir: string) {
-    const siblings = this.collectFileNames(dir ? dir + "/" : "");
-    let name = "Untitled.md";
-    let n = 1;
-    while (siblings.has(name)) {
-      name = `Untitled (${n}).md`;
-      n++;
-    }
-    const path = dir ? `${dir}/${name}` : name;
-    if (dir) {
-      sidebarStore.expand(dir);
-    }
-    await this.createFile(path);
-  }
-
-  /** Resolve a wiki link path (e.g. "notes/Getting Started") to a file path */
-  resolveWikiLink(linkPath: string): string | null {
-    const target = linkPath.endsWith(".md") ? linkPath : `${linkPath}.md`;
-    const find = (entries: FileTreeEntry[]): string | null => {
-      for (const entry of entries) {
-        if (entry.type === "file" && entry.path === target) return entry.path;
-        if (entry.children) {
-          const found = find(entry.children);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-    return find(this.state.fileTree);
-  }
-
-  async createDirectory(path: string) {
-    await this.fs.createDirectory(path);
-    await this.loadFileTree();
-    const parts = path.split("/");
-    const toExpand: string[] = [];
-    for (let i = 1; i < parts.length; i++) {
-      toExpand.push(parts.slice(0, i).join("/"));
-    }
-    sidebarStore.expandMany(toExpand);
-  }
-
-  async renameFile(oldPath: string, newName: string): Promise<boolean> {
-    const dir = oldPath.includes("/") ? oldPath.substring(0, oldPath.lastIndexOf("/") + 1) : "";
-    const ext = oldPath.match(/\.(md|pdf)$/)?.[0];
-    const finalName = ext && !newName.endsWith(ext) ? newName + ext : newName;
-    const newPath = `${dir}${finalName}`;
-    if (newPath === oldPath) return true;
-    if (this.fileExists(newPath)) {
-      alert(`"${newName}" already exists in this folder.`);
-      return false;
-    }
-    await this.fs.renameFile(oldPath, newPath);
-    await this.loadFileTree();
-
-    // Update all tabs with the old path across all panes
-    const panes = this.state.panes.map((p) => ({
-      ...p,
-      tabs: p.tabs.map((t) => (t.path === oldPath ? { ...t, path: newPath } : t)),
-    }));
-    this.update({ panes }, "replace");
-    return true;
-  }
-
-  private fileExists(path: string): boolean {
-    const find = (entries: FileTreeEntry[]): boolean => {
-      for (const entry of entries) {
-        if (entry.path === path) return true;
-        if (entry.children && find(entry.children)) return true;
-      }
-      return false;
-    };
-    return find(this.state.fileTree);
-  }
-
-  /** Move a file or directory to a target directory (empty string = root) */
-  async moveFile(sourcePath: string, targetDir: string) {
-    const name = sourcePath.includes("/")
-      ? sourcePath.substring(sourcePath.lastIndexOf("/") + 1)
-      : sourcePath;
-    const newPath = targetDir ? `${targetDir}/${name}` : name;
-    if (newPath === sourcePath) return;
-    if (sourcePath === targetDir || targetDir.startsWith(sourcePath + "/")) return;
-    if (this.fileExists(newPath)) {
-      alert(`"${name}" already exists in the destination folder.`);
-      return;
-    }
-    await this.fs.renameFile(sourcePath, newPath);
-    if (targetDir) {
-      sidebarStore.expand(targetDir);
-    }
-    await this.loadFileTree();
-
-    const panes = this.state.panes.map((p) => ({
-      ...p,
-      tabs: p.tabs.map((t) => (t.path === sourcePath ? { ...t, path: newPath } : t)),
-    }));
-    this.update({ panes }, "replace");
-  }
-
-  async duplicateFile(path: string) {
-    const { content } = await this.fs.readFile(path);
-    const dir = path.includes("/") ? path.substring(0, path.lastIndexOf("/") + 1) : "";
-    const name = path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path;
-    const base = name.replace(/\.md$/, "");
-
-    const siblings = this.collectFileNames(dir);
-    let n = 1;
-    while (siblings.has(`${base} (${n}).md`)) n++;
-
-    const newPath = `${dir}${base} (${n}).md`;
-    await this.fs.createFile(newPath, content);
-    await this.loadFileTree();
-    this.openFile(newPath);
-  }
-
-  private collectFileNames(dir: string): Set<string> {
-    const names = new Set<string>();
-    const find = (entries: FileTreeEntry[], prefix: string) => {
-      for (const entry of entries) {
-        if (entry.type === "file" && prefix === dir) {
-          names.add(entry.name);
-        }
-        if (entry.children) {
-          find(entry.children, entry.path + "/");
-        }
-      }
-    };
-    find(this.state.fileTree, "");
-    return names;
-  }
-
-  async deleteFile(path: string) {
-    await this.fs.deleteFile(path);
-
-    // Close all tabs with this path across all panes
-    let panes = this.state.panes.map((p) => {
-      const newTabs = p.tabs.filter((t) => t.path !== path);
-      let newActiveTabId = p.activeTabId;
-      if (p.tabs.find((t) => t.id === p.activeTabId)?.path === path) {
-        const oldIdx = p.tabs.findIndex((t) => t.id === p.activeTabId);
-        newActiveTabId =
-          newTabs.length > 0 ? newTabs[Math.min(oldIdx, newTabs.length - 1)].id : null;
-      }
-      return { ...p, tabs: newTabs, activeTabId: newActiveTabId };
-    });
-
-    // Close empty panes if multiple exist
-    if (panes.length > 1) {
-      for (const emptyPane of panes.filter((p) => p.tabs.length === 0)) {
-        if (panes.length <= 1) break;
-        const idx = panes.findIndex((p) => p.id === emptyPane.id);
-        panes = removePaneAt(panes, idx);
-      }
-    }
-
-    let activePaneId = this.state.activePaneId;
-    if (!findPaneById(panes, activePaneId)) {
-      activePaneId = panes[0].id;
-    }
-
-    this.update({ panes, activePaneId });
-    await this.loadFileTree();
   }
 }
 
-export const store = new Store();
+// ── Actions ────────────────────────────────────────────────────────────────
+
+const fs: FileSystemService = new HttpFileSystemService();
+
+async function loadFileTree() {
+  const fileTree = await fs.listFiles();
+  update({ fileTree });
+}
+
+function openFile(path: string, paneId?: string) {
+  const state = appStore.getState();
+  const targetPaneId = paneId ?? state.activePaneId;
+  const panes = [...state.panes];
+  const found = findPaneById(panes, targetPaneId);
+  if (!found) return;
+  const { pane, idx: paneIdx } = found;
+
+  const activeTab = pane.tabs.find((t) => t.id === pane.activeTabId);
+  const existingTab = pane.tabs.find((t) => t.path === path);
+
+  if (activeTab && activeTab.path === null) {
+    if (existingTab) {
+      const newTabs = pane.tabs.filter((t) => t.id !== activeTab.id);
+      panes[paneIdx] = { ...pane, tabs: newTabs, activeTabId: existingTab.id };
+    } else {
+      panes[paneIdx] = {
+        ...pane,
+        tabs: pane.tabs.map((t) => (t.id === activeTab.id ? { ...t, path } : t)),
+        activeTabId: activeTab.id,
+      };
+    }
+  } else {
+    if (existingTab) {
+      panes[paneIdx] = { ...pane, activeTabId: existingTab.id };
+    } else {
+      const newTab: Tab = { id: crypto.randomUUID(), path };
+      panes[paneIdx] = { ...pane, tabs: [...pane.tabs, newTab], activeTabId: newTab.id };
+    }
+  }
+
+  update({ panes, activePaneId: targetPaneId });
+}
+
+function openNewTab(paneId?: string) {
+  const state = appStore.getState();
+  const targetPaneId = paneId ?? state.activePaneId;
+  const panes = [...state.panes];
+  const found = findPaneById(panes, targetPaneId);
+  if (!found) return;
+  const { pane, idx: paneIdx } = found;
+
+  const newTab: Tab = { id: crypto.randomUUID(), path: null };
+  panes[paneIdx] = { ...pane, tabs: [...pane.tabs, newTab], activeTabId: newTab.id };
+  update({ panes, activePaneId: targetPaneId });
+}
+
+// ── Tab/Pane management ────────────────────────────────────────────────────
+
+function closeTab(tabId: string, paneId: string) {
+  const state = appStore.getState();
+  const panes = [...state.panes];
+  const found = findPaneById(panes, paneId);
+  if (!found) return;
+  const { pane, idx: paneIdx } = found;
+
+  const tabIdx = pane.tabs.findIndex((t) => t.id === tabId);
+  if (tabIdx === -1) return;
+
+  const newTabs = pane.tabs.filter((t) => t.id !== tabId);
+
+  if (newTabs.length === 0 && panes.length > 1) {
+    closePane(paneId);
+    return;
+  }
+
+  let newActiveTabId = pane.activeTabId;
+  if (newActiveTabId === tabId) {
+    newActiveTabId =
+      newTabs.length === 0 ? null : newTabs[Math.min(tabIdx, newTabs.length - 1)].id;
+  }
+
+  panes[paneIdx] = { ...pane, tabs: newTabs, activeTabId: newActiveTabId };
+  update({ panes });
+}
+
+function activateTab(tabId: string, paneId: string) {
+  const panes = [...appStore.getState().panes];
+  const found = findPaneById(panes, paneId);
+  if (!found) return;
+  const { idx: paneIdx } = found;
+
+  panes[paneIdx] = { ...panes[paneIdx], activeTabId: tabId };
+  update({ panes, activePaneId: paneId });
+}
+
+function setActivePaneId(paneId: string) {
+  if (appStore.getState().activePaneId === paneId) return;
+  update({ activePaneId: paneId });
+}
+
+/** Creates a new pane adjacent to paneId. Copies the active tab by default. Returns new pane id. */
+function splitPane(paneId: string, direction: "left" | "right", copyActiveTab = true): string {
+  const panes = [...appStore.getState().panes];
+  const found = findPaneById(panes, paneId);
+  if (!found) return "";
+  const { pane: sourcePane, idx } = found;
+  const activeTab = sourcePane.tabs.find((t) => t.id === sourcePane.activeTabId);
+  const newRatio = sourcePane.flexRatio / 2;
+
+  const newTabEntry: Tab | undefined =
+    copyActiveTab && activeTab && activeTab.path !== null
+      ? { id: crypto.randomUUID(), path: activeTab.path }
+      : undefined;
+
+  const newPaneId = crypto.randomUUID();
+  const newPane: Pane = {
+    id: newPaneId,
+    tabs: newTabEntry ? [newTabEntry] : [],
+    activeTabId: newTabEntry?.id ?? null,
+    flexRatio: newRatio,
+  };
+
+  panes[idx] = { ...sourcePane, flexRatio: newRatio };
+
+  if (direction === "right") {
+    panes.splice(idx + 1, 0, newPane);
+  } else {
+    panes.splice(idx, 0, newPane);
+  }
+
+  update({ panes, activePaneId: newPaneId });
+  return newPaneId;
+}
+
+function closePane(paneId: string) {
+  const state = appStore.getState();
+  const panes = [...state.panes];
+  if (panes.length <= 1) return;
+
+  const found = findPaneById(panes, paneId);
+  if (!found) return;
+  const { idx } = found;
+
+  const newPanes = removePaneAt(panes, idx);
+  const adjacentIdx = idx < newPanes.length ? idx : idx - 1;
+
+  let activePaneId = state.activePaneId;
+  if (activePaneId === paneId) {
+    activePaneId = newPanes[adjacentIdx].id;
+  }
+
+  update({ panes: newPanes, activePaneId });
+}
+
+function resizePane(
+  leftPaneId: string,
+  rightPaneId: string,
+  newLeftRatio: number,
+  newRightRatio: number,
+) {
+  const panes = appStore.getState().panes.map((p) => {
+    if (p.id === leftPaneId) return { ...p, flexRatio: newLeftRatio };
+    if (p.id === rightPaneId) return { ...p, flexRatio: newRightRatio };
+    return p;
+  });
+  update({ panes });
+}
+
+function moveTabToPane(tabId: string, fromPaneId: string, toPaneId: string, index?: number) {
+  if (fromPaneId === toPaneId) return;
+
+  const state = appStore.getState();
+  const fromPane = findPaneById(state.panes, fromPaneId)?.pane;
+  const toPane = findPaneById(state.panes, toPaneId)?.pane;
+  if (!fromPane || !toPane) return;
+
+  const tab = fromPane.tabs.find((t) => t.id === tabId);
+  if (!tab) return;
+
+  const newFromTabs = fromPane.tabs.filter((t) => t.id !== tabId);
+  const removedIdx = fromPane.tabs.findIndex((t) => t.id === tabId);
+  const newFromActiveTabId =
+    fromPane.activeTabId === tabId
+      ? newFromTabs.length === 0
+        ? null
+        : newFromTabs[Math.min(removedIdx, newFromTabs.length - 1)].id
+      : fromPane.activeTabId;
+
+  const insertAt = index ?? toPane.tabs.length;
+  const newToTabs = [...toPane.tabs.slice(0, insertAt), tab, ...toPane.tabs.slice(insertAt)];
+
+  let newPanes = state.panes.map((p) => {
+    if (p.id === fromPaneId) return { ...p, tabs: newFromTabs, activeTabId: newFromActiveTabId };
+    if (p.id === toPaneId) return { ...p, tabs: newToTabs, activeTabId: tab.id };
+    return p;
+  });
+
+  if (newFromTabs.length === 0 && newPanes.length > 1) {
+    const fromIdx = findPaneById(newPanes, fromPaneId)!.idx;
+    newPanes = removePaneAt(newPanes, fromIdx);
+  }
+
+  update({ panes: newPanes, activePaneId: toPaneId });
+}
+
+// ── File operations ────────────────────────────────────────────────────────
+
+async function createFile(path: string) {
+  await fs.createFile(path);
+  await loadFileTree();
+  openFile(path);
+}
+
+async function createUntitledFile(dir: string) {
+  const siblings = collectFileNames(dir ? dir + "/" : "");
+  let name = "Untitled.md";
+  let n = 1;
+  while (siblings.has(name)) {
+    name = `Untitled (${n}).md`;
+    n++;
+  }
+  const path = dir ? `${dir}/${name}` : name;
+  if (dir) {
+    sidebarStore.expand(dir);
+  }
+  await createFile(path);
+}
+
+/** Resolve a wiki link path (e.g. "notes/Getting Started") to a file path */
+function resolveWikiLink(linkPath: string): string | null {
+  const target = linkPath.endsWith(".md") ? linkPath : `${linkPath}.md`;
+  const find = (entries: FileTreeEntry[]): string | null => {
+    for (const entry of entries) {
+      if (entry.type === "file" && entry.path === target) return entry.path;
+      if (entry.children) {
+        const found = find(entry.children);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  return find(appStore.getState().fileTree);
+}
+
+async function createDirectory(path: string) {
+  await fs.createDirectory(path);
+  await loadFileTree();
+  const parts = path.split("/");
+  const toExpand: string[] = [];
+  for (let i = 1; i < parts.length; i++) {
+    toExpand.push(parts.slice(0, i).join("/"));
+  }
+  sidebarStore.expandMany(toExpand);
+}
+
+async function renameFile(oldPath: string, newName: string): Promise<boolean> {
+  const dir = oldPath.includes("/") ? oldPath.substring(0, oldPath.lastIndexOf("/") + 1) : "";
+  const ext = oldPath.match(/\.(md|pdf)$/)?.[0];
+  const finalName = ext && !newName.endsWith(ext) ? newName + ext : newName;
+  const newPath = `${dir}${finalName}`;
+  if (newPath === oldPath) return true;
+  if (fileExists(newPath)) {
+    alert(`"${newName}" already exists in this folder.`);
+    return false;
+  }
+  await fs.renameFile(oldPath, newPath);
+  await loadFileTree();
+
+  const panes = appStore.getState().panes.map((p) => ({
+    ...p,
+    tabs: p.tabs.map((t) => (t.path === oldPath ? { ...t, path: newPath } : t)),
+  }));
+  update({ panes }, "replace");
+  return true;
+}
+
+function fileExists(path: string): boolean {
+  const find = (entries: FileTreeEntry[]): boolean => {
+    for (const entry of entries) {
+      if (entry.path === path) return true;
+      if (entry.children && find(entry.children)) return true;
+    }
+    return false;
+  };
+  return find(appStore.getState().fileTree);
+}
+
+/** Move a file or directory to a target directory (empty string = root) */
+async function moveFile(sourcePath: string, targetDir: string) {
+  const name = sourcePath.includes("/")
+    ? sourcePath.substring(sourcePath.lastIndexOf("/") + 1)
+    : sourcePath;
+  const newPath = targetDir ? `${targetDir}/${name}` : name;
+  if (newPath === sourcePath) return;
+  if (sourcePath === targetDir || targetDir.startsWith(sourcePath + "/")) return;
+  if (fileExists(newPath)) {
+    alert(`"${name}" already exists in the destination folder.`);
+    return;
+  }
+  await fs.renameFile(sourcePath, newPath);
+  if (targetDir) {
+    sidebarStore.expand(targetDir);
+  }
+  await loadFileTree();
+
+  const panes = appStore.getState().panes.map((p) => ({
+    ...p,
+    tabs: p.tabs.map((t) => (t.path === sourcePath ? { ...t, path: newPath } : t)),
+  }));
+  update({ panes }, "replace");
+}
+
+async function duplicateFile(path: string) {
+  const { content } = await fs.readFile(path);
+  const dir = path.includes("/") ? path.substring(0, path.lastIndexOf("/") + 1) : "";
+  const name = path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path;
+  const base = name.replace(/\.md$/, "");
+
+  const siblings = collectFileNames(dir);
+  let n = 1;
+  while (siblings.has(`${base} (${n}).md`)) n++;
+
+  const newPath = `${dir}${base} (${n}).md`;
+  await fs.createFile(newPath, content);
+  await loadFileTree();
+  openFile(newPath);
+}
+
+function collectFileNames(dir: string): Set<string> {
+  const names = new Set<string>();
+  const find = (entries: FileTreeEntry[], prefix: string) => {
+    for (const entry of entries) {
+      if (entry.type === "file" && prefix === dir) {
+        names.add(entry.name);
+      }
+      if (entry.children) {
+        find(entry.children, entry.path + "/");
+      }
+    }
+  };
+  find(appStore.getState().fileTree, "");
+  return names;
+}
+
+async function deleteFile(path: string) {
+  await fs.deleteFile(path);
+
+  let panes = appStore.getState().panes.map((p) => {
+    const newTabs = p.tabs.filter((t) => t.path !== path);
+    let newActiveTabId = p.activeTabId;
+    if (p.tabs.find((t) => t.id === p.activeTabId)?.path === path) {
+      const oldIdx = p.tabs.findIndex((t) => t.id === p.activeTabId);
+      newActiveTabId =
+        newTabs.length > 0 ? newTabs[Math.min(oldIdx, newTabs.length - 1)].id : null;
+    }
+    return { ...p, tabs: newTabs, activeTabId: newActiveTabId };
+  });
+
+  if (panes.length > 1) {
+    for (const emptyPane of panes.filter((p) => p.tabs.length === 0)) {
+      if (panes.length <= 1) break;
+      const idx = panes.findIndex((p) => p.id === emptyPane.id);
+      panes = removePaneAt(panes, idx);
+    }
+  }
+
+  let activePaneId = appStore.getState().activePaneId;
+  if (!findPaneById(panes, activePaneId)) {
+    activePaneId = panes[0].id;
+  }
+
+  update({ panes, activePaneId });
+  await loadFileTree();
+}
+
+// ── Public API (backward-compatible) ──────────────────────────────────────
+
+export const store = {
+  fs,
+  getState: () => appStore.getState(),
+  subscribe: (listener: () => void) => appStore.subscribe(listener),
+  loadFileTree,
+  openFile,
+  openNewTab,
+  closeTab,
+  activateTab,
+  setActivePaneId,
+  splitPane,
+  closePane,
+  resizePane,
+  moveTabToPane,
+  createFile,
+  createUntitledFile,
+  resolveWikiLink,
+  createDirectory,
+  renameFile,
+  moveFile,
+  duplicateFile,
+  deleteFile,
+};
