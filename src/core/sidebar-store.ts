@@ -3,9 +3,10 @@ type Listener = () => void;
 class SidebarStore {
   private expandedDirs = new Set<string>();
   private listeners = new Set<Listener>();
+  private state = { isExpanded: this.isExpanded.bind(this) };
 
-  getState(): Set<string> {
-    return this.expandedDirs;
+  getState(): typeof this.state {
+    return this.state;
   }
 
   subscribe(listener: Listener): () => void {
@@ -14,6 +15,7 @@ class SidebarStore {
   }
 
   private emit() {
+    this.state = { isExpanded: this.isExpanded.bind(this) };
     for (const listener of this.listeners) listener();
   }
 
@@ -38,6 +40,7 @@ class SidebarStore {
   isExpanded(path: string): boolean {
     return this.expandedDirs.has(path);
   }
+
 
   expandMany(paths: string[]) {
     const next = new Set(this.expandedDirs);

@@ -36,17 +36,8 @@ export function useStore<T>(
 
 
 export function useSidebarStore() {
-  const lastResult = useRef<Set<string> | null>(null);
-
   return useSyncExternalStore(
     (cb) => sidebarStore.subscribe(cb),
-    () => {
-      const next = sidebarStore.getState();
-      if (lastResult.current !== null && shallowEqual(lastResult.current, next)) {
-        return lastResult.current; // referência estável → sem re-render
-      }
-      lastResult.current = next;
-      return next;
-    }
+    () => sidebarStore.getState()
   );
 }

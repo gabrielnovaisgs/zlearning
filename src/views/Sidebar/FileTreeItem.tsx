@@ -18,8 +18,8 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
   const activeFile = useStore((s) => s.activeFile);
 
   const [dragOver, setDragOver] = useState(false);
-  const expandedDirs = useSidebarStore();
-  const isExpanded = expandedDirs.has(entry.path);
+  const {isExpanded} = useSidebarStore();
+  
   const isActive = entry.path === activeFile;
   const isRenaming = renamingPath === entry.path;
 
@@ -106,7 +106,7 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
         {entry.type === "directory" ? (
-          <span className="text-xs text-text-muted">{isExpanded ? "▾" : "▸"}</span>
+          <span className="text-xs text-text-muted">{isExpanded(entry.path) ? "▾" : "▸"}</span>
         ) : (
           <span className="text-xs text-text-muted">{entry.name.endsWith(".pdf") ? "📕" : "📄"}</span>
         )}
@@ -132,7 +132,7 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
           <span className="truncate">{displayName}</span>
         )}
       </button>
-      {entry.type === "directory" && isExpanded && entry.children && (
+      {entry.type === "directory" && isExpanded(entry.path) && entry.children && (
         <div>
           {entry.children.map((child) => (
             <FileTreeItem
