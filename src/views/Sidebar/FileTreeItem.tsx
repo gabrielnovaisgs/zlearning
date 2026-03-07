@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import type { FileTreeEntry } from "@core/types";
 import { store, useAppStore } from "@core/store";
-import { sidebarStore } from "@core/sidebar-store";
-import { useSidebarStore } from "../hooks";
+import { useSidebarStore } from "@core/sidebar-store";
+
 
 
 interface Props {
@@ -18,7 +18,8 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
   const activeFile = useAppStore((state) => state.activeFile);
 
   const [dragOver, setDragOver] = useState(false);
-  const {isExpanded} = useSidebarStore();
+  const expanded = useSidebarStore((state) => state.expandedDirs.has(entry.path));
+  const toggle = useSidebarStore((state) => state.toggleFolder);
   
   const isActive = entry.path === activeFile;
   const isRenaming = renamingPath === entry.path;
@@ -46,7 +47,7 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
 
   const handleClick = async () => {
     if (entry.type === "directory") {
-      sidebarStore.toggle(entry.path);
+      toggle(entry.path);
     } else {
       await store.openFile(entry.path);
     }
@@ -106,7 +107,7 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
         {entry.type === "directory" ? (
-          <span className="text-xs text-text-muted">{isExpanded(entry.path) ? "▾" : "▸"}</span>
+          <span className="text-xs text-text-muted">{expanded ? "▾" : "▸"}</span>
         ) : (
           <span className="text-xs text-text-muted">{entry.name.endsWith(".pdf") ? "📕" : "📄"}</span>
         )}
@@ -132,7 +133,7 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
           <span className="truncate">{displayName}</span>
         )}
       </button>
-      {entry.type === "directory" && isExpanded(entry.path) && entry.children && (
+      {entry.type === "directory" && expanded && entry.children && (
         <div>
           {entry.children.map((child) => (
             <FileTreeItem

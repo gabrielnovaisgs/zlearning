@@ -1,49 +1,33 @@
-type Listener = () => void;
+import { create } from "zustand";
 
-class SidebarStore {
-  private expandedDirs = new Set<string>();
-  private listeners = new Set<Listener>();
-  private state = { isExpanded: this.isExpanded.bind(this) };
+interface SidebarState {
+  expandedDirs: Set<string>;
+  toggleFolder: (path: string) => void;
+  expandFolder: (path: string) => void;
+  expandManyFolders: (paths: string[]) => void;
+}
 
-  getState(): typeof this.state {
-    return this.state;
-  }
+export const useSidebarStore = create<SidebarState>()((set, get) => ({
+  expandedDirs: new Set<string>(),
 
-  subscribe(listener: Listener): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  }
-
-  private emit() {
-    this.state = { isExpanded: this.isExpanded.bind(this) };
-    for (const listener of this.listeners) listener();
-  }
-
-  toggle(path: string) {
-    const next = new Set(this.expandedDirs);
+  toggleFolder(path) {
+    const next = new Set(get().expandedDirs);
     if (next.has(path)) {
       next.delete(path);
     } else {
       next.add(path);
     }
-    this.expandedDirs = next;
-    this.emit();
-  }
+    set({ expandedDirs: next });
+  },
 
-  expand(path: string) {
-    if (this.expandedDirs.has(path)) return;
-    this.expandedDirs = new Set(this.expandedDirs);
-    this.expandedDirs.add(path);
-    this.emit();
-  }
+  expandFolder(path) {
+    const { expandedDirs } = get();
+    if (expandedDirs.has(path)) return;
+    set({ expandedDirs: new Set([...expandedDirs, path]) });
+  },
 
-  isExpanded(path: string): boolean {
-    return this.expandedDirs.has(path);
-  }
-
-
-  expandMany(paths: string[]) {
-    const next = new Set(this.expandedDirs);
+  expandManyFolders(paths) {
+    const next = new Set(get().expandedDirs);
     let changed = false;
     for (const p of paths) {
       if (!next.has(p)) {
@@ -51,11 +35,6 @@ class SidebarStore {
         changed = true;
       }
     }
-    if (changed) {
-      this.expandedDirs = next;
-      this.emit();
-    }
-  }
-}
-
-export const sidebarStore = new SidebarStore();
+    if (changed) set({ expandedDirs: next });
+  },
+}));

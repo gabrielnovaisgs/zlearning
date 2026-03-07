@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { AppState, FileTreeEntry, Pane, Tab } from "./types";
 import { HttpFileSystemService, type FileSystemService } from "./services/filesystem";
-import { sidebarStore } from "./sidebar-store";
+import { useSidebarStore } from "./sidebar-store";
 
 const defaultPaneId = crypto.randomUUID();
 
@@ -283,7 +283,7 @@ async function createUntitledFile(dir: string) {
   }
   const path = dir ? `${dir}/${name}` : name;
   if (dir) {
-    sidebarStore.expand(dir);
+    useSidebarStore.getState().expandFolder(dir);
   }
   await createFile(path);
 }
@@ -312,7 +312,7 @@ async function createDirectory(path: string) {
   for (let i = 1; i < parts.length; i++) {
     toExpand.push(parts.slice(0, i).join("/"));
   }
-  sidebarStore.expandMany(toExpand);
+  useSidebarStore.getState().expandManyFolders(toExpand);
 }
 
 async function renameFile(oldPath: string, newName: string): Promise<boolean> {
@@ -361,7 +361,7 @@ async function moveFile(sourcePath: string, targetDir: string) {
   }
   await fs.renameFile(sourcePath, newPath);
   if (targetDir) {
-    sidebarStore.expand(targetDir);
+    useSidebarStore.getState().expandFolder(targetDir);
   }
   await loadFileTree();
 
