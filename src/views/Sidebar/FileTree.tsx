@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { FileTreeEntry } from "@core/types";
-import { store } from "@core/store";
-import { useStore } from "../hooks";
+import { store, useAppStore } from "@core/store";
 import { FileTreeItem } from "./FileTreeItem";
 
 interface Props {
@@ -12,7 +11,7 @@ interface Props {
 }
 
 export function FileTree({ onContextMenu, renamingPath, onStartRename, onEndRename }: Props) {
-  const fileTree = useStore((s) => s.fileTree);
+  const  fileTree  = useAppStore((state)=> state.fileTree);
   const [dragOver, setDragOver] = useState(false);
 
   if (fileTree.length === 0) {

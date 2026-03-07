@@ -28,24 +28,25 @@ function removePaneAt(panes: Pane[], idx: number): Pane[] {
 
 // ── Zustand store ──────────────────────────────────────────────────────────
 
-export const appStore = create<AppState>()(() => ({
+export const useAppStore = create<AppState>()(() => ({
   fileTree: [],
   activeFile: null,
   activePaneId: defaultPaneId,
   panes: [{ id: defaultPaneId, tabs: [], activeTabId: null, flexRatio: 1 }],
 }));
 
+
 // ── Internal helpers ───────────────────────────────────────────────────────
 
 function update(partial: Partial<AppState>, urlMode: "push" | "replace" = "push") {
-  const current = appStore.getState();
+  const current = useAppStore.getState();
   const next = { ...current, ...partial };
   const pane = findPaneById(next.panes, next.activePaneId)?.pane;
   const tab = pane?.tabs.find((t) => t.id === pane.activeTabId);
   const activeFile = tab?.path ?? null;
   const prevActiveFile = current.activeFile;
 
-  appStore.setState({ ...partial, activeFile });
+  useAppStore.setState({ ...partial, activeFile });
 
   if (activeFile !== prevActiveFile) {
     const urlPath = toUrlPath(activeFile);
@@ -69,7 +70,7 @@ async function loadFileTree() {
 }
 
 function openFileInPane(path: string, paneId?: string) {
-  const state = appStore.getState();
+  const state = useAppStore.getState();
   const targetPaneId = paneId ?? state.activePaneId;
   const panes = [...state.panes];
   const found = findPaneById(panes, targetPaneId);
@@ -103,7 +104,7 @@ function openFileInPane(path: string, paneId?: string) {
 }
 
 function openNewTab(paneId?: string) {
-  const state = appStore.getState();
+  const state = useAppStore.getState();
   const targetPaneId = paneId ?? state.activePaneId;
   const panes = [...state.panes];
   const found = findPaneById(panes, targetPaneId);
@@ -118,7 +119,7 @@ function openNewTab(paneId?: string) {
 // ── Tab/Pane management ────────────────────────────────────────────────────
 
 function closeTab(tabId: string, paneId: string) {
-  const state = appStore.getState();
+  const state = useAppStore.getState();
   const panes = [...state.panes];
   const found = findPaneById(panes, paneId);
   if (!found) return;
@@ -145,7 +146,7 @@ function closeTab(tabId: string, paneId: string) {
 }
 
 function activateTab(tabId: string, paneId: string) {
-  const panes = [...appStore.getState().panes];
+  const panes = [...useAppStore.getState().panes];
   const found = findPaneById(panes, paneId);
   if (!found) return;
   const { idx: paneIdx } = found;
@@ -155,13 +156,13 @@ function activateTab(tabId: string, paneId: string) {
 }
 
 function setActivePaneId(paneId: string) {
-  if (appStore.getState().activePaneId === paneId) return;
+  if (useAppStore.getState().activePaneId === paneId) return;
   update({ activePaneId: paneId });
 }
 
 /** Creates a new pane adjacent to paneId. Copies the active tab by default. Returns new pane id. */
 function splitPane(paneId: string, direction: "left" | "right", copyActiveTab = true): string {
-  const panes = [...appStore.getState().panes];
+  const panes = [...useAppStore.getState().panes];
   const found = findPaneById(panes, paneId);
   if (!found) return "";
   const { pane: sourcePane, idx } = found;
@@ -194,7 +195,7 @@ function splitPane(paneId: string, direction: "left" | "right", copyActiveTab = 
 }
 
 function closePane(paneId: string) {
-  const state = appStore.getState();
+  const state = useAppStore.getState();
   const panes = [...state.panes];
   if (panes.length <= 1) return;
 
@@ -219,7 +220,7 @@ function resizePane(
   newLeftRatio: number,
   newRightRatio: number,
 ) {
-  const panes = appStore.getState().panes.map((p) => {
+  const panes = useAppStore.getState().panes.map((p) => {
     if (p.id === leftPaneId) return { ...p, flexRatio: newLeftRatio };
     if (p.id === rightPaneId) return { ...p, flexRatio: newRightRatio };
     return p;
@@ -230,7 +231,7 @@ function resizePane(
 function moveTabToPane(tabId: string, fromPaneId: string, toPaneId: string, index?: number) {
   if (fromPaneId === toPaneId) return;
 
-  const state = appStore.getState();
+  const state = useAppStore.getState();
   const fromPane = findPaneById(state.panes, fromPaneId)?.pane;
   const toPane = findPaneById(state.panes, toPaneId)?.pane;
   if (!fromPane || !toPane) return;
@@ -300,7 +301,7 @@ function resolveWikiLink(linkPath: string): string | null {
     }
     return null;
   };
-  return find(appStore.getState().fileTree);
+  return find(useAppStore.getState().fileTree);
 }
 
 async function createDirectory(path: string) {
@@ -327,7 +328,7 @@ async function renameFile(oldPath: string, newName: string): Promise<boolean> {
   await fs.renameFile(oldPath, newPath);
   await loadFileTree();
 
-  const panes = appStore.getState().panes.map((p) => ({
+  const panes = useAppStore.getState().panes.map((p) => ({
     ...p,
     tabs: p.tabs.map((t) => (t.path === oldPath ? { ...t, path: newPath } : t)),
   }));
@@ -343,7 +344,7 @@ function fileExists(path: string): boolean {
     }
     return false;
   };
-  return find(appStore.getState().fileTree);
+  return find(useAppStore.getState().fileTree);
 }
 
 /** Move a file or directory to a target directory (empty string = root) */
@@ -364,7 +365,7 @@ async function moveFile(sourcePath: string, targetDir: string) {
   }
   await loadFileTree();
 
-  const panes = appStore.getState().panes.map((p) => ({
+  const panes = useAppStore.getState().panes.map((p) => ({
     ...p,
     tabs: p.tabs.map((t) => (t.path === sourcePath ? { ...t, path: newPath } : t)),
   }));
@@ -399,14 +400,14 @@ function collectFileNames(dir: string): Set<string> {
       }
     }
   };
-  find(appStore.getState().fileTree, "");
+  find(useAppStore.getState().fileTree, "");
   return names;
 }
 
 async function deleteFile(path: string) {
   await fs.deleteFile(path);
 
-  let panes = appStore.getState().panes.map((p) => {
+  let panes = useAppStore.getState().panes.map((p) => {
     const newTabs = p.tabs.filter((t) => t.path !== path);
     let newActiveTabId = p.activeTabId;
     if (p.tabs.find((t) => t.id === p.activeTabId)?.path === path) {
@@ -425,7 +426,7 @@ async function deleteFile(path: string) {
     }
   }
 
-  let activePaneId = appStore.getState().activePaneId;
+  let activePaneId = useAppStore.getState().activePaneId;
   if (!findPaneById(panes, activePaneId)) {
     activePaneId = panes[0].id;
   }
@@ -438,8 +439,8 @@ async function deleteFile(path: string) {
 
 export const store = {
   fs,
-  getState: () => appStore.getState(),
-  subscribe: (listener: () => void) => appStore.subscribe(listener),
+  getState: () => useAppStore.getState(),
+  subscribe: (listener: () => void) => useAppStore.subscribe(listener),
   loadFileTree,
   openFile: openFileInPane,
   openNewTab,

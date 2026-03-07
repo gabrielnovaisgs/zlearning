@@ -1,6 +1,5 @@
 import { Fragment, useCallback } from "react";
-import { store } from "@core/store";
-import { useStore, shallowEqual } from "../hooks";
+import { store, useAppStore } from "@core/store";
 import { PaneView } from "./PaneView";
 
 interface ResizeHandleProps {
@@ -13,7 +12,8 @@ function ResizeHandle({ leftPaneId, rightPaneId }: ResizeHandleProps) {
     (e: React.MouseEvent) => {
       e.preventDefault();
 
-      const { panes } = store.getState();
+      const panes = useAppStore((state) => state.panes);
+      
       const leftPane = panes.find((p) => p.id === leftPaneId);
       const rightPane = panes.find((p) => p.id === rightPaneId);
       if (!leftPane || !rightPane) return;
@@ -53,10 +53,7 @@ function ResizeHandle({ leftPaneId, rightPaneId }: ResizeHandleProps) {
 }
 
 export function SplitView() {
-  const { panes, activePaneId } = useStore(
-    (s) => ({ panes: s.panes, activePaneId: s.activePaneId }),
-    shallowEqual
-  );
+  const { panes, activePaneId } = useAppStore()
 
   return (
     <div className="flex flex-1 min-w-0 min-h-0 overflow-hidden">

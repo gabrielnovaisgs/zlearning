@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { store } from "@core/store";
-import { useStore } from "../hooks";
+import { store, useAppStore } from "@core/store";
 import { flattenFiles, fuzzyMatch } from "./fuzzy-match";
 import {
   Dialog,
@@ -24,7 +23,7 @@ interface Props {
 
 export function CommandPalette({ open, onClose }: Props) {
   const [query, setQuery] = useState("");
-  const fileTree = useStore((s) => s.fileTree);
+  const fileTree = useAppStore((state) => state.fileTree);
 
   const files = useMemo(() => flattenFiles(fileTree), [fileTree]);
   const results = useMemo(() => fuzzyMatch(query, files), [query, files]);

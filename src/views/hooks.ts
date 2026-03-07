@@ -15,25 +15,6 @@ export function shallowEqual<T>(a: T, b: T): boolean {
   );
 }
 
-export function useStore<T>(
-  selector: (s: AppState) => T,
-  equals: (a: T, b: T) => boolean = Object.is
-): T {
-  const lastResult = useRef<{ value: T } | null>(null);
-
-  return useSyncExternalStore(
-    (cb) => store.subscribe(cb),
-    () => {
-      const next = selector(store.getState());
-      if (lastResult.current !== null && equals(lastResult.current.value, next)) {
-        return lastResult.current.value; // referência estável → sem re-render
-      }
-      lastResult.current = { value: next };
-      return next;
-    }
-  );
-}
-
 
 export function useSidebarStore() {
   return useSyncExternalStore(

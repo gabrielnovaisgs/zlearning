@@ -1,6 +1,5 @@
-import { store } from "@core/store";
+import { store, useAppStore } from "@core/store";
 import type { Pane } from "@core/types";
-import { useStore } from "../hooks";
 
 function fileTitle(path: string | null): string {
   if (!path) return "New Tab";
@@ -18,7 +17,7 @@ interface TabBarProps {
 }
 
 export function TabBar({ pane }: TabBarProps) {
-  const panes = useStore((s) => s.panes);
+  const panes  = useAppStore((state) => state.panes);
 
   const handleTabBarDrop = (e: React.DragEvent) => {
     e.preventDefault();

@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import type { FileTreeEntry } from "@core/types";
-import { store } from "@core/store";
+import { store, useAppStore } from "@core/store";
 import { sidebarStore } from "@core/sidebar-store";
-import { useSidebarStore, useStore } from "../hooks";
+import { useSidebarStore } from "../hooks";
 
 
 interface Props {
@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStartRename, onEndRename }: Props) {
-  const activeFile = useStore((s) => s.activeFile);
+  const activeFile = useAppStore((state) => state.activeFile);
 
   const [dragOver, setDragOver] = useState(false);
   const {isExpanded} = useSidebarStore();
