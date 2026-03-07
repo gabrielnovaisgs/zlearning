@@ -68,7 +68,7 @@ async function loadFileTree() {
   update({ fileTree });
 }
 
-function openFile(path: string, paneId?: string) {
+function openFileInPane(path: string, paneId?: string) {
   const state = appStore.getState();
   const targetPaneId = paneId ?? state.activePaneId;
   const panes = [...state.panes];
@@ -269,7 +269,7 @@ function moveTabToPane(tabId: string, fromPaneId: string, toPaneId: string, inde
 async function createFile(path: string) {
   await fs.createFile(path);
   await loadFileTree();
-  openFile(path);
+  openFileInPane(path);
 }
 
 async function createUntitledFile(dir: string) {
@@ -384,7 +384,7 @@ async function duplicateFile(path: string) {
   const newPath = `${dir}${base} (${n}).md`;
   await fs.createFile(newPath, content);
   await loadFileTree();
-  openFile(newPath);
+  openFileInPane(newPath);
 }
 
 function collectFileNames(dir: string): Set<string> {
@@ -441,7 +441,7 @@ export const store = {
   getState: () => appStore.getState(),
   subscribe: (listener: () => void) => appStore.subscribe(listener),
   loadFileTree,
-  openFile,
+  openFile: openFileInPane,
   openNewTab,
   closeTab,
   activateTab,
