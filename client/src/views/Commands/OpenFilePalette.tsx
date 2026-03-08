@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { store, useFileStore } from "@core/store";
+import { usePaneController } from "@core/use-pane-controller-store";
 import { flattenFiles, fuzzyMatch } from "./fuzzy-match";
 import {
   Dialog,
@@ -15,6 +15,7 @@ import {
   CommandItem,
   CommandList,
 } from "@components/ui/command";
+import { useFileStore } from "@core/use-file-store";
 
 interface Props {
   open: boolean;
@@ -62,7 +63,7 @@ export function CommandPalette({ open, onClose }: Props) {
                 key={file.path}
                 value={file.path}
                 onSelect={() => {
-                  store.openFile(file.path);
+                  usePaneController.getState().actions.openFileInPane(file.path);
                   handleOpenChange(false);
                 }}
                 className="flex flex-col items-start gap-0.5 px-4 py-2 rounded-none cursor-pointer"

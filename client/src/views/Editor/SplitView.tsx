@@ -1,5 +1,5 @@
 import { Fragment, useCallback } from "react";
-import { store, useAppStore } from "@core/store";
+import { usePaneController } from "@core/use-pane-controller-store";
 import { PaneView } from "./PaneView";
 
 interface ResizeHandleProps {
@@ -12,8 +12,8 @@ function ResizeHandle({ leftPaneId, rightPaneId }: ResizeHandleProps) {
     (e: React.MouseEvent) => {
       e.preventDefault();
 
-      const panes = useAppStore((state) => state.panes);
-      
+      const panes = usePaneController.getState().panes;
+
       const leftPane = panes.find((p) => p.id === leftPaneId);
       const rightPane = panes.find((p) => p.id === rightPaneId);
       if (!leftPane || !rightPane) return;
@@ -30,7 +30,7 @@ function ResizeHandle({ leftPaneId, rightPaneId }: ResizeHandleProps) {
         const minRatio = 0.1;
         const newLeft = Math.max(minRatio, startLeftRatio + ratioDelta);
         const newRight = Math.max(minRatio, totalRatio - newLeft);
-        store.resizePane(leftPaneId, rightPaneId, newLeft, newRight);
+        usePaneController.getState().actions.resizePane(leftPaneId, rightPaneId, newLeft, newRight);
       };
 
       const onMouseUp = () => {
@@ -53,7 +53,7 @@ function ResizeHandle({ leftPaneId, rightPaneId }: ResizeHandleProps) {
 }
 
 export function SplitView() {
-  const { panes, activePaneId } = useAppStore()
+  const { panes, activePaneId } = usePaneController()
 
   return (
     <div className="flex flex-1 min-w-0 min-h-0 overflow-hidden">

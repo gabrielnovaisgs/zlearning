@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createEditor, type EditorInstance } from "@core/editor/setup";
-import { store } from "@core/store";
-import { readFile, writeFile } from "@core/file-operations";
+import { readFile, renameFile, writeFile } from "@core/use-file-store";
 
 interface Props {
   filePath: string;
@@ -30,7 +29,7 @@ function EditableTitle({ activeFile }: { activeFile: string }) {
       return;
     }
     
-    store.renameFile(activeFile, trimmed).then((ok) => {
+    renameFile(activeFile, trimmed).then((ok) => {
       if (!ok) setValue(fileTitle(activeFile));
     });
   }, [value, activeFile]);

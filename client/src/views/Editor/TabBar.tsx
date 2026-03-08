@@ -1,4 +1,4 @@
-import { store, useAppStore } from "@core/store";
+import { usePaneController } from "@core/use-pane-controller-store";
 import type { Pane } from "@core/types";
 
 function fileTitle(path: string | null): string {
@@ -17,14 +17,15 @@ interface TabBarProps {
 }
 
 export function TabBar({ pane }: TabBarProps) {
-  const panes  = useAppStore((state) => state.panes);
+  const panes   = usePaneController((state) => state.panes);
+  const actions = usePaneController((state) => state.actions);
 
   const handleTabBarDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     try {
       const data = JSON.parse(e.dataTransfer.getData("text/plain"));
-      store.moveTabToPane(data.tabId, data.paneId, pane.id);
+      actions.moveTabToPane(data.tabId, data.paneId, pane.id);
     } catch { /* ignore */ }
   };
 
@@ -48,7 +49,7 @@ export function TabBar({ pane }: TabBarProps) {
           }}
           onClick={(e) => {
             e.stopPropagation();
-            store.activateTab(tab.id, pane.id);
+            actions.activateTab(tab.id, pane.id);
           }}
           className={`flex items-center gap-1 px-3 py-1 text-sm cursor-pointer shrink-0 border-r border-border select-none
             ${
@@ -62,7 +63,7 @@ export function TabBar({ pane }: TabBarProps) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              store.closeTab(tab.id, pane.id);
+              actions.closeTab(tab.id, pane.id);
             }}
             className="ml-1 w-4 h-4 flex items-center justify-center rounded opacity-50 hover:opacity-100 hover:bg-text-muted/20 text-xs leading-none shrink-0"
             title="Close tab"
@@ -76,7 +77,7 @@ export function TabBar({ pane }: TabBarProps) {
       <button
         onClick={(e) => {
           e.stopPropagation();
-          store.openNewTab(pane.id);
+          actions.openNewTab(pane.id);
         }}
         className="px-2 py-1 text-text-muted hover:text-text-primary shrink-0 text-base leading-none"
         title="New tab"
@@ -91,7 +92,7 @@ export function TabBar({ pane }: TabBarProps) {
       <button
         onClick={(e) => {
           e.stopPropagation();
-          store.splitPane(pane.id, "right");
+          actions.splitPane(pane.id, "right");
         }}
         className="px-2 py-1 text-text-muted hover:text-text-primary shrink-0 text-sm"
         title="Split pane right"
@@ -104,7 +105,7 @@ export function TabBar({ pane }: TabBarProps) {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            store.closePane(pane.id);
+            actions.closePane(pane.id);
           }}
           className="px-2 py-1 text-text-muted hover:text-text-primary shrink-0 text-sm"
           title="Close pane"

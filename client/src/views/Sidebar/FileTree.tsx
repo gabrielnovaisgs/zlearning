@@ -1,7 +1,8 @@
 import { useState } from "react";
 import type { FileTreeEntry } from "@core/types";
-import { store, useFileStore } from "@core/store";
+import { moveFile } from "@core/use-file-store";
 import { FileTreeItem } from "./FileTreeItem";
+import { useFileStore } from "@core/use-file-store";
 
 interface Props {
   onContextMenu: (e: React.MouseEvent, entry: FileTreeEntry | null) => void;
@@ -44,7 +45,7 @@ export function FileTree({ onContextMenu, renamingPath, onStartRename, onEndRena
     setDragOver(false);
     const sourcePath = e.dataTransfer.getData("text/plain");
     if (sourcePath) {
-      store.moveFile(sourcePath, "");
+      moveFile(sourcePath, "");
     }
   };
 

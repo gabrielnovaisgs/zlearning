@@ -3,19 +3,17 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NewTabScreen } from "./NewTabScreen";
 import * as registryModule from "@core/commands/CommandRegistry";
-import * as storeModule from "@core/store";
+import * as fileStoreModule from "@core/use-file-store";
 
 // Mock dependencies
-vi.mock("@core/commands", () => ({
+vi.mock("@core/commands/CommandRegistry", () => ({
   registry: {
     execute: vi.fn(),
   },
 }));
 
-vi.mock("@core/store", () => ({
-  store: {
-    createUntitledFile: vi.fn(),
-  },
+vi.mock("@core/use-file-store", () => ({
+  createUntitledFile: vi.fn(),
 }));
 
 describe("NewTabScreen", () => {
@@ -62,14 +60,14 @@ describe("NewTabScreen", () => {
     expect(registryModule.registry.execute).toHaveBeenCalledWith("open-file");
   });
 
-  it("calls store.createUntitledFile when new file button is clicked", async () => {
+  it("calls createUntitledFile when new file button is clicked", async () => {
     const user = userEvent.setup();
     render(<NewTabScreen />);
 
     const newFileBtn = screen.getByText("Novo arquivo");
     await user.click(newFileBtn);
 
-    expect(storeModule.store.createUntitledFile).toHaveBeenCalledWith("");
+    expect(fileStoreModule.createUntitledFile).toHaveBeenCalledWith("");
   });
 
   it("has two buttons for actions", () => {

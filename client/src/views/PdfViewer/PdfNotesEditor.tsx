@@ -1,8 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { createEditor, type EditorInstance } from "@core/editor/setup";
-import { HttpFileSystemService } from "@core/services/filesystem";
-import { store } from "@core/store";
-import { createFile, readFile, writeFile } from "@core/file-operations";
+
+import { createFile, readFile, writeFile } from "@core/use-file-store";
 
 export type { EditorInstance } from "@core/editor/setup";
 

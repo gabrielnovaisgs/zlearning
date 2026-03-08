@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { store } from "@core/store";
+import { usePaneController } from "@core/use-pane-controller-store";
 import type { Pane } from "@core/types";
 import { TabBar } from "./TabBar";
 import { EditorContainer, EditorType } from "./EditorContainer";
@@ -38,15 +38,16 @@ export function PaneView({ pane, isFocused }: PaneViewProps) {
     try {
       const data = JSON.parse(e.dataTransfer.getData("text/plain"));
       const { tabId, paneId: fromPaneId } = data as { tabId: string; paneId: string };
+      const { actions } = usePaneController.getState();
 
       if (side !== null) {
         // Split without copying the active tab — moveTabToPane will place the dragged tab
-        const newPaneId = store.splitPane(pane.id, side, false);
+        const newPaneId = actions.splitPane(pane.id, side, false);
         if (newPaneId) {
-          store.moveTabToPane(tabId, fromPaneId, newPaneId);
+          actions.moveTabToPane(tabId, fromPaneId, newPaneId);
         }
       } else {
-        store.moveTabToPane(tabId, fromPaneId, pane.id);
+        actions.moveTabToPane(tabId, fromPaneId, pane.id);
       }
     } catch { /* ignore */ }
   };
@@ -55,7 +56,7 @@ export function PaneView({ pane, isFocused }: PaneViewProps) {
     <div
       className="relative flex flex-col min-w-0 min-h-0"
       style={{ flex: pane.flexRatio }}
-      onClick={() => store.setActivePaneId(pane.id)}
+      onClick={() => usePaneController.getState().actions.setActivePaneId(pane.id)}
       onDragOver={(e) => {
         // Only show drop side if over editor area (not TabBar)
         const target = e.target as HTMLElement;

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { FileTreeEntry } from "@core/types";
-import { store, useAppStore } from "@core/store";
+import { usePaneController } from "@core/use-pane-controller-store";
+import { renameFile, moveFile } from "@core/use-file-store";
 import { useSidebarStore } from "@core/sidebar-store";
 
 
@@ -15,12 +16,12 @@ interface Props {
 }
 
 export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStartRename, onEndRename }: Props) {
-  const activeFile = useAppStore((state) => state.activeFile);
+  const activeFile = usePaneController((state) => state.activeFile);
 
   const [dragOver, setDragOver] = useState(false);
   const expanded = useSidebarStore((state) => state.expandedDirs.has(entry.path));
   const toggle = useSidebarStore((state) => state.toggleFolder);
-  
+
   const isActive = entry.path === activeFile;
   const isRenaming = renamingPath === entry.path;
 
@@ -42,14 +43,14 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
     onEndRename();
     const trimmed = renameValue.trim();
     if (!trimmed || trimmed === displayName) return;
-    store.renameFile(entry.path, trimmed);
+    renameFile(entry.path, trimmed);
   };
 
   const handleClick = async () => {
     if (entry.type === "directory") {
       toggle(entry.path);
     } else {
-      await store.openFile(entry.path);
+      usePaneController.getState().actions.openFileInPane(entry.path);
     }
   };
 
@@ -82,7 +83,7 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
     setDragOver(false);
     const sourcePath = e.dataTransfer.getData("text/plain");
     if (sourcePath && entry.type === "directory") {
-      store.moveFile(sourcePath, entry.path);
+      moveFile(sourcePath, entry.path);
     }
   };
 

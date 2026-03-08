@@ -1,5 +1,5 @@
 import { registry } from "@core/commands/CommandRegistry";
-import { store } from "@core/store";
+import { createUntitledFile } from "@core/use-file-store";
 
 
 
@@ -10,7 +10,7 @@ export function NewTabScreen() {
   }
 
   function handleNewFile() {
-    store.createUntitledFile("");
+    createUntitledFile("");
   }
 
   return (

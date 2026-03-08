@@ -6,6 +6,8 @@ import {
 } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { Range, StateField, StateEffect, Extension } from "@codemirror/state";
+import { resolveWikiLink, useFileStore } from "@core/use-file-store";
+import { usePaneController } from "@core/use-pane-controller-store";
 
 class ImageWidget extends WidgetType {
   constructor(private url: string, private alt: string) {
@@ -366,12 +368,10 @@ const linkClickHandler = EditorView.domEventHandlers({
         const nameStart = lineObj.from + match.index + 2;
         const nameEnd = nameStart + match[1].length;
         if (pos >= nameStart && pos <= nameEnd) {
-          import("@core/store").then(({ store }) => {
-            const resolved = store.resolveWikiLink(match![1]);
-            if (resolved) {
-              store.openFile(resolved);
-            }
-          });
+          const resolved = resolveWikiLink(match![1]);
+          if (resolved) {
+            usePaneController.getState().actions.openFileInPane(resolved);
+          }
           return true;
         }
       }

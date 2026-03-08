@@ -1,10 +1,9 @@
 import { useEffect, useRef, useCallback, useState, useSyncExternalStore } from "react";
-import type { IHighlight, NewHighlight } from "react-pdf-highlighter";
-import { HttpFileSystemService } from "@core/services/filesystem";
+import type { IHighlight, NewHighlight } from "react-pdf-highlighter";7
 import { pdfStore } from "@core/pdf-store";
 import { PdfController } from "./PdfController";
 import { PdfNotesEditor, buildCitation, type EditorInstance } from "./PdfNotesEditor";
-import { readFile, writeFile } from "@core/file-operations";
+import { readFile, writeFile } from "@core/use-file-store";
 
 function highlightsPathFor(pdfPath: string): string {
   const dir = pdfPath.includes("/")
