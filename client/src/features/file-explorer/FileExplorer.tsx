@@ -2,8 +2,9 @@ import type { FileTreeEntry } from "@shared/types";
 import { useFileStore } from "@shared/file.store";
 import { FileTree } from "./FileTree";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { GLOBAL_CONFIG } from "@app/config";
+import { Sidebar, SidebarContent, SidebarHeader } from "@shared/ui/sidebar";
 
 interface MenuState {
   x: number;
@@ -12,12 +13,9 @@ interface MenuState {
 }
 
 export function FileExplorer() {
-  const [sidebarWidth, setSidebarWidth] = useState(260);
-  const resizing = useRef(false);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
 
-  /** Resolve the directory from the context menu target */
   const contextDir = (entry: FileTreeEntry | null): string => {
     if (!entry) return "";
     if (entry.type === "directory") return entry.path;
@@ -57,42 +55,22 @@ export function FileExplorer() {
     menuItems.push({ label: "New folder", action: () => handleNewDirectory(dir) });
   }
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    resizing.current = true;
-
-    const onMouseMove = (e: MouseEvent) => {
-      if (resizing.current) {
-        setSidebarWidth(Math.max(180, Math.min(500, e.clientX)));
-      }
-    };
-    const onMouseUp = () => {
-      resizing.current = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
-    };
-
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
-  }, []);
-
   return (
-    <div className="flex h-full shrink-0" style={{ width: sidebarWidth }}>
-      <div className="flex h-full flex-1 flex-col overflow-hidden bg-bg-secondary">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h1 className="text-sm font-semibold text-text-primary">{GLOBAL_CONFIG.appName}</h1>
+    <>
+      <Sidebar collapsible="offcanvas">
+        <SidebarHeader className="flex flex-row items-center justify-between border-b border-sidebar-border px-4 py-3">
+          <h1 className="text-sm font-semibold text-sidebar-foreground">{GLOBAL_CONFIG.appName}</h1>
           <button
             onClick={() => handleNewFile("")}
-            className="rounded px-2 py-0.5 text-lg text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary"
+            className="rounded px-2 py-0.5 text-lg text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
             title="New file"
           >
             +
           </button>
-        </div>
-        <div
-          className="flex-1 overflow-y-auto px-2"
+        </SidebarHeader>
+        <SidebarContent
+          className="px-2 py-1"
           onContextMenu={(e) => {
-            // Empty area context menu
             if (e.target === e.currentTarget) {
               handleContextMenu(e, null);
             }
@@ -104,9 +82,8 @@ export function FileExplorer() {
             onStartRename={setRenamingPath}
             onEndRename={() => setRenamingPath(null)}
           />
-        </div>
-      </div>
-      <div className="resize-handle" onMouseDown={handleMouseDown} />
+        </SidebarContent>
+      </Sidebar>
       {menu && (
         <ContextMenu
           x={menu.x}
@@ -115,6 +92,6 @@ export function FileExplorer() {
           onClose={() => setMenu(null)}
         />
       )}
-    </div>
+    </>
   );
 }

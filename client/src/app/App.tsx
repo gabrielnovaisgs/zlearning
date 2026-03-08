@@ -5,6 +5,8 @@ import { FileExplorer } from "@features/file-explorer/FileExplorer";
 import { SplitView } from "@features/panes/SplitView";
 import { CommandPalette } from "@features/command-palette/OpenFilePalette";
 import { resolveFileFromPath, useFileStore } from "@shared/file.store";
+import { SidebarInset, SidebarProvider } from "@shared/ui/sidebar";
+import { ActivityBar } from "@features/activity-bar/ActivityBar";
 import { GLOBAL_CONFIG } from "./config";
 
 function openFileFromURL() {
@@ -56,10 +58,16 @@ export function App() {
   }, []);
 
   return (
-    <div className="flex h-screen bg-bg-primary text-text-primary">
+    <SidebarProvider
+      className="h-screen overflow-hidden bg-bg-primary text-text-primary"
+      style={{ "--sidebar-start": "3rem" } as React.CSSProperties}
+    >
+      <ActivityBar />
       <FileExplorer />
-      <SplitView />
+      <SidebarInset className="min-h-0 overflow-hidden">
+        <SplitView />
+      </SidebarInset>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-    </div>
+    </SidebarProvider>
   );
 }
