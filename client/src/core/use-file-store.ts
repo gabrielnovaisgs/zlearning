@@ -1,15 +1,15 @@
 import {create} from "zustand";
 import { HttpFileSystemService, type FileSystemService } from "./services/filesystem";
 import { FileTreeEntry } from "./types";
-interface FilesState {
-    fileTree: FileTreeEntry[];
-    loadFileTree: () => Promise<void>;
-}
+
 const fs: FileSystemService = new HttpFileSystemService();
 
 
 
-
+interface FilesState {
+    fileTree: FileTreeEntry[];
+    loadFileTree: () => Promise<void>;
+}
 
 export const useFileStore = create<FilesState>()((set) => ({
     fileTree: [],
@@ -19,4 +19,6 @@ export const useFileStore = create<FilesState>()((set) => ({
         set({ fileTree });
     }
 }));
+
+
 

@@ -17,7 +17,7 @@ function findPaneById(panes: Pane[], id: string): { pane: Pane; idx: number } | 
   return idx === -1 ? null : { pane: panes[idx], idx };
 }
 
-const loadFileTree = useFileStore((state) => state.loadFileTree)
+const loadFileTree = () => useFileStore.getState().loadFileTree()
 
 /** Remove the pane at `idx`, distributing its flexRatio to the adjacent pane. */
 function removePaneAt(panes: Pane[], idx: number): Pane[] {

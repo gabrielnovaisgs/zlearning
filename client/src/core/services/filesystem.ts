@@ -11,7 +11,7 @@ export interface FileSystemService {
 }
 
 export class HttpFileSystemService implements FileSystemService {
-  private baseUrl = "/api/files";
+  private baseUrl = "http://localhost:3000/api/files";
 
   async listFiles(): Promise<FileTreeEntry[]> {
     const res = await fetch(this.baseUrl);
