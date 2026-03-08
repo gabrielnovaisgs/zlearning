@@ -1,9 +1,10 @@
 import { useEffect, useRef, useCallback, useState, useSyncExternalStore } from "react";
-import type { IHighlight, NewHighlight } from "react-pdf-highlighter";7
+import type { IHighlight, NewHighlight } from "react-pdf-highlighter";
 import { pdfStore } from "./pdf.store";
 import { PdfController } from "./PdfController";
 import { PdfNotesEditor, buildCitation, type EditorInstance } from "./PdfNotesEditor";
 import { fs } from "@shared/services/filesystem";
+import { Collapsible, CollapsibleContent } from "@shared/ui/collapsible";
 
 function highlightsPathFor(pdfPath: string): string {
   const dir = pdfPath.includes("/")
@@ -29,6 +30,8 @@ export function PdfViewer({ pdfPath }: Props) {
   // ── Panel resize ──────────────────────────────────────────────────
   const resizing = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const panelWidthRef = useRef(400);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // ── Highlights ────────────────────────────────────────────────────
   const [highlights, setHighlights] = useState<IHighlight[]>([]);
@@ -45,6 +48,9 @@ export function PdfViewer({ pdfPath }: Props) {
 
   // ── Zoom ──────────────────────────────────────────────────────────
   const [scale, setScale] = useState<number | null>(null);
+
+  // ── Notes panel visibility ─────────────────────────────────────────
+  const [showNotes, setShowNotes] = useState(true);
 
   // ── Save highlights ───────────────────────────────────────────────
   const saveHighlights = useCallback((updated: IHighlight[]) => {
@@ -157,10 +163,11 @@ export function PdfViewer({ pdfPath }: Props) {
     resizing.current = true;
 
     const onMove = (ev: MouseEvent) => {
-      if (!resizing.current || !panelRef.current) return;
-      const parentRect = panelRef.current.parentElement!.getBoundingClientRect();
-      const newWidth = parentRect.right - ev.clientX;
-      panelRef.current.style.width = `${Math.max(250, Math.min(newWidth, parentRect.width - 300))}px`;
+      if (!resizing.current || !panelRef.current || !containerRef.current) return;
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const newWidth = Math.max(250, Math.min(containerRect.right - ev.clientX, containerRect.width - 300));
+      panelRef.current.style.width = `${newWidth}px`;
+      panelWidthRef.current = newWidth;
     };
     const onUp = () => {
       resizing.current = false;
@@ -173,7 +180,7 @@ export function PdfViewer({ pdfPath }: Props) {
   }, []);
 
   return (
-    <div className="flex flex-1 min-h-0">
+    <div className="flex flex-1 min-h-0" ref={containerRef}>
       {/* PDF Controller (wraps renderer with controls) */}
       <PdfController
         pdfPath={pdfPath}
@@ -189,16 +196,22 @@ export function PdfViewer({ pdfPath }: Props) {
         highlighterRef={highlighterRef}
         scrollViewerToRef={scrollViewerTo}
         onCurrentPageChange={setCurrentPage}
+        showNotes={showNotes}
+        onToggleNotes={() => setShowNotes((v) => !v)}
       />
 
-      {/* Notes panel */}
-      <div className="flex" ref={panelRef} style={{ width: 400 }}>
-        <div
-          className="w-0.75 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-accent active:bg-accent"
-          onMouseDown={handleMouseDown}
-        />
-        <PdfNotesEditor pdfPath={pdfPath} onEditorReady={handleEditorReady} />
-      </div>
+      {/* Notes panel — forceMount preserva estado do editor entre aberturas */}
+      <Collapsible open={showNotes}>
+        <CollapsibleContent forceMount className="notes-collapsible-content flex">
+          <div ref={panelRef} className="flex" style={{ width: panelWidthRef.current }}>
+            <div
+              className="w-0.75 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-accent active:bg-accent"
+              onMouseDown={handleMouseDown}
+            />
+            <PdfNotesEditor pdfPath={pdfPath} onEditorReady={handleEditorReady} />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }

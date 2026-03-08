@@ -1,6 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import type { IHighlight } from "react-pdf-highlighter";
 import { PdfRenderer, type OutlineItem } from "./PdfRenderer";
+import { Button } from "@shared/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@shared/ui/tooltip";
 
 interface OutlineItemLocal {
   title: string;
@@ -62,6 +69,9 @@ export interface PdfControllerProps {
   scrollViewerToRef: React.MutableRefObject<(hl: IHighlight) => void>;
 
   onCurrentPageChange: (page: number) => void;
+
+  showNotes: boolean;
+  onToggleNotes: () => void;
 }
 
 export function PdfController({
@@ -78,6 +88,8 @@ export function PdfController({
   highlighterRef,
   scrollViewerToRef,
   onCurrentPageChange,
+  showNotes,
+  onToggleNotes,
 }: PdfControllerProps) {
   // ── State for controller ─────────────────────────────────────────
   const [numPages, setNumPages] = useState(0);
@@ -264,6 +276,34 @@ export function PdfController({
           >
             reset
           </button>
+        </div>
+
+        {/* Notes toggle */}
+        <div className="ml-2 flex items-center">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={onToggleNotes}
+                  className={showNotes ? "text-accent bg-accent/10 hover:bg-accent/20" : "text-text-muted hover:text-text-primary"}
+                  aria-label={showNotes ? "Esconder notas" : "Mostrar notas"}
+                >
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
+                    <rect x="1" y="1" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.2" fill="none" />
+                    <rect x="9" y="1" width="1" height="13" fill="currentColor" />
+                    <rect x="11" y="4" width="2" height="1" rx="0.5" />
+                    <rect x="11" y="6.5" width="2" height="1" rx="0.5" />
+                    <rect x="11" y="9" width="2" height="1" rx="0.5" />
+                  </svg>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {showNotes ? "Esconder notas" : "Mostrar notas"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
