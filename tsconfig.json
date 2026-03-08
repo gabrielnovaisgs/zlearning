@@ -13,9 +13,9 @@
     "isolatedModules": true,
     "noEmit": true,
     "paths": {
-      "@core/*": ["./client/src/core/*"],
-      "@views/*": ["./client/src/views/*"],
-      "@components/*": ["./client/src/views/components/*"]
+      "@app/*": ["./client/src/app/*"],
+      "@features/*": ["./client/src/features/*"],
+      "@shared/*": ["./client/src/shared/*"]
     }
   },
   "include": ["client/**/*"],

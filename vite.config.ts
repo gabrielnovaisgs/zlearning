@@ -13,9 +13,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@core": path.resolve(__dirname, "client/src/core"),
-      "@views": path.resolve(__dirname, "client/src/views"),
-      "@components": path.resolve(__dirname, "client/src/views/components"),
+      "@app": path.resolve(__dirname, "client/src/app"),
+      "@features": path.resolve(__dirname, "client/src/features"),
+      "@shared": path.resolve(__dirname, "client/src/shared"),
     },
   },
 });
