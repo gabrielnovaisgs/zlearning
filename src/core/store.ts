@@ -2,6 +2,9 @@ import { create } from "zustand";
 import type { AppState, FileTreeEntry, Pane, Tab } from "./types";
 import { HttpFileSystemService, type FileSystemService } from "./services/filesystem";
 import { useSidebarStore } from "./sidebar-store";
+import { useFileStore } from "./use-file-store";
+
+export { useFileStore };
 
 const defaultPaneId = crypto.randomUUID();
 
@@ -13,6 +16,8 @@ function findPaneById(panes: Pane[], id: string): { pane: Pane; idx: number } | 
   const idx = panes.findIndex((p) => p.id === id);
   return idx === -1 ? null : { pane: panes[idx], idx };
 }
+
+const loadFileTree = useFileStore((state) => state.loadFileTree)
 
 /** Remove the pane at `idx`, distributing its flexRatio to the adjacent pane. */
 function removePaneAt(panes: Pane[], idx: number): Pane[] {
@@ -26,10 +31,11 @@ function removePaneAt(panes: Pane[], idx: number): Pane[] {
   return result;
 }
 
+
+
 // ── Zustand store ──────────────────────────────────────────────────────────
 
 export const useAppStore = create<AppState>()(() => ({
-  fileTree: [],
   activeFile: null,
   activePaneId: defaultPaneId,
   panes: [{ id: defaultPaneId, tabs: [], activeTabId: null, flexRatio: 1 }],
@@ -64,10 +70,7 @@ function update(partial: Partial<AppState>, urlMode: "push" | "replace" = "push"
 
 const fs: FileSystemService = new HttpFileSystemService();
 
-async function loadFileTree() {
-  const fileTree = await fs.listFiles();
-  update({ fileTree });
-}
+
 
 function openFileInPane(path: string, paneId?: string) {
   const state = useAppStore.getState();
@@ -267,11 +270,6 @@ function moveTabToPane(tabId: string, fromPaneId: string, toPaneId: string, inde
 
 // ── File operations ────────────────────────────────────────────────────────
 
-async function createFile(path: string) {
-  await fs.createFile(path);
-  await loadFileTree();
-  openFileInPane(path);
-}
 
 async function createUntitledFile(dir: string) {
   const siblings = collectFileNames(dir ? dir + "/" : "");
@@ -285,7 +283,9 @@ async function createUntitledFile(dir: string) {
   if (dir) {
     useSidebarStore.getState().expandFolder(dir);
   }
-  await createFile(path);
+    await fs.createFile(path);
+  await loadFileTree();
+  openFileInPane(path);
 }
 
 /** Resolve a wiki link path (e.g. "notes/Getting Started") to a file path */
@@ -301,7 +301,7 @@ function resolveWikiLink(linkPath: string): string | null {
     }
     return null;
   };
-  return find(useAppStore.getState().fileTree);
+  return find(useFileStore.getState().fileTree);
 }
 
 async function createDirectory(path: string) {
@@ -344,7 +344,7 @@ function fileExists(path: string): boolean {
     }
     return false;
   };
-  return find(useAppStore.getState().fileTree);
+  return find(useFileStore.getState().fileTree);
 }
 
 /** Move a file or directory to a target directory (empty string = root) */
@@ -400,7 +400,7 @@ function collectFileNames(dir: string): Set<string> {
       }
     }
   };
-  find(useAppStore.getState().fileTree, "");
+  find(useFileStore.getState().fileTree, "");
   return names;
 }
 
@@ -451,7 +451,6 @@ export const store = {
   closePane,
   resizePane,
   moveTabToPane,
-  createFile,
   createUntitledFile,
   resolveWikiLink,
   createDirectory,

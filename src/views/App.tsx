@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { store } from "@core/store";
+import { store, useFileStore } from "@core/store";
 import { registry } from "@core/commands/CommandRegistry";
 import { Sidebar } from "./Sidebar/Sidebar";
 import { SplitView } from "./Editor/SplitView";
@@ -12,7 +12,7 @@ function openFileFromURL() {
     store.openFile(path);
   } else {
     // Try .md first, fall back to .pdf by checking the file tree
-    const { fileTree } = store.getState();
+    const { fileTree } = useFileStore.getState();
     const findFile = (entries: typeof fileTree): string | null => {
       for (const e of entries) {
         if (e.type === "file" && (e.path === path + ".md" || e.path === path + ".pdf")) return e.path;

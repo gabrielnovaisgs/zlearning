@@ -25,7 +25,6 @@ export interface Pane {
 }
 
 export interface AppState {
-  fileTree: FileTreeEntry[];
   /** Derived: active pane → active tab → path */
   activeFile: string | null;
   panes: Pane[];
