@@ -7,6 +7,10 @@ Editor e leitor de notas markdown similar ao Obsidian, com interface dark mode e
 - **Frontend**: React 19 + TypeScript + Vite 7 + Tailwind CSS v4 + CodeMirror 6
 - **Backend**: Express 5 + Node.js (via tsx)
 
+Sempre utilize o comando `nvm use` antes de começar para garantir que a versão correta do Node.
+
+Sempre utilize o `pnpm` ao invés do `npm`
+
 ## Estrutura
 
 ```

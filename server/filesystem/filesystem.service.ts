@@ -14,8 +14,7 @@ const DOCS_ROOT = path.resolve(process.cwd(), 'docs');
 @Injectable()
 export class FilesystemService {
   safePath(requestedPath: string): string {
-    console.log('Requested path:', requestedPath);
-    const resolved = path.resolve(DOCS_ROOT, requestedPath[0]);
+    const resolved = path.resolve(DOCS_ROOT, ...requestedPath);
     if (!resolved.startsWith(DOCS_ROOT)) {
       throw new BadRequestException('Path traversal detected');
     }
