@@ -4,8 +4,7 @@ import { HttpFileSystemService } from "@core/services/filesystem";
 import { pdfStore } from "@core/pdf-store";
 import { PdfController } from "./PdfController";
 import { PdfNotesEditor, buildCitation, type EditorInstance } from "./PdfNotesEditor";
-
-const fs = new HttpFileSystemService();
+import { readFile, writeFile } from "@core/file-operations";
 
 function highlightsPathFor(pdfPath: string): string {
   const dir = pdfPath.includes("/")
@@ -51,7 +50,7 @@ export function PdfViewer({ pdfPath }: Props) {
   // ── Save highlights ───────────────────────────────────────────────
   const saveHighlights = useCallback((updated: IHighlight[]) => {
     if (highlightsPath.current) {
-      fs.writeFile(highlightsPath.current, JSON.stringify(updated, null, 2));
+      writeFile(highlightsPath.current, JSON.stringify(updated, null, 2));
     }
   }, []);
 
@@ -125,7 +124,7 @@ export function PdfViewer({ pdfPath }: Props) {
 
     (async () => {
       try {
-        const { content } = await fs.readFile(hp);
+        const { content } = await readFile(hp);
         const loaded = JSON.parse(content);
         const valid = Array.isArray(loaded)
           ? loaded.filter((h: unknown) => {

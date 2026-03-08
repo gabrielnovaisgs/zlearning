@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createEditor, type EditorInstance } from "@core/editor/setup";
 import { store } from "@core/store";
+import { readFile, writeFile } from "@core/file-operations";
 
 interface Props {
   filePath: string;
@@ -28,6 +29,7 @@ function EditableTitle({ activeFile }: { activeFile: string }) {
       setValue(fileTitle(activeFile));
       return;
     }
+    
     store.renameFile(activeFile, trimmed).then((ok) => {
       if (!ok) setValue(fileTitle(activeFile));
     });
@@ -85,7 +87,8 @@ export function MarkdownEditor({ filePath }: Props) {
   const scheduleSave = useCallback((path: string, content: string) => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
-      store.fs.writeFile(path, content);
+      
+      writeFile(path, content);
     }, 1000);
   }, []);
 
@@ -110,7 +113,7 @@ export function MarkdownEditor({ filePath }: Props) {
   // Load file content when filePath changes
   useEffect(() => {
     setLoading(true);
-    store.fs.readFile(filePath).then(({ content }) => {
+    readFile(filePath).then(({ content }) => {
       if (editorRef.current) {
         isExternalUpdate.current = true;
         editorRef.current.setContent(content);

@@ -2,10 +2,10 @@ import { useEffect, useRef, useCallback } from "react";
 import { createEditor, type EditorInstance } from "@core/editor/setup";
 import { HttpFileSystemService } from "@core/services/filesystem";
 import { store } from "@core/store";
+import { createFile, readFile, writeFile } from "@core/file-operations";
 
 export type { EditorInstance } from "@core/editor/setup";
 
-const fs = new HttpFileSystemService();
 
 function notesPathFor(pdfPath: string): string {
   const dir = pdfPath.includes("/")
@@ -40,7 +40,7 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
   const scheduleSave = useCallback((content: string) => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     saveTimeout.current = setTimeout(() => {
-      if (notesPath.current) fs.writeFile(notesPath.current, content);
+      if (notesPath.current) writeFile(notesPath.current, content);
     }, 1000);
   }, []);
 
@@ -63,13 +63,12 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
 
     (async () => {
       try {
-        const { content } = await fs.readFile(np);
+        const { content } = await readFile(np);
         editorRef.current?.setContent(content);
       } catch {
         const content = frontmatter(pdfPath);
-        await fs.createFile(np, content);
+        await createFile(np, content);
         editorRef.current?.setContent(content);
-        store.loadFileTree();
       }
     })();
   }, [pdfPath]);

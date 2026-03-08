@@ -1,8 +1,14 @@
 import { create } from "zustand";
 import type { AppState, Pane, Tab } from "./types";
-import { HttpFileSystemService, type FileSystemService } from "./services/filesystem";
-import { useSidebarStore } from "./sidebar-store";
 import { useFileStore, resolveWikiLink } from "./use-file-store";
+import {
+  createUntitledFile,
+  createDirectory,
+  renameFile,
+  moveFile,
+  duplicateFile,
+  deleteFile,
+} from "./file-operations";
 
 export { useFileStore };
 
@@ -12,15 +18,12 @@ function toUrlPath(path: string | null): string {
   return path ? "/" + path.replace(/\.(md|pdf)$/, "") : "/";
 }
 
-function findPaneById(panes: Pane[], id: string): { pane: Pane; idx: number } | null {
+export function findPaneById(panes: Pane[], id: string): { pane: Pane; idx: number } | null {
   const idx = panes.findIndex((p) => p.id === id);
   return idx === -1 ? null : { pane: panes[idx], idx };
 }
 
-const loadFileTree = () => useFileStore.getState().loadFileTree()
-
-/** Remove the pane at `idx`, distributing its flexRatio to the adjacent pane. */
-function removePaneAt(panes: Pane[], idx: number): Pane[] {
+export function removePaneAt(panes: Pane[], idx: number): Pane[] {
   const removedRatio = panes[idx].flexRatio;
   const result = panes.filter((_, i) => i !== idx);
   const adjacentIdx = idx < result.length ? idx : idx - 1;
@@ -30,7 +33,6 @@ function removePaneAt(panes: Pane[], idx: number): Pane[] {
   };
   return result;
 }
-
 
 
 // ── Zustand store ──────────────────────────────────────────────────────────
@@ -44,7 +46,7 @@ export const useAppStore = create<AppState>()(() => ({
 
 // ── Internal helpers ───────────────────────────────────────────────────────
 
-function update(partial: Partial<AppState>, urlMode: "push" | "replace" = "push") {
+export function update(partial: Partial<AppState>, urlMode: "push" | "replace" = "push") {
   const current = useAppStore.getState();
   const next = { ...current, ...partial };
   const pane = findPaneById(next.panes, next.activePaneId)?.pane;
@@ -66,13 +68,9 @@ function update(partial: Partial<AppState>, urlMode: "push" | "replace" = "push"
   }
 }
 
-// ── Actions ────────────────────────────────────────────────────────────────
+// ── Pane / Tab actions ─────────────────────────────────────────────────────
 
-const fs: FileSystemService = new HttpFileSystemService();
-
-
-
-function openFileInPane(path: string, paneId?: string) {
+export function openFileInPane(path: string, paneId?: string) {
   const state = useAppStore.getState();
   const targetPaneId = paneId ?? state.activePaneId;
   const panes = [...state.panes];
@@ -119,8 +117,6 @@ function openNewTab(paneId?: string) {
   update({ panes, activePaneId: targetPaneId });
 }
 
-// ── Tab/Pane management ────────────────────────────────────────────────────
-
 function closeTab(tabId: string, paneId: string) {
   const state = useAppStore.getState();
   const panes = [...state.panes];
@@ -163,7 +159,6 @@ function setActivePaneId(paneId: string) {
   update({ activePaneId: paneId });
 }
 
-/** Creates a new pane adjacent to paneId. Copies the active tab by default. Returns new pane id. */
 function splitPane(paneId: string, direction: "left" | "right", copyActiveTab = true): string {
   const panes = [...useAppStore.getState().panes];
   const found = findPaneById(panes, paneId);
@@ -268,110 +263,11 @@ function moveTabToPane(tabId: string, fromPaneId: string, toPaneId: string, inde
   update({ panes: newPanes, activePaneId: toPaneId });
 }
 
-// ── File operations ────────────────────────────────────────────────────────
-
-
-async function createUntitledFile(dir: string) {
-  if (dir) useSidebarStore.getState().expandFolder(dir);
-  const { path } = await fs.createUntitled(dir);
-  await loadFileTree();
-  openFileInPane(path);
-}
-
-
-async function createDirectory(path: string) {
-  await fs.createDirectory(path);
-  await loadFileTree();
-  const parts = path.split("/");
-  const toExpand: string[] = [];
-  for (let i = 1; i < parts.length; i++) {
-    toExpand.push(parts.slice(0, i).join("/"));
-  }
-  useSidebarStore.getState().expandManyFolders(toExpand);
-}
-
-async function renameFile(oldPath: string, newName: string): Promise<boolean> {
-  try {
-    const { newPath } = await fs.renameFile(oldPath, newName);
-    await loadFileTree();
-    const panes = useAppStore.getState().panes.map((p) => ({
-      ...p,
-      tabs: p.tabs.map((t) => (t.path === oldPath ? { ...t, path: newPath } : t)),
-    }));
-    update({ panes }, "replace");
-    return true;
-  } catch (err: any) {
-    if (err.message?.includes("409") || err.message?.includes("Conflict")) {
-      alert(`"${newName}" already exists in this folder.`);
-    }
-    return false;
-  }
-}
-
-/** Move a file or directory to a target directory (empty string = root) */
-async function moveFile(sourcePath: string, targetDir: string) {
-  try {
-    const { newPath } = await fs.moveFile(sourcePath, targetDir);
-    if (targetDir) useSidebarStore.getState().expandFolder(targetDir);
-    await loadFileTree();
-    const panes = useAppStore.getState().panes.map((p) => ({
-      ...p,
-      tabs: p.tabs.map((t) => (t.path === sourcePath ? { ...t, path: newPath } : t)),
-    }));
-    update({ panes }, "replace");
-  } catch (err: any) {
-    if (err.message?.includes("409") || err.message?.includes("Conflict")) {
-      const name = sourcePath.includes("/")
-        ? sourcePath.substring(sourcePath.lastIndexOf("/") + 1)
-        : sourcePath;
-      alert(`"${name}" already exists in the destination folder.`);
-    }
-  }
-}
-
-async function duplicateFile(path: string) {
-  const { newPath } = await fs.duplicateFile(path);
-  await loadFileTree();
-  openFileInPane(newPath);
-}
-
-async function deleteFile(path: string) {
-  await fs.deleteFile(path);
-
-  let panes = useAppStore.getState().panes.map((p) => {
-    const newTabs = p.tabs.filter((t) => t.path !== path);
-    let newActiveTabId = p.activeTabId;
-    if (p.tabs.find((t) => t.id === p.activeTabId)?.path === path) {
-      const oldIdx = p.tabs.findIndex((t) => t.id === p.activeTabId);
-      newActiveTabId =
-        newTabs.length > 0 ? newTabs[Math.min(oldIdx, newTabs.length - 1)].id : null;
-    }
-    return { ...p, tabs: newTabs, activeTabId: newActiveTabId };
-  });
-
-  if (panes.length > 1) {
-    for (const emptyPane of panes.filter((p) => p.tabs.length === 0)) {
-      if (panes.length <= 1) break;
-      const idx = panes.findIndex((p) => p.id === emptyPane.id);
-      panes = removePaneAt(panes, idx);
-    }
-  }
-
-  let activePaneId = useAppStore.getState().activePaneId;
-  if (!findPaneById(panes, activePaneId)) {
-    activePaneId = panes[0].id;
-  }
-
-  update({ panes, activePaneId });
-  await loadFileTree();
-}
-
 // ── Public API (backward-compatible) ──────────────────────────────────────
 
 export const store = {
-  fs,
   getState: () => useAppStore.getState(),
-  loadFileTree,
+  loadFileTree: () => useFileStore.getState().loadFileTree(),
   openFile: openFileInPane,
   openNewTab,
   closeTab,
@@ -381,8 +277,8 @@ export const store = {
   closePane,
   resizePane,
   moveTabToPane,
-  createUntitledFile,
   resolveWikiLink,
+  createUntitledFile,
   createDirectory,
   renameFile,
   moveFile,

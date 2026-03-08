@@ -13,11 +13,11 @@
     "isolatedModules": true,
     "noEmit": true,
     "paths": {
-      "@core/*": ["./src/core/*"],
-      "@views/*": ["./src/views/*"],
-      "@components/*": ["./src/views/components/*"]
+      "@core/*": ["./client/src/core/*"],
+      "@views/*": ["./client/src/views/*"],
+      "@components/*": ["./client/src/views/components/*"]
     }
   },
-  "include": ["src"],
+  "include": ["client/**/*"],
   "exclude": ["node_modules"]
 }
