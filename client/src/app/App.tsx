@@ -5,6 +5,7 @@ import { FileExplorer } from "@features/file-explorer/FileExplorer";
 import { SplitView } from "@features/panes/SplitView";
 import { CommandPalette } from "@features/command-palette/OpenFilePalette";
 import { resolveFileFromPath, useFileStore } from "@shared/file.store";
+import { GLOBAL_CONFIG } from "./config";
 
 function openFileFromURL() {
   const path = location.pathname.slice(1); // remove leading "/"
@@ -17,6 +18,7 @@ function openFileFromURL() {
   }
 }
 
+document.title = GLOBAL_CONFIG.appName;
 
 export function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);

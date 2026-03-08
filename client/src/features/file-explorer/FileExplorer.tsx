@@ -3,6 +3,7 @@ import { useFileStore } from "@shared/file.store";
 import { FileTree } from "./FileTree";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { useCallback, useRef, useState } from "react";
+import { GLOBAL_CONFIG } from "@app/config";
 
 interface MenuState {
   x: number;
@@ -79,7 +80,7 @@ export function FileExplorer() {
     <div className="flex h-full shrink-0" style={{ width: sidebarWidth }}>
       <div className="flex h-full flex-1 flex-col overflow-hidden bg-bg-secondary">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h1 className="text-sm font-semibold text-text-primary">Study MD</h1>
+          <h1 className="text-sm font-semibold text-text-primary">{GLOBAL_CONFIG.appName}</h1>
           <button
             onClick={() => handleNewFile("")}
             className="rounded px-2 py-0.5 text-lg text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary"
