@@ -3,7 +3,7 @@ import type { IHighlight, NewHighlight } from "react-pdf-highlighter";7
 import { pdfStore } from "@core/pdf-store";
 import { PdfController } from "./PdfController";
 import { PdfNotesEditor, buildCitation, type EditorInstance } from "./PdfNotesEditor";
-import { readFile, writeFile } from "@core/use-file-store";
+import { fs } from "@core/services/filesystem";
 
 function highlightsPathFor(pdfPath: string): string {
   const dir = pdfPath.includes("/")
@@ -49,7 +49,7 @@ export function PdfViewer({ pdfPath }: Props) {
   // ── Save highlights ───────────────────────────────────────────────
   const saveHighlights = useCallback((updated: IHighlight[]) => {
     if (highlightsPath.current) {
-      writeFile(highlightsPath.current, JSON.stringify(updated, null, 2));
+      fs.writeFile(highlightsPath.current, JSON.stringify(updated, null, 2));
     }
   }, []);
 
@@ -123,7 +123,7 @@ export function PdfViewer({ pdfPath }: Props) {
 
     (async () => {
       try {
-        const { content } = await readFile(hp);
+        const { content } = await fs.readFile(hp);
         const loaded = JSON.parse(content);
         const valid = Array.isArray(loaded)
           ? loaded.filter((h: unknown) => {

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useCallback } from "react";
 import { createEditor, type EditorInstance } from "@core/editor/setup";
 
-import { createFile, readFile, writeFile } from "@core/use-file-store";
+import { fs } from "@core/services/filesystem";
+import { useFileStore } from "@core/use-file-store";
 
 export type { EditorInstance } from "@core/editor/setup";
 
@@ -39,7 +40,7 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
   const scheduleSave = useCallback((content: string) => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     saveTimeout.current = setTimeout(() => {
-      if (notesPath.current) writeFile(notesPath.current, content);
+      if (notesPath.current) fs.writeFile(notesPath.current, content);
     }, 1000);
   }, []);
 
@@ -62,11 +63,11 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
 
     (async () => {
       try {
-        const { content } = await readFile(np);
+        const { content } = await fs.readFile(np);
         editorRef.current?.setContent(content);
       } catch {
         const content = frontmatter(pdfPath);
-        await createFile(np, content);
+        await useFileStore.getState().actions.createFile(np, content);
         editorRef.current?.setContent(content);
       }
     })();

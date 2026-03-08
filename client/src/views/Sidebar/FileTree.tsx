@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { FileTreeEntry } from "@core/types";
-import { moveFile } from "@core/use-file-store";
 import { FileTreeItem } from "./FileTreeItem";
 import { useFileStore } from "@core/use-file-store";
 
@@ -45,7 +44,7 @@ export function FileTree({ onContextMenu, renamingPath, onStartRename, onEndRena
     setDragOver(false);
     const sourcePath = e.dataTransfer.getData("text/plain");
     if (sourcePath) {
-      moveFile(sourcePath, "");
+      useFileStore.getState().actions.moveFile(sourcePath, "");
     }
   };
 

@@ -8,13 +8,13 @@ export default defineConfig({
   test: {
     environment: "happy-dom",
     globals: true,
-    setupFiles: ["./src/test-setup.ts"],
+    setupFiles: ["./client/src/test-setup.ts"],
   },
   resolve: {
     alias: {
-      "@core": path.resolve(__dirname, "src/core"),
-      "@views": path.resolve(__dirname, "src/views"),
-      "@components": path.resolve(__dirname, "src/views/components"),
+      "@core": path.resolve(__dirname, "client/src/core"),
+      "@views": path.resolve(__dirname, "client/src/views"),
+      "@components": path.resolve(__dirname, "client/src/views/components"),
     },
   },
 });

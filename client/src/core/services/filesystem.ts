@@ -102,3 +102,10 @@ export class HttpFileSystemService implements FileSystemService {
     if (!res.ok) throw new Error("Failed to delete file");
   }
 }
+
+export let fs: FileSystemService = new HttpFileSystemService();
+
+/** Somente para testes — substitui o singleton fs */
+export function __setFs(service: FileSystemService) {
+  fs = service;
+}

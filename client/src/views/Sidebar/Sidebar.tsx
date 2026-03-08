@@ -1,5 +1,5 @@
 import type { FileTreeEntry } from "@core/types";
-import { createUntitledFile, createDirectory, duplicateFile, deleteFile } from "@core/use-file-store";
+import { useFileStore } from "@core/use-file-store";
 import { FileTree } from "./FileTree";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { useCallback, useRef, useState } from "react";
@@ -24,14 +24,14 @@ export function Sidebar() {
   };
 
   const handleNewFile = async (dir: string) => {
-    await createUntitledFile(dir);
+    await useFileStore.getState().actions.createUntitledFile(dir);
   };
 
   const handleNewDirectory = async (dir: string) => {
     const name = prompt("Folder name:");
     if (!name) return;
     const path = dir ? `${dir}/${name}` : name;
-    await createDirectory(path);
+    await useFileStore.getState().actions.createDirectory(path);
   };
 
   const handleContextMenu = useCallback((e: React.MouseEvent, entry: FileTreeEntry | null) => {
@@ -47,10 +47,10 @@ export function Sidebar() {
       menuItems.push({ label: "Rename", action: () => setRenamingPath(menu.entry!.path) });
     }
     if (menu.entry?.type === "file") {
-      menuItems.push({ label: "Duplicate", action: () => duplicateFile(menu.entry!.path) });
+      menuItems.push({ label: "Duplicate", action: () => useFileStore.getState().actions.duplicateFile(menu.entry!.path) });
     }
     if (menu.entry) {
-      menuItems.push({ label: "Delete", action: () => deleteFile(menu.entry!.path) });
+      menuItems.push({ label: "Delete", action: () => useFileStore.getState().actions.deleteFile(menu.entry!.path) });
     }
     menuItems.push({ label: "New file", action: () => handleNewFile(dir) });
     menuItems.push({ label: "New folder", action: () => handleNewDirectory(dir) });

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { FileTreeEntry } from "@core/types";
 import { usePaneController } from "@core/use-pane-controller-store";
-import { renameFile, moveFile } from "@core/use-file-store";
+import { useFileStore } from "@core/use-file-store";
 import { useSidebarStore } from "@core/sidebar-store";
 
 
@@ -43,7 +43,7 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
     onEndRename();
     const trimmed = renameValue.trim();
     if (!trimmed || trimmed === displayName) return;
-    renameFile(entry.path, trimmed);
+    useFileStore.getState().actions.renameFile(entry.path, trimmed);
   };
 
   const handleClick = async () => {
@@ -83,7 +83,7 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
     setDragOver(false);
     const sourcePath = e.dataTransfer.getData("text/plain");
     if (sourcePath && entry.type === "directory") {
-      moveFile(sourcePath, entry.path);
+      useFileStore.getState().actions.moveFile(sourcePath, entry.path);
     }
   };
 

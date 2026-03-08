@@ -6,7 +6,7 @@ import {
 } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { Range, StateField, StateEffect, Extension } from "@codemirror/state";
-import { resolveWikiLink, useFileStore } from "@core/use-file-store";
+import { resolveWikiLink } from "@core/use-file-store";
 import { usePaneController } from "@core/use-pane-controller-store";
 
 class ImageWidget extends WidgetType {

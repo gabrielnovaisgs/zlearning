@@ -1,31 +1,108 @@
 import { create } from "zustand";
-import { HttpFileSystemService, type FileSystemService } from "./services/filesystem";
+import { fs } from "./services/filesystem";
 import { FileTreeEntry } from "./types";
 import { usePaneController } from "./use-pane-controller-store";
 import { useSidebarStore } from "./sidebar-store";
 
-const fs: FileSystemService = new HttpFileSystemService();
+// ── Interfaces ──────────────────────────────────────────────────────────────
 
-// ── File tree store ────────────────────────────────────────────────────────
-
-interface FilesState {
-  fileTree: FileTreeEntry[];
+interface FileStoreActions {
   loadFileTree: () => Promise<void>;
+  createFile: (path: string, content?: string) => Promise<void>;
+  createUntitledFile: (dir: string) => Promise<void>;
+  createDirectory: (path: string) => Promise<void>;
+  renameFile: (oldPath: string, newName: string) => Promise<boolean>;
+  moveFile: (sourcePath: string, targetDir: string) => Promise<void>;
+  duplicateFile: (path: string) => Promise<void>;
+  deleteFile: (path: string) => Promise<void>;
 }
 
-export const useFileStore = create<FilesState>()((set) => ({
+interface FileStoreState {
+  fileTree: FileTreeEntry[];
+  actions: FileStoreActions;
+}
+
+// ── Store ───────────────────────────────────────────────────────────────────
+
+export const useFileStore = create<FileStoreState>()((set, get) => ({
   fileTree: [],
-  loadFileTree: async () => {
-    const fileTree = await fs.listFiles();
-    set({ fileTree });
+
+  actions: {
+    async loadFileTree() {
+      const fileTree = await fs.listFiles();
+      set({ fileTree });
+    },
+
+    async createFile(path, content = "") {
+      await fs.createFile(path, content);
+      await get().actions.loadFileTree();
+    },
+
+    async createUntitledFile(dir) {
+      if (dir) useSidebarStore.getState().expandFolder(dir);
+      const { path } = await fs.createUntitled(dir);
+      await get().actions.loadFileTree();
+      usePaneController.getState().actions.openFileInPane(path);
+    },
+
+    async createDirectory(path) {
+      await fs.createDirectory(path);
+      await get().actions.loadFileTree();
+      const parts = path.split("/");
+      const toExpand: string[] = [];
+      for (let i = 1; i < parts.length; i++) {
+        toExpand.push(parts.slice(0, i).join("/"));
+      }
+      useSidebarStore.getState().expandManyFolders(toExpand);
+    },
+
+    async renameFile(oldPath, newName) {
+      try {
+        const { newPath } = await fs.renameFile(oldPath, newName);
+        await get().actions.loadFileTree();
+        usePaneController.getState().actions.updateTabPaths(oldPath, newPath);
+        return true;
+      } catch (err: any) {
+        if (err.message?.includes("409") || err.message?.includes("Conflict")) {
+          alert(`"${newName}" already exists in this folder.`);
+        }
+        return false;
+      }
+    },
+
+    async moveFile(sourcePath, targetDir) {
+      try {
+        const { newPath } = await fs.moveFile(sourcePath, targetDir);
+        if (targetDir) useSidebarStore.getState().expandFolder(targetDir);
+        await get().actions.loadFileTree();
+        usePaneController.getState().actions.updateTabPaths(sourcePath, newPath);
+      } catch (err: any) {
+        if (err.message?.includes("409") || err.message?.includes("Conflict")) {
+          const name = sourcePath.includes("/")
+            ? sourcePath.substring(sourcePath.lastIndexOf("/") + 1)
+            : sourcePath;
+          alert(`"${name}" already exists in the destination folder.`);
+        }
+      }
+    },
+
+    async duplicateFile(path) {
+      const { newPath } = await fs.duplicateFile(path);
+      await get().actions.loadFileTree();
+      usePaneController.getState().actions.openFileInPane(newPath);
+    },
+
+    async deleteFile(path) {
+      await fs.deleteFile(path);
+      usePaneController.getState().actions.removeTabPath(path);
+      await get().actions.loadFileTree();
+    },
   },
 }));
 
-const loadFileTree = () => useFileStore.getState().loadFileTree();
+// ── Selectors ───────────────────────────────────────────────────────────────
 
-// ── Queries ────────────────────────────────────────────────────────────────
-
-/** Resolve a URL path (without extension) to a file path, trying .md then .pdf. Falls back to path + ".md". */
+/** Resolve um URL path (sem extensão) para um file path, tentando .md depois .pdf. */
 export function resolveFileFromPath(path: string): string {
   const find = (entries: FileTreeEntry[]): string | null => {
     for (const e of entries) {
@@ -52,77 +129,3 @@ export function resolveWikiLink(linkPath: string): string | null {
   return find(useFileStore.getState().fileTree);
 }
 
-// ── File operations ────────────────────────────────────────────────────────
-
-export async function readFile(path: string) {
-  return fs.readFile(path);
-}
-
-export async function writeFile(path: string, content: string) {
-  await fs.writeFile(path, content);
-}
-
-export async function createFile(path: string, content = "") {
-  await fs.createFile(path, content);
-  await loadFileTree();
-}
-
-export async function createUntitledFile(dir: string) {
-  if (dir) useSidebarStore.getState().expandFolder(dir);
-  const { path } = await fs.createUntitled(dir);
-  await loadFileTree();
-  usePaneController.getState().actions.openFileInPane(path);
-}
-
-export async function createDirectory(path: string) {
-  await fs.createDirectory(path);
-  await loadFileTree();
-  const parts = path.split("/");
-  const toExpand: string[] = [];
-  for (let i = 1; i < parts.length; i++) {
-    toExpand.push(parts.slice(0, i).join("/"));
-  }
-  useSidebarStore.getState().expandManyFolders(toExpand);
-}
-
-export async function renameFile(oldPath: string, newName: string): Promise<boolean> {
-  try {
-    const { newPath } = await fs.renameFile(oldPath, newName);
-    await loadFileTree();
-    usePaneController.getState().actions.updateTabPaths(oldPath, newPath);
-    return true;
-  } catch (err: any) {
-    if (err.message?.includes("409") || err.message?.includes("Conflict")) {
-      alert(`"${newName}" already exists in this folder.`);
-    }
-    return false;
-  }
-}
-
-export async function moveFile(sourcePath: string, targetDir: string) {
-  try {
-    const { newPath } = await fs.moveFile(sourcePath, targetDir);
-    if (targetDir) useSidebarStore.getState().expandFolder(targetDir);
-    await loadFileTree();
-    usePaneController.getState().actions.updateTabPaths(sourcePath, newPath);
-  } catch (err: any) {
-    if (err.message?.includes("409") || err.message?.includes("Conflict")) {
-      const name = sourcePath.includes("/")
-        ? sourcePath.substring(sourcePath.lastIndexOf("/") + 1)
-        : sourcePath;
-      alert(`"${name}" already exists in the destination folder.`);
-    }
-  }
-}
-
-export async function duplicateFile(path: string) {
-  const { newPath } = await fs.duplicateFile(path);
-  await loadFileTree();
-  usePaneController.getState().actions.openFileInPane(newPath);
-}
-
-export async function deleteFile(path: string) {
-  await fs.deleteFile(path);
-  usePaneController.getState().actions.removeTabPath(path);
-  await loadFileTree();
-}

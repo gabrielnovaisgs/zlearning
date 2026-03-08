@@ -4,7 +4,7 @@ import { registry } from "@core/commands/CommandRegistry";
 import { Sidebar } from "./Sidebar/Sidebar";
 import { SplitView } from "./Editor/SplitView";
 import { CommandPalette } from "./Commands/OpenFilePalette";
-import { createUntitledFile, resolveFileFromPath, useFileStore } from "@core/use-file-store";
+import { resolveFileFromPath, useFileStore } from "@core/use-file-store";
 
 function openFileFromURL() {
   const path = location.pathname.slice(1); // remove leading "/"
@@ -20,7 +20,7 @@ function openFileFromURL() {
 
 export function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const loadFileTree = useFileStore(state => state.loadFileTree);
+  const loadFileTree = useFileStore(state => state.actions.loadFileTree);
 
   useEffect(() => {
 
@@ -42,7 +42,7 @@ export function App() {
       execute: () => {
         const active = usePaneController.getState().activeFile;
         const dir = active?.includes("/") ? active.substring(0, active.lastIndexOf("/")) : "";
-        createUntitledFile(dir);
+        useFileStore.getState().actions.createUntitledFile(dir);
       },
     });
     registry.init();
