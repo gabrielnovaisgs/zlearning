@@ -5,7 +5,7 @@ Editor e leitor de notas markdown similar ao Obsidian, com interface dark mode e
 ## Stack
 
 - **Frontend**: React 19 + TypeScript + Vite 7 + Tailwind CSS v4 + CodeMirror 6
-- **Backend**: Express 5 + Node.js (via tsx)
+- **Backend**: NestJS + Node.js (via tsx)
 
 Sempre utilize o comando `nvm use` antes de começar para garantir que a versão correta do Node.
 
@@ -14,62 +14,125 @@ Sempre utilize o `pnpm` ao invés do `npm`
 ## Estrutura
 
 ```
-src/
+client/src/
   core/
-    store.ts          # Estado global (observer pattern); panes/tabs; auto-save por EditorContainer
-    types.ts          # Tipos TypeScript (FileTreeEntry, FileContent, Tab, Pane, AppState)
-    commands.ts       # Registry de comandos globais com atalhos de teclado (Ctrl+O, etc.)
+    store.ts              # Zustand store principal (panes/tabs/URL routing)
+    sidebar-store.ts      # Zustand store para estado da sidebar (expandedDirs)
+    pdf-store.ts          # Store custom (observer) para highlight alvo do PDF
+    use-file-store.ts     # Zustand store para arvore de arquivos (fileTree)
+    types.ts              # Tipos TypeScript (FileTreeEntry, FileContent, Tab, Pane, AppState)
+    commands/
+      CommandRegistry.ts  # Registry de comandos globais com atalhos de teclado (Ctrl+O, etc.)
     services/
-      filesystem.ts   # Cliente HTTP para API de arquivos
+      filesystem.ts       # Cliente HTTP para API de arquivos (interface + HttpFileSystemService)
+      translation.ts      # Cliente HTTP para API de traducao
     editor/
-      setup.ts        # Configuracao do CodeMirror (markdown, history, brackets, keybindings)
-      theme.ts        # Tema dark Catppuccin/Obsidian
-      keybindings.ts  # Atalhos de edicao markdown (Ctrl+B, Ctrl+I, etc.)
-      markdown-widgets.ts  # Decoracoes de syntax highlighting para markdown
+      setup.ts            # Configuracao do CodeMirror (markdown, history, brackets, keybindings)
+      theme.ts            # Tema dark Catppuccin/Obsidian
+      keybindings.ts      # Atalhos de edicao markdown (Ctrl+B, Ctrl+I, etc.)
+      markdown-widgets.ts # Decoracoes de syntax highlighting para markdown
   views/
-    components/ # componentes reutilizaveis do shadcn
-    App.tsx           # Layout principal + inicializacao do CommandRegistry
+    components/           # Componentes reutilizaveis do shadcn
+    App.tsx               # Layout principal + inicializacao do CommandRegistry
     Editor/
       SplitView.tsx        # Flex container de PaneViews + ResizeHandle entre panes
       PaneView.tsx         # Pane individual: TabBar + EditorContainer + drop zones
-      TabBar.tsx           # Barra de abas: tabs draggaveis, botao split, fechar pane
-      EditorContainer.tsx  # Editor CodeMirror ou PdfViewer; recebe filePath/paneId/isFocused
-      PdfViewer.tsx        # Split view: iframe PDF + painel de notas com editor independente
+      TabBar.tsx           # Barra de abas: tabs arrastaveis, botao split, fechar pane
+      EditorContainer.tsx  # Router: seleciona MarkdownEditor, PdfViewer ou NewTabScreen
+      MarkdownEditor.tsx   # Editor CodeMirror; carrega arquivo e faz auto-save
+      NewTabScreen.tsx     # Tela placeholder para tab vazia
+      TranslationDialog.tsx # Dialog de traducao via LLM
+    PdfViewer/
+      PdfViewer.tsx        # Orquestrador: split view PDF + notas; highlights; citacoes
+      PdfRenderer.tsx      # Wrapper do react-pdf-highlighter (PdfLoader + PdfHighlighter)
+      PdfController.tsx    # Toolbar: navegacao de pagina, zoom, TOC toggle
+      PdfNotesEditor.tsx   # Editor markdown independente para notas do PDF
+      PdfHighlightMenu.tsx # ColorPicker, HighlightActionMenu, TranslationDialog
     Sidebar/
-      Sidebar.tsx     # Navegacao lateral redimensionavel
-      FileTree.tsx    # Arvore hierarquica de arquivos
-      FileTreeItem.tsx # Item individual da arvore
-    CommandPalette/
-      CommandPalette.tsx  # Dialog de busca fuzzy de arquivos (Ctrl+O)
-      fuzzy-match.ts     # Fuzzy match por subsequencia + flatten da file tree
-    hooks.ts          # useStore() hook para sincronizar com store externo
-    Sidebar/
-      ContextMenu.tsx # Menu de contexto generico (portal, posicao fixa)
+      Sidebar.tsx          # Container redimensionavel (180-500px)
+      FileTree.tsx         # Arvore hierarquica de arquivos
+      FileTreeItem.tsx     # Item individual (draggable, expandavel)
+      ContextMenu.tsx      # Menu de contexto generico (portal, posicao fixa)
+    Commands/
+      OpenFilePalette.tsx  # Dialog de busca fuzzy de arquivos (Ctrl+O)
+      fuzzy-match.ts       # Fuzzy match por subsequencia + flatten da file tree
+
 server/
-  index.ts            # Express + Vite dev middleware (porta 3000)
-  routes/
-    filesystem.ts     # API REST de arquivos (CRUD em docs/) com protecao contra path traversal
-    translate.ts      # POST /api/translate e POST /api/translate/examples (traducao via LLM)
-  services/
-    llm.ts            # Abstracao de provedores LLM (interface LLMProvider + OpenRouterProvider)
-docs/                 # Diretorio raiz das notas markdown
+  main.ts                 # Bootstrap NestJS (porta 3000, prefixo /api, CORS)
+  app.module.ts           # Modulo raiz (FilesystemModule, TranslateModule)
+  filesystem/
+    filesystem.module.ts  # NestJS module
+    filesystem.controller.ts # REST endpoints de arquivos
+    filesystem.service.ts    # Logica de arquivos + protecao contra path traversal
+  translate/
+    translate.module.ts   # NestJS module
+    translate.controller.ts # POST /translate e /translate/examples
+    translate.service.ts    # Logica de traducao via LLM + extractJson()
+  llm/
+    llm.module.ts         # NestJS module
+    llm.service.ts        # LLMProvider interface + OpenRouterProvider + factory
+
+docs/                     # Diretorio raiz das notas markdown e PDFs
 ```
 
 ## Comandos
 
-- `npm run dev` — Inicia servidor Express + Vite dev (porta 3000) — carrega `.env` via `--env-file=.env`
-- `npm run build` — Build de producao
-- `npm run preview` — Preview do build
+- `pnpm run dev` — Inicia servidor NestJS + Vite dev (porta 3000)
+- `pnpm run build` — Build de producao
+- `pnpm run preview` — Preview do build
 
 ## API
 
-- `GET /api/files` — Lista arvore de arquivos markdown
+- `GET /api/files` — Lista arvore de arquivos (`.md` e `.pdf`)
+- `GET /api/files/raw/*` — Serve arquivo binario diretamente (para PDFs)
 - `GET /api/files/*` — Le conteudo de um arquivo
-- `PUT /api/files/*` — Atualiza conteudo de um arquivo
-- `POST /api/files/*` — Cria arquivo ou diretorio
+- `PUT /api/files/*` — Atualiza conteudo (`{ content }`)
+- `POST /api/files/*` — Cria arquivo ou diretorio (`{ type, content? }`)
+- `PATCH /api/files/*` — Renomeia arquivo (`{ newPath }`)
 - `DELETE /api/files/*` — Remove arquivo ou diretorio
 - `POST /api/translate` — Traduz texto (`{ text, from?, to? }` → `{ translation }`)
 - `POST /api/translate/examples` — Retorna exemplos de uso (`{ text, from?, to? }` → `{ examples: [{original, translation}] }`)
+
+## Gerenciamento de Estado
+
+O app usa **multiplos Zustand stores** apos migracao do observer pattern customizado:
+
+### Stores
+
+| Store | Arquivo | Estado | API principal |
+| ----- | ------- | ------ | ------------- |
+| App store | `store.ts` | `panes`, `activePaneId`, `activeFile` | `openFile`, `splitPane`, `moveTabToPane`, `renameFile`, `deleteFile`, `moveFile` |
+| File tree | `use-file-store.ts` | `fileTree: FileTreeEntry[]` | `loadFileTree()` |
+| Sidebar | `sidebar-store.ts` | `expandedDirs: Set<string>` | `toggleFolder`, `expandFolder`, `expandManyFolders` |
+| PDF highlight | `pdf-store.ts` | `highlightTarget: string \| null` | `setTarget(id)`, `clearTarget()` |
+
+O `pdf-store.ts` usa observer pattern customizado (nao Zustand) por simplicidade.
+
+### Modelo de dados (`types.ts`)
+
+```typescript
+Tab  { id, path: string | null }  // null = tab vazia (NewTabScreen)
+Pane { id, tabs, activeTabId, flexRatio }   // flexRatio = largura proporcional no flex container
+AppState.panes: Pane[]                       // lista ordenada esq→dir
+AppState.activePaneId: string
+AppState.activeFile: string | null           // derivado: active pane → active tab → path
+```
+
+### App Store (`store.ts`)
+
+- `update()` deriva `activeFile` + faz `history.pushState()` a cada mudanca de estado
+- `openFile(path, paneId?)` — cria nova tab ou ativa existente no pane alvo
+- `openNewTab(paneId?)` — cria tab vazia (path = null)
+- `closeTab(tabId, paneId)` — se ultima tab com N>1 panes → fecha o pane
+- `activateTab(tabId, paneId)` / `setActivePaneId(paneId)` — foco
+- `splitPane(paneId, 'left'|'right', copyTab?)` — insere novo pane com `flexRatio = original/2`; retorna o novo paneId
+- `closePane(paneId)` — remove pane, distribui ratio ao vizinho adjacente
+- `resizePane(leftId, rightId, newLeft, newRight)` — ajusta ratios dos dois panes ao arrastar handle
+- `moveTabToPane(tabId, fromId, toId, index?)` — move tab entre panes; fecha fromPane se ficar vazio
+- `renameFile` / `deleteFile` / `moveFile` atualizam `tab.path` em todos os panes
+- `store.fs` — instancia de `HttpFileSystemService`
+
+**API de compatibilidade retroativa**: `store` object com `getState()` e `subscribe()` para código que nao usa hook Zustand diretamente.
 
 ## Arquitetura do Editor Markdown
 
@@ -128,13 +191,13 @@ Um unico `EditorView.domEventHandlers` (`linkClickHandler`) trata cliques em lin
 - **Links externos** (`cm-md-link`): resolve o no `Link` na syntax tree, extrai a URL de `](url)` e abre com `window.open(url, "_blank", "noopener,noreferrer")`
 - **Wiki links** (`cm-md-wikilink`): resolve via regex na linha e navega com `store.openFile()`
 
-### Command Palette (commands.ts + CommandPalette/)
+### Command Palette (commands/CommandRegistry.ts + Commands/)
 
 Sistema de comandos globais com atalhos de teclado:
 
 - `CommandRegistry` com `register()`, `init()` (listener global de `keydown`), `destroy()`
 - Comando `open-file` (Ctrl+O / Cmd+O) abre o palette
-- `CommandPalette.tsx`: portal em `document.body`, input com fuzzy search, navegacao por teclado (ArrowUp/Down/Enter/Escape)
+- `OpenFilePalette.tsx`: portal em `document.body`, input com fuzzy search, navegacao por teclado (ArrowUp/Down/Enter/Escape)
 - `fuzzy-match.ts`: achata file tree, fuzzy match por subsequencia com scoring (consecutivo, inicio de palavra, posicao)
 - Highlight dos caracteres que deram match no nome do arquivo
 
@@ -177,34 +240,6 @@ Arquivos e pastas podem ser movidos entre diretorios arrastando na sidebar:
 
 O app suporta N paineis horizontais side-by-side, cada um com multiplas abas.
 
-**Modelo de dados** (`types.ts`):
-
-```typescript
-Tab  { id, path }
-Pane { id, tabs, activeTabId, flexRatio }   // flexRatio = largura proporcional no flex container
-AppState.panes: Pane[]                       // lista ordenada esq→dir
-AppState.activePaneId: string
-AppState.activeFile: string | null           // derivado: active pane → active tab → path
-```
-
-**Store** (`store.ts`):
-
-- `update()` deriva `activeFile` automaticamente a cada mudanca de estado
-- `openFile(path, paneId?)` — cria nova tab ou ativa existente no pane alvo; nao carrega conteudo (EditorContainer faz isso localmente)
-- `closeTab(tabId, paneId)` — se ultima tab com N>1 panes → fecha o pane
-- `activateTab(tabId, paneId)` / `setActivePaneId(paneId)` — foco
-- `splitPane(paneId, 'left'|'right')` — insere novo pane com `flexRatio = original/2`, copia a tab ativa; retorna o novo paneId
-- `closePane(paneId)` — remove pane, distribui ratio ao vizinho adjacente
-- `resizePane(leftId, rightId, newLeft, newRight)` — ajusta ratios dos dois panes ao arrastar handle
-- `moveTabToPane(tabId, fromId, toId, index?)` — move tab entre panes; fecha fromPane se ficar vazio
-- `renameFile`/`deleteFile`/`moveFile` atualizam `tab.path` em todos os panes
-
-**EditorContainer** agora recebe props `{ filePath, paneId, isFocused }`:
-
-- Gerencia conteudo localmente: `useEffect([filePath])` carrega via `store.fs.readFile()`
-- `scheduleSave` local (1s debounce) chama `store.fs.writeFile()` diretamente
-- `filePathRef` (ref) garante que o callback do CodeMirror sempre usa o path atual
-
 **Layout de panes** (`SplitView`):
 
 ```
@@ -216,6 +251,18 @@ SplitView (flex row)
 ```
 
 `ResizeHandle`: mousedown captura startX + ratios iniciais, mousemove calcula `ratioDelta = delta/containerWidth * totalRatio`, aplica via `store.resizePane`.
+
+**EditorContainer** roteia por tipo de arquivo:
+
+- `.pdf` → `<PdfViewer />`
+- `.md` → `<MarkdownEditor />`
+- `null` (tab vazia) → `<NewTabScreen />`
+
+**MarkdownEditor** (`MarkdownEditor.tsx`):
+
+- Carrega conteudo via `store.fs.readFile()` no `useEffect([filePath])`
+- `scheduleSave` local (1s debounce) chama `store.fs.writeFile()` diretamente
+- `filePathRef` (ref) garante que o callback do CodeMirror sempre usa o path atual
 
 **Drag and drop de tabs**:
 
@@ -240,7 +287,7 @@ O caminho do arquivo ativo e refletido na URL do navegador (sem a extensao `.md`
 - `Decoration.set(array, true)` com `true` para auto-sort, pois syntax tree nao garante ordem
 - Block decorations (line, widget block) so funcionam via `StateField.provide()`, nao via ViewPlugin
 
-### Visualizador de PDF (PdfViewer.tsx + PdfHighlightMenu.tsx)
+### Visualizador de PDF (PdfViewer/ + PdfHighlightMenu.tsx)
 
 Arquivos `.pdf` em `docs/` aparecem na file tree com icone 📕. Usa a biblioteca `react-pdf-highlighter` (`PdfLoader` + `PdfHighlighter`).
 
@@ -250,6 +297,14 @@ Arquivos `.pdf` em `docs/` aparecem na file tree com icone 📕. Usa a bibliotec
 - **Store**: `openFile()` apenas cria/ativa a tab — nao carrega conteudo (nem para `.md` nem `.pdf`)
 - **EditorContainer**: recebe `filePath` como prop; quando termina em `.pdf`, renderiza `<PdfViewer>`
 - **URL routing**: `openFileFromURL()` tenta resolver tanto `.md` quanto `.pdf` ao carregar a pagina
+
+**Componentes do PdfViewer**:
+
+- `PdfViewer.tsx` — orquestrador: layout split, estado de highlights, citacoes automaticas
+- `PdfRenderer.tsx` — wrapper do `react-pdf-highlighter`; expoe ref do highlighter
+- `PdfController.tsx` — toolbar com navegacao de pagina, zoom e TOC toggle
+- `PdfNotesEditor.tsx` — editor markdown independente para notas; auto-save 1s
+- `PdfHighlightMenu.tsx` — `ColorPicker`, `HighlightActionMenu`, `TranslationDialog`
 
 **Layout**:
 
@@ -303,19 +358,19 @@ Arquivos `.pdf` em `docs/` aparecem na file tree com icone 📕. Usa a bibliotec
 - Qualquer nota `.md` pode ser vinculada a um PDF adicionando `pdf: "[[path]]"` no frontmatter
 - Auto-save com debounce de 1s via instancia independente de `createEditor`
 
-**Estado no store** (`pdfHighlightTarget: string | null`):
+**Estado no pdf-store** (`pdfHighlightTarget: string | null`):
 
-- `store.setPdfHighlightTarget(id)` — define o highlight alvo
-- `store.clearPdfHighlightTarget()` — limpa apos o scroll ser executado
+- `pdfStore.setTarget(id)` — define o highlight alvo
+- `pdfStore.clearTarget()` — limpa apos o scroll ser executado
 
-**Traducao e exemplos** (`server/services/llm.ts` + `server/routes/translate.ts` + `src/core/services/translation.ts`):
+**Traducao e exemplos** (`server/llm/` + `server/translate/` + `client/src/core/services/translation.ts`):
 
 - `LLMProvider` interface com `complete(prompt): Promise<string>` — permite adicionar novos provedores (ex: Ollama) sem mudar o resto
 - `OpenRouterProvider` implementa a interface; modelo default `google/gemma-3n-e2b-it:free`; requer `OPEN_ROUTER_API_KEY` no `.env`
-- `createLLMProvider()` factory — ponto unico para trocar de provedor no futuro
+- `LlmService.getProvider()` factory — ponto unico para trocar de provedor no futuro
 - `POST /api/translate` — traduz texto livre via LLM
 - `POST /api/translate/examples` — pede 3 frases de exemplo em JSON; `extractJson()` lida com fences de markdown e texto extra ao redor do array
-- Frontend: `translateText()` e `getExamples()` em `src/core/services/translation.ts`
+- Frontend: `translateText()` e `getExamples()` em `client/src/core/services/translation.ts`
 - `TranslationDialog` (em `PdfHighlightMenu.tsx`): portal fixo que bloqueia `mousedown` e `click` no backdrop para impedir que o listener do `react-pdf-highlighter` (registrado no `document`) desmonte o tip e feche o dialog; fecha apenas pelo botao X ou "Fechar"
 - Botao "Exemplos" no rodape do dialog — busca exemplos somente quando clicado (nao na abertura); exibe original + traducao em cards separados
 - Tanto `ColorPicker` (selecao nova) quanto `HighlightActionMenu` (highlight existente) expoe o botao "Traduzir"
@@ -325,5 +380,5 @@ Arquivos `.pdf` em `docs/` aparecem na file tree com icone 📕. Usa a bibliotec
 - Arquivos `.md` e `.pdf` sao processados
 - Arquivos ficam em `docs/`
 - Tema dark com paleta Catppuccin Mocha
-- Path aliases: `@/` mapeia para `src/`, `@core/` mapeia para `src/core/`
-- Express 5: `req.params.splat` retorna array — sempre usar `.join("/")` para reconstruir paths
+- Path aliases: `@/` mapeia para `client/src/`, `@core/` mapeia para `client/src/core/`
+- NestJS backend: controllers usam decorators `@Get`, `@Put`, `@Post`, `@Patch`, `@Delete`; servicos sao `@Injectable()`

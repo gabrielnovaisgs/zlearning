@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -80,9 +80,96 @@ export class FilesystemService {
     await fs.mkdir(filePath, { recursive: true });
   }
 
-  async rename(oldPath: string, newPath: string) {
-    await fs.mkdir(path.dirname(newPath), { recursive: true });
-    await fs.rename(oldPath, newPath);
+  async rename(oldAbsPath: string, newName: string): Promise<{ newPath: string }> {
+    const dir = path.dirname(oldAbsPath);
+    const ext = oldAbsPath.match(/\.(md|pdf)$/)?.[0] ?? '';
+    const finalName = ext && !newName.endsWith(ext) ? newName + ext : newName;
+    const newAbsPath = path.join(dir, finalName);
+
+    try {
+      await fs.access(newAbsPath);
+      throw new ConflictException(`"${finalName}" already exists in this folder`);
+    } catch (err: any) {
+      if (err.status === 409) throw err;
+      // ENOENT means file does not exist — safe to proceed
+    }
+
+    await fs.rename(oldAbsPath, newAbsPath);
+    return { newPath: path.relative(DOCS_ROOT, newAbsPath) };
+  }
+
+  async moveFile(sourceAbsPath: string, targetRelDir: string): Promise<{ newPath: string }> {
+    const targetAbsDir = targetRelDir
+      ? path.resolve(DOCS_ROOT, targetRelDir)
+      : DOCS_ROOT;
+
+    if (!targetAbsDir.startsWith(DOCS_ROOT)) {
+      throw new BadRequestException('Path traversal detected');
+    }
+
+    const name = path.basename(sourceAbsPath);
+    const newAbsPath = path.join(targetAbsDir, name);
+
+    if (sourceAbsPath === newAbsPath) {
+      return { newPath: path.relative(DOCS_ROOT, newAbsPath) };
+    }
+
+    if (targetAbsDir.startsWith(sourceAbsPath + path.sep)) {
+      throw new BadRequestException('Cannot move a directory into itself');
+    }
+
+    try {
+      await fs.access(newAbsPath);
+      throw new ConflictException(`"${name}" already exists in the destination folder`);
+    } catch (err: any) {
+      if (err.status === 409) throw err;
+      // ENOENT means file does not exist — safe to proceed
+    }
+
+    await fs.rename(sourceAbsPath, newAbsPath);
+    return { newPath: path.relative(DOCS_ROOT, newAbsPath) };
+  }
+
+  async duplicateFile(sourceAbsPath: string): Promise<{ newPath: string }> {
+    const content = await fs.readFile(sourceAbsPath, 'utf-8');
+    const dir = path.dirname(sourceAbsPath);
+    const ext = sourceAbsPath.match(/\.(md|pdf)$/)?.[0] ?? '.md';
+    const baseName = path.basename(sourceAbsPath, ext);
+
+    const existingNames = new Set(await fs.readdir(dir));
+
+    let n = 1;
+    let candidateName: string;
+    do {
+      candidateName = `${baseName} (${n})${ext}`;
+      n++;
+    } while (existingNames.has(candidateName));
+
+    const newAbsPath = path.join(dir, candidateName);
+    await fs.writeFile(newAbsPath, content, 'utf-8');
+    return { newPath: path.relative(DOCS_ROOT, newAbsPath) };
+  }
+
+  async createUntitled(targetRelDir: string): Promise<{ path: string }> {
+    const absDir = targetRelDir ? path.resolve(DOCS_ROOT, targetRelDir) : DOCS_ROOT;
+
+    if (!absDir.startsWith(DOCS_ROOT)) {
+      throw new BadRequestException('Path traversal detected');
+    }
+
+    await fs.mkdir(absDir, { recursive: true });
+    const existingNames = new Set(await fs.readdir(absDir));
+
+    let candidateName = 'Untitled.md';
+    let n = 1;
+    while (existingNames.has(candidateName)) {
+      candidateName = `Untitled (${n}).md`;
+      n++;
+    }
+
+    const newAbsPath = path.join(absDir, candidateName);
+    await fs.writeFile(newAbsPath, '', 'utf-8');
+    return { path: path.relative(DOCS_ROOT, newAbsPath) };
   }
 
   async delete(filePath: string) {

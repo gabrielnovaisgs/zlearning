@@ -6,7 +6,10 @@ export interface FileSystemService {
   writeFile(path: string, content: string): Promise<void>;
   createFile(path: string, content?: string): Promise<void>;
   createDirectory(path: string): Promise<void>;
-  renameFile(oldPath: string, newPath: string): Promise<void>;
+  renameFile(oldPath: string, newName: string): Promise<{ newPath: string }>;
+  moveFile(sourcePath: string, targetDir: string): Promise<{ newPath: string }>;
+  duplicateFile(sourcePath: string): Promise<{ newPath: string }>;
+  createUntitled(dir: string): Promise<{ path: string }>;
   deleteFile(path: string): Promise<void>;
 }
 
@@ -52,13 +55,44 @@ export class HttpFileSystemService implements FileSystemService {
     if (!res.ok) throw new Error("Failed to create directory");
   }
 
-  async renameFile(oldPath: string, newPath: string): Promise<void> {
+  async renameFile(oldPath: string, newName: string): Promise<{ newPath: string }> {
     const res = await fetch(`${this.baseUrl}/${oldPath}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ newPath }),
+      body: JSON.stringify({ newName }),
     });
-    if (!res.ok) throw new Error("Failed to rename file");
+    if (!res.ok) throw new Error(`Failed to rename file: ${res.status}`);
+    return res.json();
+  }
+
+  async moveFile(sourcePath: string, targetDir: string): Promise<{ newPath: string }> {
+    const res = await fetch(`${this.baseUrl}/move`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sourcePath, targetDir }),
+    });
+    if (!res.ok) throw new Error(`Failed to move file: ${res.status}`);
+    return res.json();
+  }
+
+  async duplicateFile(sourcePath: string): Promise<{ newPath: string }> {
+    const res = await fetch(`${this.baseUrl}/duplicate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sourcePath }),
+    });
+    if (!res.ok) throw new Error(`Failed to duplicate file: ${res.status}`);
+    return res.json();
+  }
+
+  async createUntitled(dir: string): Promise<{ path: string }> {
+    const res = await fetch(`${this.baseUrl}/untitled`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dir }),
+    });
+    if (!res.ok) throw new Error(`Failed to create untitled file: ${res.status}`);
+    return res.json();
   }
 
   async deleteFile(path: string): Promise<void> {

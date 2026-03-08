@@ -9,7 +9,6 @@ import {
   Res,
   Body,
   Inject,
-  InternalServerErrorException,
   BadRequestException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
@@ -53,6 +52,31 @@ export class FilesystemController {
     return { success: true };
   }
 
+  // Must be declared before @Post('*path') so it takes precedence
+  @Post('move')
+  async move(@Body() body: { sourcePath?: string; targetDir?: string }) {
+    if (!body.sourcePath) throw new BadRequestException('sourcePath is required');
+    const sourceAbsPath = this.fs.safePath(body.sourcePath);
+    const { newPath } = await this.fs.moveFile(sourceAbsPath, body.targetDir ?? '');
+    return { newPath };
+  }
+
+  // Must be declared before @Post('*path') so it takes precedence
+  @Post('duplicate')
+  async duplicate(@Body() body: { sourcePath?: string }) {
+    if (!body.sourcePath) throw new BadRequestException('sourcePath is required');
+    const sourceAbsPath = this.fs.safePath(body.sourcePath);
+    const { newPath } = await this.fs.duplicateFile(sourceAbsPath);
+    return { newPath };
+  }
+
+  // Must be declared before @Post('*path') so it takes precedence
+  @Post('untitled')
+  async untitled(@Body() body: { dir?: string }) {
+    const { path } = await this.fs.createUntitled(body.dir ?? '');
+    return { path };
+  }
+
   @Post('*path')
   async create(@Req() req: Request, @Body() body: { type?: string; content?: string }) {
     const filePath = this.fs.safePath(extractPath(req));
@@ -65,12 +89,11 @@ export class FilesystemController {
   }
 
   @Patch('*path')
-  async rename(@Req() req: Request, @Body() body: { newPath?: string }) {
-    if (!body.newPath) throw new BadRequestException('newPath is required');
+  async rename(@Req() req: Request, @Body() body: { newName?: string }) {
+    if (!body.newName) throw new BadRequestException('newName is required');
     const oldPath = this.fs.safePath(extractPath(req));
-    const newPath = this.fs.safePath(body.newPath);
-    await this.fs.rename(oldPath, newPath);
-    return { success: true };
+    const { newPath } = await this.fs.rename(oldPath, body.newName);
+    return { newPath };
   }
 
   @Delete('*path')

@@ -272,18 +272,8 @@ function moveTabToPane(tabId: string, fromPaneId: string, toPaneId: string, inde
 
 
 async function createUntitledFile(dir: string) {
-  const siblings = collectFileNames(dir ? dir + "/" : "");
-  let name = "Untitled.md";
-  let n = 1;
-  while (siblings.has(name)) {
-    name = `Untitled (${n}).md`;
-    n++;
-  }
-  const path = dir ? `${dir}/${name}` : name;
-  if (dir) {
-    useSidebarStore.getState().expandFolder(dir);
-  }
-    await fs.createFile(path);
+  if (dir) useSidebarStore.getState().expandFolder(dir);
+  const { path } = await fs.createUntitled(dir);
   await loadFileTree();
   openFileInPane(path);
 }
@@ -316,92 +306,48 @@ async function createDirectory(path: string) {
 }
 
 async function renameFile(oldPath: string, newName: string): Promise<boolean> {
-  const dir = oldPath.includes("/") ? oldPath.substring(0, oldPath.lastIndexOf("/") + 1) : "";
-  const ext = oldPath.match(/\.(md|pdf)$/)?.[0];
-  const finalName = ext && !newName.endsWith(ext) ? newName + ext : newName;
-  const newPath = `${dir}${finalName}`;
-  if (newPath === oldPath) return true;
-  if (fileExists(newPath)) {
-    alert(`"${newName}" already exists in this folder.`);
-    return false;
-  }
-  await fs.renameFile(oldPath, newPath);
-  await loadFileTree();
-
-  const panes = useAppStore.getState().panes.map((p) => ({
-    ...p,
-    tabs: p.tabs.map((t) => (t.path === oldPath ? { ...t, path: newPath } : t)),
-  }));
-  update({ panes }, "replace");
-  return true;
-}
-
-function fileExists(path: string): boolean {
-  const find = (entries: FileTreeEntry[]): boolean => {
-    for (const entry of entries) {
-      if (entry.path === path) return true;
-      if (entry.children && find(entry.children)) return true;
+  try {
+    const { newPath } = await fs.renameFile(oldPath, newName);
+    await loadFileTree();
+    const panes = useAppStore.getState().panes.map((p) => ({
+      ...p,
+      tabs: p.tabs.map((t) => (t.path === oldPath ? { ...t, path: newPath } : t)),
+    }));
+    update({ panes }, "replace");
+    return true;
+  } catch (err: any) {
+    if (err.message?.includes("409") || err.message?.includes("Conflict")) {
+      alert(`"${newName}" already exists in this folder.`);
     }
     return false;
-  };
-  return find(useFileStore.getState().fileTree);
+  }
 }
 
 /** Move a file or directory to a target directory (empty string = root) */
 async function moveFile(sourcePath: string, targetDir: string) {
-  const name = sourcePath.includes("/")
-    ? sourcePath.substring(sourcePath.lastIndexOf("/") + 1)
-    : sourcePath;
-  const newPath = targetDir ? `${targetDir}/${name}` : name;
-  if (newPath === sourcePath) return;
-  if (sourcePath === targetDir || targetDir.startsWith(sourcePath + "/")) return;
-  if (fileExists(newPath)) {
-    alert(`"${name}" already exists in the destination folder.`);
-    return;
+  try {
+    const { newPath } = await fs.moveFile(sourcePath, targetDir);
+    if (targetDir) useSidebarStore.getState().expandFolder(targetDir);
+    await loadFileTree();
+    const panes = useAppStore.getState().panes.map((p) => ({
+      ...p,
+      tabs: p.tabs.map((t) => (t.path === sourcePath ? { ...t, path: newPath } : t)),
+    }));
+    update({ panes }, "replace");
+  } catch (err: any) {
+    if (err.message?.includes("409") || err.message?.includes("Conflict")) {
+      const name = sourcePath.includes("/")
+        ? sourcePath.substring(sourcePath.lastIndexOf("/") + 1)
+        : sourcePath;
+      alert(`"${name}" already exists in the destination folder.`);
+    }
   }
-  await fs.renameFile(sourcePath, newPath);
-  if (targetDir) {
-    useSidebarStore.getState().expandFolder(targetDir);
-  }
-  await loadFileTree();
-
-  const panes = useAppStore.getState().panes.map((p) => ({
-    ...p,
-    tabs: p.tabs.map((t) => (t.path === sourcePath ? { ...t, path: newPath } : t)),
-  }));
-  update({ panes }, "replace");
 }
 
 async function duplicateFile(path: string) {
-  const { content } = await fs.readFile(path);
-  const dir = path.includes("/") ? path.substring(0, path.lastIndexOf("/") + 1) : "";
-  const name = path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path;
-  const base = name.replace(/\.md$/, "");
-
-  const siblings = collectFileNames(dir);
-  let n = 1;
-  while (siblings.has(`${base} (${n}).md`)) n++;
-
-  const newPath = `${dir}${base} (${n}).md`;
-  await fs.createFile(newPath, content);
+  const { newPath } = await fs.duplicateFile(path);
   await loadFileTree();
   openFileInPane(newPath);
-}
-
-function collectFileNames(dir: string): Set<string> {
-  const names = new Set<string>();
-  const find = (entries: FileTreeEntry[], prefix: string) => {
-    for (const entry of entries) {
-      if (entry.type === "file" && prefix === dir) {
-        names.add(entry.name);
-      }
-      if (entry.children) {
-        find(entry.children, entry.path + "/");
-      }
-    }
-  };
-  find(useFileStore.getState().fileTree, "");
-  return names;
 }
 
 async function deleteFile(path: string) {
@@ -440,7 +386,6 @@ async function deleteFile(path: string) {
 export const store = {
   fs,
   getState: () => useAppStore.getState(),
-  subscribe: (listener: () => void) => useAppStore.subscribe(listener),
   loadFileTree,
   openFile: openFileInPane,
   openNewTab,
