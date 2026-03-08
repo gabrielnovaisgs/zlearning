@@ -1,8 +1,8 @@
 import { create } from "zustand";
-import type { AppState, FileTreeEntry, Pane, Tab } from "./types";
+import type { AppState, Pane, Tab } from "./types";
 import { HttpFileSystemService, type FileSystemService } from "./services/filesystem";
 import { useSidebarStore } from "./sidebar-store";
-import { useFileStore } from "./use-file-store";
+import { useFileStore, resolveWikiLink } from "./use-file-store";
 
 export { useFileStore };
 
@@ -278,21 +278,6 @@ async function createUntitledFile(dir: string) {
   openFileInPane(path);
 }
 
-/** Resolve a wiki link path (e.g. "notes/Getting Started") to a file path */
-function resolveWikiLink(linkPath: string): string | null {
-  const target = linkPath.endsWith(".md") ? linkPath : `${linkPath}.md`;
-  const find = (entries: FileTreeEntry[]): string | null => {
-    for (const entry of entries) {
-      if (entry.type === "file" && entry.path === target) return entry.path;
-      if (entry.children) {
-        const found = find(entry.children);
-        if (found) return found;
-      }
-    }
-    return null;
-  };
-  return find(useFileStore.getState().fileTree);
-}
 
 async function createDirectory(path: string) {
   await fs.createDirectory(path);
