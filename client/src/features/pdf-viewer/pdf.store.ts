@@ -1,32 +1,31 @@
-type Listener = () => void;
+import { create } from "zustand";
 
-class PdfStore {
-  private highlightTarget: string | null = null;
-  private listeners = new Set<Listener>();
+// ── Interfaces ───────────────────────────────────────────────────────────────
 
-  getState(): string | null {
-    return this.highlightTarget;
-  }
-
-  subscribe(listener: Listener): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  }
-
-  private emit() {
-    for (const listener of this.listeners) listener();
-  }
-
-  setTarget(id: string) {
-    this.highlightTarget = id;
-    this.emit();
-  }
-
-  clearTarget() {
-    if (this.highlightTarget === null) return;
-    this.highlightTarget = null;
-    this.emit();
-  }
+interface PdfStoreActions {
+  setTarget: (id: string) => void;
+  clearTarget: () => void;
 }
 
-export const pdfStore = new PdfStore();
+interface PdfStoreState {
+  highlightTarget: string | null;
+  actions: PdfStoreActions;
+}
+
+// ── Store ────────────────────────────────────────────────────────────────────
+
+export const usePdfStore = create<PdfStoreState>()((set, get) => ({
+  highlightTarget: null,
+
+  actions: {
+    setTarget(id) {
+      set({ highlightTarget: id });
+    },
+
+    clearTarget() {
+      if (get().highlightTarget === null) return;
+      set({ highlightTarget: null });
+    },
+  },
+}));
+

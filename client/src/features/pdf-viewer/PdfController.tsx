@@ -69,6 +69,7 @@ export interface PdfControllerProps {
   scrollViewerToRef: React.MutableRefObject<(hl: IHighlight) => void>;
 
   onCurrentPageChange: (page: number) => void;
+  onScaleChange: (scale: number) => void;
 
   showNotes: boolean;
   onToggleNotes: () => void;
@@ -88,6 +89,7 @@ export function PdfController({
   highlighterRef,
   scrollViewerToRef,
   onCurrentPageChange,
+  onScaleChange,
   showNotes,
   onToggleNotes,
 }: PdfControllerProps) {
@@ -101,11 +103,30 @@ export function PdfController({
   const [zoomInput, setZoomInput] = useState<string>("");
   const zoomEditingRef = useRef(false);
 
+  // Lê a escala atual do viewer (fonte de verdade), com fallback para a prop
+  const getViewerScale = () =>
+    highlighterRef.current?.viewer?.currentScale ?? scale ?? 1.0;
+
   const applyZoom = (newScale: number) => {
     const clamped = Math.round(Math.max(0.1, Math.min(5.0, newScale)) * 100) / 100;
     setZoomInput(String(Math.round(clamped * 100)));
     const viewer = highlighterRef.current?.viewer;
     if (viewer) viewer.currentScaleValue = String(clamped);
+    onScaleChange(clamped);
+  };
+
+  const fitPage = () => {
+    const viewer = highlighterRef.current?.viewer;
+    if (!viewer) return;
+    viewer.currentScaleValue = "page-fit";
+    // PDF.js calcula a escala assincronamente; lê o valor após o layout
+    setTimeout(() => {
+      const s = viewer.currentScale;
+      if (s > 0) {
+        setZoomInput(String(Math.round(s * 100)));
+        onScaleChange(s);
+      }
+    }, 50);
   };
 
   // ── Scroll to page ────────────────────────────────────────────────
@@ -126,12 +147,11 @@ export function PdfController({
     const handleWheel = (e: WheelEvent) => {
       if (!e.ctrlKey) return;
       e.preventDefault();
-      const currentScale = scale ?? 1.0;
-      applyZoom(currentScale + (e.deltaY > 0 ? -0.1 : 0.1));
+      applyZoom(getViewerScale() + (e.deltaY > 0 ? -0.1 : 0.1));
     };
     wrapper.addEventListener("wheel", handleWheel, { passive: false });
     return () => wrapper.removeEventListener("wheel", handleWheel);
-  }, [scale, pdfWrapperRef]);
+  }, [pdfWrapperRef]);
 
   // ── Sync zoom input with scale ───────────────────────────────────
   useEffect(() => {
@@ -215,7 +235,7 @@ export function PdfController({
         {/* Right: zoom controls */}
         <div className="flex items-center gap-0.5">
           <button
-            onClick={() => applyZoom((scale ?? 1.0) - 0.1)}
+            onClick={() => applyZoom(getViewerScale() - 0.1)}
             title="Diminuir zoom"
             className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
           >
@@ -232,25 +252,25 @@ export function PdfController({
               onChange={(e) => setZoomInput(e.target.value)}
               onFocus={(e) => {
                 zoomEditingRef.current = true;
-                setZoomInput(scale !== null ? String(Math.round(scale * 100)) : "100");
+                setZoomInput(String(Math.round(getViewerScale() * 100)));
                 e.currentTarget.select();
               }}
               onBlur={() => {
                 zoomEditingRef.current = false;
                 const n = parseInt(zoomInput);
                 if (!isNaN(n) && n >= 10 && n <= 500) applyZoom(n / 100);
-                else setZoomInput(scale !== null ? String(Math.round(scale * 100)) : "");
+                else setZoomInput(String(Math.round(getViewerScale() * 100)));
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   const n = parseInt(zoomInput);
                   if (!isNaN(n) && n >= 10 && n <= 500) applyZoom(n / 100);
-                  else setZoomInput(scale !== null ? String(Math.round(scale * 100)) : "");
+                  else setZoomInput(String(Math.round(getViewerScale() * 100)));
                   e.currentTarget.blur();
                 }
                 if (e.key === "Escape") {
                   zoomEditingRef.current = false;
-                  setZoomInput(scale !== null ? String(Math.round(scale * 100)) : "");
+                  setZoomInput(String(Math.round(getViewerScale() * 100)));
                   e.currentTarget.blur();
                 }
               }}
@@ -259,7 +279,7 @@ export function PdfController({
             <span className="px-1 py-0.5 text-xs text-text-muted bg-bg-surface border border-l-0 border-border rounded-r select-none">%</span>
           </div>
           <button
-            onClick={() => applyZoom((scale ?? 1.0) + 0.1)}
+            onClick={() => applyZoom(getViewerScale() + 0.1)}
             title="Aumentar zoom"
             className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
           >
@@ -276,6 +296,24 @@ export function PdfController({
           >
             reset
           </button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={fitPage}
+                  className="ml-0.5 text-text-muted hover:text-text-primary"
+                  aria-label="Ajustar página"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 5V2h3M10 1h3v3M9 13h3v-3M4 13H1v-3" />
+                  </svg>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Ajustar à página</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {/* Notes toggle */}

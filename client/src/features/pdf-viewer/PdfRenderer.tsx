@@ -180,7 +180,7 @@ export function PdfRenderer({
             <PdfHighlighter
               ref={highlighterRef}
               pdfDocument={pdfDocument}
-              pdfScaleValue={scale !== null ? String(scale) : "auto"}
+              pdfScaleValue={String(scale ?? 1)}
               enableAreaSelection={() => false}
               onScrollChange={() => {}}
               scrollRef={(scrollTo) => {

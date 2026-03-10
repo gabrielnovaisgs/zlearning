@@ -1,6 +1,6 @@
-import { useEffect, useRef, useCallback, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import type { IHighlight, NewHighlight } from "react-pdf-highlighter";
-import { pdfStore } from "./pdf.store";
+import { usePdfStore } from "./pdf.store";
 import { PdfController } from "./PdfController";
 import { PdfNotesEditor, buildCitation, type EditorInstance } from "./PdfNotesEditor";
 import { fs } from "@shared/services/filesystem";
@@ -22,10 +22,8 @@ interface Props {
 }
 
 export function PdfViewer({ pdfPath }: Props) {
-  const pdfHighlightTarget = useSyncExternalStore(
-    (cb) => pdfStore.subscribe(cb),
-    () => pdfStore.getState()
-  );
+  const pdfHighlightTarget = usePdfStore((s) => s.highlightTarget);
+  const { clearTarget } = usePdfStore((s) => s.actions);
 
   // ── Panel resize ──────────────────────────────────────────────────
   const resizing = useRef(false);
@@ -47,7 +45,7 @@ export function PdfViewer({ pdfPath }: Props) {
   const pdfWrapperRef = useRef<HTMLDivElement>(null);
 
   // ── Zoom ──────────────────────────────────────────────────────────
-  const [scale, setScale] = useState<number | null>(null);
+  const [scale, setScale] = useState<number | null>(1.0);
 
   // ── Notes panel visibility ─────────────────────────────────────────
   const [showNotes, setShowNotes] = useState(true);
@@ -125,7 +123,7 @@ export function PdfViewer({ pdfPath }: Props) {
     highlightsPath.current = hp;
     setHighlights([]);
     setCurrentPage(1);
-    setScale(null);
+    setScale(1.0);
 
     (async () => {
       try {
@@ -154,7 +152,7 @@ export function PdfViewer({ pdfPath }: Props) {
       const page = hl.position.pageNumber;
       setCurrentPage(page);
     }
-    pdfStore.clearTarget();
+    clearTarget();
   }, [pdfHighlightTarget, highlights]);
 
   // ── Panel resize ──────────────────────────────────────────────────
@@ -196,6 +194,7 @@ export function PdfViewer({ pdfPath }: Props) {
         highlighterRef={highlighterRef}
         scrollViewerToRef={scrollViewerTo}
         onCurrentPageChange={setCurrentPage}
+        onScaleChange={setScale}
         showNotes={showNotes}
         onToggleNotes={() => setShowNotes((v) => !v)}
       />
