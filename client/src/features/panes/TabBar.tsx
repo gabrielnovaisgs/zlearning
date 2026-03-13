@@ -1,5 +1,6 @@
 import { usePaneController } from "./pane-controller.store";
 import type { Pane } from "./types";
+import { GLOBAL_CONFIG } from "@app/config";
 
 function fileTitle(path: string | null): string {
   if (!path) return "New Tab";
@@ -31,7 +32,8 @@ export function TabBar({ pane }: TabBarProps) {
 
   return (
     <div
-      className="flex items-center bg-bg-secondary border-b border-border overflow-x-auto shrink-0 min-h-[32px]"
+      className="flex items-center bg-bg-secondary border-b border-border overflow-x-auto shrink-0"
+      style={{ height: GLOBAL_CONFIG.headerHeight }}
       onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
       onDrop={handleTabBarDrop}
     >

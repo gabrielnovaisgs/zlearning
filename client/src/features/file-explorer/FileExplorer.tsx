@@ -58,7 +58,10 @@ export function FileExplorer() {
   return (
     <>
       <Sidebar collapsible="offcanvas">
-        <SidebarHeader className="flex flex-row items-center justify-between border-b border-sidebar-border px-4 py-3">
+        <SidebarHeader
+          className="flex flex-row items-center justify-between border-b border-sidebar-border px-4"
+          style={{ height: GLOBAL_CONFIG.headerHeight }}
+        >
           <h1 className="text-sm font-semibold text-sidebar-foreground">{GLOBAL_CONFIG.appName}</h1>
           <button
             onClick={() => handleNewFile("")}

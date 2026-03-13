@@ -2,6 +2,7 @@ import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@shared/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@shared/ui/tooltip";
 import { useSidebar } from "@shared/ui/sidebar";
+import { GLOBAL_CONFIG } from "@app/config";
 
 interface ActivityBarAction {
   id: string;
@@ -50,9 +51,15 @@ export function ActivityBar() {
   ];
 
   return (
-    <div className="flex h-full w-12 shrink-0 flex-col items-center border-r border-border bg-bg-secondary py-2 z-[99999]">
-      <div className="flex flex-col items-center gap-1">
-        {topActions.map((action) => (
+    <div className="flex h-full w-12 shrink-0 flex-col items-center border-r border-border bg-bg-secondary z-[99999]">
+      <div
+        className="flex w-full items-center justify-center shrink-0"
+        style={{ height: GLOBAL_CONFIG.headerHeight }}
+      >
+        <ActivityBarButton action={topActions[0]} />
+      </div>
+      <div className="flex flex-col items-center gap-1 py-2">
+        {topActions.slice(1).map((action) => (
           <ActivityBarButton key={action.id} action={action} />
         ))}
       </div>
