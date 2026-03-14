@@ -2,37 +2,13 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { createEditor, type EditorInstance } from "@features/markdown-editor/setup";
 import { fs } from "@shared/services/filesystem";
 import { useFileStore } from "@shared/file.store";
+import { usePaneController } from "@features/panes/pane-controller.store";
 import { Button } from "@shared/ui/button";
 import { Checkbox } from "@shared/ui/checkbox";
 import { Label } from "@shared/ui/label";
+import { fetchPdfNoteInfo, createPdfNote } from "./pdf-notes.service";
 
 export type { EditorInstance } from "@features/markdown-editor/setup";
-
-function notesPathFor(pdfPath: string): string {
-  const dir = pdfPath.includes("/")
-    ? pdfPath.substring(0, pdfPath.lastIndexOf("/") + 1)
-    : "";
-  const name = pdfPath.includes("/")
-    ? pdfPath.substring(pdfPath.lastIndexOf("/") + 1)
-    : pdfPath;
-  const base = name.replace(/\.pdf$/, "");
-  return `${dir}notes-${base}.md`;
-}
-
-function highlightsPathFor(pdfPath: string): string {
-  const dir = pdfPath.includes("/")
-    ? pdfPath.substring(0, pdfPath.lastIndexOf("/") + 1)
-    : "";
-  const name = pdfPath.includes("/")
-    ? pdfPath.substring(pdfPath.lastIndexOf("/") + 1)
-    : pdfPath;
-  const base = name.replace(/\.pdf$/, "");
-  return `${dir}highlights-${base}.json`;
-}
-
-function frontmatter(pdfPath: string): string {
-  return `---\npdf: "[[${pdfPath.replace(/\.pdf$/, "")}]]"\n---\n\n`;
-}
 
 export function buildCitation(text: string, page: number, id: string): string {
   return `\n> ${text.replace(/\n/g, " ")}\n>\n> — [p. ${page}](pdf-highlight://${id})\n\n`;
@@ -63,12 +39,13 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
   // Checar se a nota existe quando o PDF muda
   useEffect(() => {
     if (!pdfPath) return;
-    const np = notesPathFor(pdfPath);
-    notesPath.current = np;
     setNoteExists(null);
 
-    fs.readFile(np)
-      .then(() => setNoteExists(true))
+    fetchPdfNoteInfo(pdfPath)
+      .then(({ exists, notesPath: np }) => {
+        notesPath.current = np;
+        setNoteExists(exists);
+      })
       .catch(() => setNoteExists(false));
   }, [pdfPath]);
 
@@ -96,35 +73,14 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
   const handleCreateNote = useCallback(async () => {
     setLoading(true);
     try {
-      if (createStudyModule) {
-        const parts = pdfPath.split("/");
-        const fileName = parts.pop()!;
-        const parentDir = parts.join("/");
-        const base = fileName.replace(/\.pdf$/i, "");
-        const folderName = base.toLowerCase();
-        const targetDir = parentDir ? `${parentDir}/${folderName}` : folderName;
-        const oldHighlightsPath = highlightsPathFor(pdfPath);
-
-        await fs.createDirectory(targetDir);
-        await useFileStore.getState().actions.moveFile(pdfPath, targetDir);
-
-        // Tentar mover highlights se existir
-        try {
-          await fs.moveFile(oldHighlightsPath, targetDir);
-        } catch {
-          // sem arquivo de highlights, ignorar
-        }
-
-        const newNotesPath = `${targetDir}/notes-${base}.md`;
-        const content = frontmatter(`${targetDir}/${fileName}`);
-        await fs.createFile(newNotesPath, content);
-        await useFileStore.getState().actions.loadFileTree();
-        // pdfPath atualiza via updateTabPaths; setNoteExists(true) como safety net
-        setNoteExists(true);
+      const { newPdfPath } = await createPdfNote(pdfPath, createStudyModule);
+      await useFileStore.getState().actions.loadFileTree();
+      if (newPdfPath !== pdfPath) {
+        // PDF foi movido: atualiza a tab com o novo caminho.
+        // O useEffect([pdfPath]) vai reagir ao novo prop e setar noteExists=true.
+        usePaneController.getState().actions.updateTabPaths(pdfPath, newPdfPath);
       } else {
-        const np = notesPathFor(pdfPath);
-        const content = frontmatter(pdfPath);
-        await useFileStore.getState().actions.createFile(np, content);
+        // Nota simples: pdfPath não muda, então o useEffect não dispara novamente.
         setNoteExists(true);
       }
     } catch (err) {
@@ -144,11 +100,7 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
 
       {noteExists === false && (
         <div className="flex flex-col items-center justify-center flex-1 gap-4 px-6">
-          <Button
-            size="sm"
-            onClick={handleCreateNote}
-            disabled={loading}
-          >
+          <Button size="sm" onClick={handleCreateNote} disabled={loading}>
             {loading ? "Criando..." : "Nova nota"}
           </Button>
           <div className="flex items-center gap-2">
@@ -157,7 +109,10 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
               checked={createStudyModule}
               onCheckedChange={(v) => setCreateStudyModule(Boolean(v))}
             />
-            <Label htmlFor="study-module" className="text-xs text-muted-foreground cursor-pointer">
+            <Label
+              htmlFor="study-module"
+              className="text-xs text-muted-foreground cursor-pointer"
+            >
               Criar módulo de estudo
             </Label>
           </div>
