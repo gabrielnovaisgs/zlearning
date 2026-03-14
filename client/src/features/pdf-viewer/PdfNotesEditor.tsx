@@ -119,7 +119,8 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
         const content = frontmatter(`${targetDir}/${fileName}`);
         await fs.createFile(newNotesPath, content);
         await useFileStore.getState().actions.loadFileTree();
-        // pdfPath vai atualizar via updateTabPaths → o useEffect acima detecta a nota
+        // pdfPath atualiza via updateTabPaths; setNoteExists(true) como safety net
+        setNoteExists(true);
       } else {
         const np = notesPathFor(pdfPath);
         const content = frontmatter(pdfPath);
