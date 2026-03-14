@@ -85,6 +85,15 @@ describe("PdfService", () => {
       expect(result.notesPath).toBe("notes-my-doc.md");
       expect(result.newPdfPath).toBe("my-doc.pdf");
     });
+
+    it("creates note for root-level pdf with correct frontmatter", async () => {
+      await service.createNote("my-doc.pdf", false);
+
+      expect(fsMock.createFile).toHaveBeenCalledWith(
+        path.join(DOCS_ROOT, "notes-my-doc.md"),
+        '---\npdf: "[[my-doc]]"\n---\n\n',
+      );
+    });
   });
 
   // ── createNote — com módulo de estudo ─────────────────────────────
@@ -126,10 +135,6 @@ describe("PdfService", () => {
     });
 
     it("creates notes file inside new directory with correct frontmatter", async () => {
-      vi.mocked(fsMock.moveFile).mockResolvedValue({
-        newPath: "my-doc/my-doc.pdf",
-      });
-
       await service.createNote("my-doc.pdf", true);
 
       expect(fsMock.createFile).toHaveBeenCalledWith(
