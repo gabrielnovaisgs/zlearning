@@ -13,6 +13,7 @@ export default defineConfig({
       ["server/**", "node"],
       ["client/**", "happy-dom"],
     ],
+    setupFiles: ["client/src/test-setup.ts"],
   },
   resolve: {
     alias: {
