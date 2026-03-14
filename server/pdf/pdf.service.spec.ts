@@ -170,4 +170,15 @@ describe("PdfService", () => {
       );
     });
   });
+
+  // ── segurança ──────────────────────────────────────────────────────
+
+  describe("path traversal", () => {
+    it("throws BadRequestException when pdfPath escapes DOCS_ROOT", async () => {
+      const { BadRequestException } = await import("@nestjs/common");
+      await expect(service.getNoteInfo("../../../etc/passwd.pdf")).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
 });
