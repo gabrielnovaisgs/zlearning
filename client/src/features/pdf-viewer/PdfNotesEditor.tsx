@@ -1,11 +1,12 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { createEditor, type EditorInstance } from "@features/markdown-editor/setup";
-
 import { fs } from "@shared/services/filesystem";
 import { useFileStore } from "@shared/file.store";
+import { Button } from "@shared/ui/button";
+import { Checkbox } from "@shared/ui/checkbox";
+import { Label } from "@shared/ui/label";
 
 export type { EditorInstance } from "@features/markdown-editor/setup";
-
 
 function notesPathFor(pdfPath: string): string {
   const dir = pdfPath.includes("/")
@@ -16,6 +17,17 @@ function notesPathFor(pdfPath: string): string {
     : pdfPath;
   const base = name.replace(/\.pdf$/, "");
   return `${dir}notes-${base}.md`;
+}
+
+function highlightsPathFor(pdfPath: string): string {
+  const dir = pdfPath.includes("/")
+    ? pdfPath.substring(0, pdfPath.lastIndexOf("/") + 1)
+    : "";
+  const name = pdfPath.includes("/")
+    ? pdfPath.substring(pdfPath.lastIndexOf("/") + 1)
+    : pdfPath;
+  const base = name.replace(/\.pdf$/, "");
+  return `${dir}highlights-${base}.json`;
 }
 
 function frontmatter(pdfPath: string): string {
@@ -37,6 +49,10 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notesPath = useRef("");
 
+  const [noteExists, setNoteExists] = useState<boolean | null>(null);
+  const [createStudyModule, setCreateStudyModule] = useState(true);
+  const [loading, setLoading] = useState(false);
+
   const scheduleSave = useCallback((content: string) => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     saveTimeout.current = setTimeout(() => {
@@ -44,9 +60,21 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
     }, 1000);
   }, []);
 
-  // Create notes editor once
+  // Checar se a nota existe quando o PDF muda
   useEffect(() => {
-    if (!notesRef.current) return;
+    if (!pdfPath) return;
+    const np = notesPathFor(pdfPath);
+    notesPath.current = np;
+    setNoteExists(null);
+
+    fs.readFile(np)
+      .then(() => setNoteExists(true))
+      .catch(() => setNoteExists(false));
+  }, [pdfPath]);
+
+  // Criar o editor quando a nota existe e o div está montado
+  useEffect(() => {
+    if (!noteExists || !notesRef.current) return;
     const editor = createEditor(notesRef.current, scheduleSave);
     editorRef.current = editor;
     onEditorReady?.(editor);
@@ -54,38 +82,55 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
       editor.destroy();
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
     };
-  }, [scheduleSave, onEditorReady]);
+  }, [noteExists, scheduleSave, onEditorReady]);
 
-  // Load notes when PDF changes
+  // Carregar conteúdo quando o editor e a nota estiverem prontos
   useEffect(() => {
-    const np = notesPathFor(pdfPath);
-    notesPath.current = np;
+    if (!noteExists || !editorRef.current) return;
+    const np = notesPath.current;
+    fs.readFile(np).then(({ content }) => {
+      editorRef.current?.setContent(content);
+    });
+  }, [noteExists, pdfPath]);
 
-    (async () => {
-      try {
-        const { content } = await fs.readFile(np);
-        editorRef.current?.setContent(content);
-      } catch {
+  const handleCreateNote = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (createStudyModule) {
+        const parts = pdfPath.split("/");
+        const fileName = parts.pop()!;
+        const parentDir = parts.join("/");
+        const base = fileName.replace(/\.pdf$/i, "");
+        const folderName = base.toLowerCase();
+        const targetDir = parentDir ? `${parentDir}/${folderName}` : folderName;
+        const oldHighlightsPath = highlightsPathFor(pdfPath);
+
+        await fs.createDirectory(targetDir);
+        await useFileStore.getState().actions.moveFile(pdfPath, targetDir);
+
+        // Tentar mover highlights se existir
+        try {
+          await fs.moveFile(oldHighlightsPath, targetDir);
+        } catch {
+          // sem arquivo de highlights, ignorar
+        }
+
+        const newNotesPath = `${targetDir}/notes-${base}.md`;
+        const content = frontmatter(`${targetDir}/${fileName}`);
+        await fs.createFile(newNotesPath, content);
+        await useFileStore.getState().actions.loadFileTree();
+        // pdfPath vai atualizar via updateTabPaths → o useEffect acima detecta a nota
+      } else {
+        const np = notesPathFor(pdfPath);
         const content = frontmatter(pdfPath);
         await useFileStore.getState().actions.createFile(np, content);
-        editorRef.current?.setContent(content);
+        setNoteExists(true);
       }
-    })();
-  }, [pdfPath]);
-
-  // Public API for adding citations
-  const addCitation = useCallback((text: string, page: number, id: string) => {
-    const editor = editorRef.current;
-    if (editor && text) {
-      const view = editor.view;
-      const docEnd = view.state.doc.length;
-      const citation = buildCitation(text, page, id);
-      view.dispatch({
-        changes: { from: docEnd, to: docEnd, insert: citation },
-        selection: { anchor: docEnd + citation.length },
-      });
+    } catch (err) {
+      console.error("Failed to create note:", err);
+      setLoading(false);
     }
-  }, []);
+  }, [pdfPath, createStudyModule]);
 
   return (
     <div className="flex flex-col h-full">
@@ -94,7 +139,34 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
           Notes
         </span>
       </div>
-      <div ref={notesRef} className="flex-1 overflow-y-auto" />
+
+      {noteExists === false && (
+        <div className="flex flex-col items-center justify-center flex-1 gap-4 px-6">
+          <Button
+            size="sm"
+            onClick={handleCreateNote}
+            disabled={loading}
+          >
+            {loading ? "Criando..." : "Nova nota"}
+          </Button>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="study-module"
+              checked={createStudyModule}
+              onCheckedChange={(v) => setCreateStudyModule(Boolean(v))}
+            />
+            <Label htmlFor="study-module" className="text-xs text-muted-foreground cursor-pointer">
+              Criar módulo de estudo
+            </Label>
+          </div>
+        </div>
+      )}
+
+      <div
+        ref={notesRef}
+        className="flex-1 overflow-y-auto"
+        style={{ display: noteExists === true ? undefined : "none" }}
+      />
     </div>
   );
 }
