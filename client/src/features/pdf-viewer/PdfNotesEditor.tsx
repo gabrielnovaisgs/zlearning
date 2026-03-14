@@ -128,6 +128,7 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
       }
     } catch (err) {
       console.error("Failed to create note:", err);
+    } finally {
       setLoading(false);
     }
   }, [pdfPath, createStudyModule]);
