@@ -1,7 +1,7 @@
 # Dependency directories
 node_modules/
 jspm_packages/
-
+.superpowers/
 # Distribution/Build directories
 build/
 dist/
