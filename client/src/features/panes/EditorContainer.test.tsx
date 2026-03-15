@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { EditorContainer, EditorType } from "./EditorContainer";
@@ -15,6 +16,12 @@ vi.mock("@features/markdown-editor/MarkdownEditor", () => ({
 vi.mock("@features/pdf-viewer/PdfViewer", () => ({
   PdfViewer: ({ pdfPath }: { pdfPath: string }) => (
     <div data-testid="pdf-viewer" data-pdfpath={pdfPath} />
+  ),
+}));
+
+vi.mock("@features/chat/ChatEditor", () => ({
+  ChatEditor: ({ sessionId }: { sessionId: string }) => (
+    <div data-testid="chat-editor" data-sessionid={sessionId} />
   ),
 }));
 
@@ -98,6 +105,17 @@ describe("EditorContainer", () => {
     expect(screen.queryByTestId("new-tab-screen")).not.toBeInTheDocument();
     expect(screen.getByTestId("markdown-editor")).toBeInTheDocument();
     expect(screen.queryByTestId("pdf-viewer")).not.toBeInTheDocument();
+  });
+
+  it('renders ChatEditor when type is Chat', () => {
+    render(
+      <EditorContainer
+        {...defaultProps}
+        type={EditorType.Chat}
+        filePath="chat://abc123"
+      />
+    );
+    expect(screen.getByTestId('chat-editor')).toBeInTheDocument();
   });
 
   it("wraps content in a container div with correct classes", () => {

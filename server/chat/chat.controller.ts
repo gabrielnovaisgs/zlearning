@@ -43,16 +43,15 @@ export class ChatController {
     const newContent = body.content ?? '';
     const contextSources: ContextSources = body.contextSources ?? {};
 
-    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
     try {
       for await (const chunk of this.chatService.streamMessage(id, newContent, contextSources)) {
-        res.write(`data: ${chunk}\n\n`);
+        res.write(chunk);
       }
     } finally {
-      res.write('data: [DONE]\n\n');
       res.end();
     }
   }

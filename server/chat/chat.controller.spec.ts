@@ -58,8 +58,8 @@ describe('ChatController', () => {
     );
 
     expect(mockService.streamMessage).toHaveBeenCalledWith('abc', 'hello', {});
-    expect(written).toContain('data: chunk1\n\n');
-    expect(written).toContain('data: chunk2\n\n');
-    expect(written).toContain('data: [DONE]\n\n');
+    expect(written).toContain('chunk1');
+    expect(written).toContain('chunk2');
+    expect(mockRes.end).toHaveBeenCalled();
   });
 });
