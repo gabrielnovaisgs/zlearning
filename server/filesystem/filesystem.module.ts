@@ -3,7 +3,7 @@ import path from 'path';
 import { FilesystemController } from './filesystem.controller.js';
 import { FilesystemService } from './filesystem.service.js';
 
-export const DOCS_ROOT = path.resolve(process.cwd(), 'docs');
+export const DOCS_ROOT = path.resolve(process.cwd(), 'docs/files');
 
 @Module({
   controllers: [FilesystemController],

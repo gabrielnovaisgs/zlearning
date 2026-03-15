@@ -17,7 +17,7 @@ import fsPromises from "fs/promises";
 import { PdfService } from "./pdf.service.js";
 import { FilesystemService } from "../filesystem/filesystem.service.js";
 
-const DOCS_ROOT = path.resolve(process.cwd(), "docs");
+const DOCS_ROOT = path.resolve(process.cwd(), "docs/files");
 
 function makeFilesystemService() {
   return {
