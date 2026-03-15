@@ -3,14 +3,19 @@ import type { Pane } from "./types";
 import { GLOBAL_CONFIG } from "@app/config";
 
 function fileTitle(path: string | null): string {
-  if (!path) return "New Tab";
-  const name = path.includes("/") ? path.substring(path.lastIndexOf("/") + 1) : path;
-  return name.replace(/\.(md|pdf)$/, "");
+  if (!path) return 'New Tab';
+  if (path.startsWith('chat://')) {
+    const id = path.replace(/^chat:\/\/(new-[^/]+|)/, '');
+    return id ? 'Chat' : 'Novo Chat';
+  }
+  const name = path.includes('/') ? path.substring(path.lastIndexOf('/') + 1) : path;
+  return name.replace(/\.(md|pdf)$/, '');
 }
 
 function fileIcon(path: string | null): string {
-  if (!path) return "✦";
-  return path.endsWith(".pdf") ? "📕" : "📄";
+  if (!path) return '✦';
+  if (path.startsWith('chat://')) return '💬';
+  return path.endsWith('.pdf') ? '📕' : '📄';
 }
 
 interface TabBarProps {

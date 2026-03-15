@@ -11,6 +11,7 @@ interface PaneViewProps {
 
 function getEditorType(path: string | null | undefined): EditorType {
   if (!path) return EditorType.NewTab;
+  if (path.startsWith('chat://')) return EditorType.Chat;
   if (path.endsWith(".pdf")) return EditorType.Pdf;
   return EditorType.Markdown;
 }
