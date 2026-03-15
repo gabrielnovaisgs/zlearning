@@ -6,10 +6,7 @@ export interface Example {
   translation: string;
 }
 
-const isDev =
-  process.env.NODE_ENV === 'development' ||
-  process.env.NODE_ENV === 'test' ||
-  !process.env.NODE_ENV;
+const isDev = false
 
 function extractJson(raw: string): unknown {
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -25,13 +22,18 @@ export class TranslateService {
   constructor(@Inject(LlmService) private readonly llm: LlmService) {}
 
   async translate(text: string, from: string, to: string): Promise<string> {
+    console.log(isDev)
     if (isDev) return `${text} (translated from ${from} to ${to})`;
+    try {
 
-    const provider = this.llm.getProvider();
-    const prompt =
-      `Translate the following text from ${from} to ${to}. ` +
-      `Return only the translation, with no explanations or extra text.\n\n${text}`;
-    return (await provider.complete(prompt)).trim();
+      const provider = this.llm.getProvider();
+      const prompt =
+        `Translate the following text from ${from} to ${to}. ` +
+        `Return only the translation, with no explanations or extra text.\n\n${text}`;
+      return (await provider.complete(prompt)).trim();
+    }catch(err) {
+      return `${text} (translation failed: ${err instanceof Error ? err.message : String(err)})`
+    }
   }
 
   async getExamples(text: string, from: string, to: string): Promise<Example[]> {

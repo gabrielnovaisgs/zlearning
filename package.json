@@ -24,6 +24,7 @@
     "@lezer/highlight": "^1.2.3",
     "@lezer/markdown": "^1.6.3",
     "@nestjs/common": "^11.1.16",
+    "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.1.16",
     "@nestjs/platform-express": "^11.1.16",
     "ai": "^6.0.116",
