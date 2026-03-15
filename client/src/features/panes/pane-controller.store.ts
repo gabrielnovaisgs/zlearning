@@ -4,7 +4,9 @@ import type { AppState, Pane, Tab } from "./types";
 // ── Module-private helpers ──────────────────────────────────────────────────
 
 function toUrlPath(path: string | null): string {
-  return path ? "/" + path.replace(/\.(md|pdf)$/, "") : "/";
+  if (!path) return '/';
+  if (path.startsWith('chat://')) return location.pathname;
+  return '/' + path.replace(/\.(md|pdf)$/, '');
 }
 
 function findPaneById(panes: Pane[], id: string): { pane: Pane; idx: number } | null {
@@ -77,6 +79,17 @@ export const usePaneController = create<PaneState>()((set, get) => {
         const state = get();
         const targetPaneId = paneId ?? state.activePaneId;
         const panes = [...state.panes];
+        // Cross-pane dedup: se o path já está aberto em outro pane, ativa ele
+        for (const p of panes) {
+          if (p.id === targetPaneId) continue;
+          const existingTab = p.tabs.find((t) => t.path === path);
+          if (existingTab) {
+            const idx = panes.findIndex((pp) => pp.id === p.id);
+            panes[idx] = { ...p, activeTabId: existingTab.id };
+            commit({ panes, activePaneId: p.id });
+            return;
+          }
+        }
         const found = findPaneById(panes, targetPaneId);
         if (!found) return;
         const { pane, idx: paneIdx } = found;
