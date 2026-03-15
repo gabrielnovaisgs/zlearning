@@ -1,5 +1,6 @@
 // client/src/features/chat/ChatMessages.tsx
 import type { UIMessage } from 'ai';
+import { isTextUIPart } from 'ai';
 
 interface ChatMessagesProps {
   messages: UIMessage[];
@@ -10,14 +11,11 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
   return (
     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
       {messages.map((msg) => {
-        const text = msg.parts
-          .filter((p) => p.type === 'text')
-          .map((p) => (p as { type: 'text'; text: string }).text)
-          .join('');
+        const text = msg.parts.filter(isTextUIPart).map((p) => p.text).join('');
         return (
           <div
             key={msg.id}
-            className={`flex flex-col gap-1 max-w-[85%] ${
+            className={`flex flex-col gap-1 max-w-4/5 ${
               msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'
             }`}
           >

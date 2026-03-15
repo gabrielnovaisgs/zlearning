@@ -1,7 +1,7 @@
 // client/src/features/chat/ChatEditor.tsx
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { TextStreamChatTransport } from 'ai';
+import { TextStreamChatTransport, isTextUIPart } from 'ai';
 import { nanoid } from 'nanoid';
 import { useChatStore } from './chat.store';
 import { chatService, ContextSources } from './chat.service';
@@ -27,22 +27,28 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
   const isNew = sessionId.startsWith('new-');
   const realSessionId = isNew ? null : sessionId;
 
-  const { messages, sendMessage, status, stop, setMessages } = useChat({
-    transport: new TextStreamChatTransport({
-      api: realSessionId
-        ? `/api/chat/sessions/${realSessionId}/messages`
-        : '/api/chat/sessions/__noop__/messages',
-      prepareSendMessagesRequest: ({ messages: msgs }) => ({
-        body: {
-          content: msgs
-            .at(-1)
-            ?.parts.filter((p) => p.type === 'text')
-            .map((p) => (p as { type: 'text'; text: string }).text)
-            .join('') ?? '',
-          contextSources: contextSourcesRef.current,
-        },
+  const transport = useMemo(
+    () =>
+      new TextStreamChatTransport({
+        api: realSessionId
+          ? `/api/chat/sessions/${realSessionId}/messages`
+          : '/api/chat/sessions/__noop__/messages',
+        prepareSendMessagesRequest: ({ messages: msgs }) => ({
+          body: {
+            content: msgs
+              .at(-1)
+              ?.parts.filter(isTextUIPart)
+              .map((p) => p.text)
+              .join('') ?? '',
+            contextSources: contextSourcesRef.current,
+          },
+        }),
       }),
-    }),
+    [realSessionId],
+  );
+
+  const { messages, sendMessage, status, stop, setMessages } = useChat({
+    transport,
     onFinish: () => loadSessions(),
   });
 
@@ -57,12 +63,16 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
   useEffect(() => {
     if (!isNew || isCreating) return;
     setIsCreating(true);
-    createSession().then((session) => {
-      usePaneController.getState().actions.updateTabPaths(
-        `chat://${sessionId}`,
-        `chat://${session.id}`,
-      );
-    });
+    createSession()
+      .then((session) => {
+        usePaneController.getState().actions.updateTabPaths(
+          `chat://${sessionId}`,
+          `chat://${session.id}`,
+        );
+      })
+      .catch(() => {
+        setSessionError(true);
+      });
   }, [sessionId]);
 
   // Carrega histórico quando sessão real está disponível
