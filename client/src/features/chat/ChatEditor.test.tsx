@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ChatEditor } from './ChatEditor';
@@ -28,17 +29,25 @@ vi.mock('./chat.service', () => ({
   },
 }));
 
+// Mock @ai-sdk/react with v3 API shape
 vi.mock('@ai-sdk/react', () => ({
   useChat: vi.fn(() => ({
     messages: [],
-    input: '',
-    handleSubmit: vi.fn(),
-    handleInputChange: vi.fn(),
-    isLoading: false,
+    sendMessage: vi.fn(),
+    status: 'idle',
     stop: vi.fn(),
     setMessages: vi.fn(),
+    error: undefined,
   })),
 }));
+
+// Mock ai package to avoid TextStreamChatTransport constructor errors in tests
+vi.mock('ai', () => {
+  class TextStreamChatTransport {
+    constructor(_opts: unknown) {}
+  }
+  return { TextStreamChatTransport };
+});
 
 vi.mock('@features/panes/pane-controller.store', () => ({
   usePaneController: {
@@ -60,7 +69,6 @@ describe('ChatEditor', () => {
 
   it('renderiza área principal quando sessionId é "new-xxx"', () => {
     render(<ChatEditor sessionId="new-tempid" />);
-    // Deve mostrar estado de carregamento ou prompt inicial
     expect(screen.getByText('Conversas')).toBeInTheDocument();
   });
 

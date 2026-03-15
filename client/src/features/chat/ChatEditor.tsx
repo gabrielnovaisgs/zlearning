@@ -1,6 +1,7 @@
 // client/src/features/chat/ChatEditor.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useChat } from '@ai-sdk/react';
+import { TextStreamChatTransport } from 'ai';
 import { nanoid } from 'nanoid';
 import { useChatStore } from './chat.store';
 import { chatService, ContextSources } from './chat.service';
@@ -16,26 +17,36 @@ interface ChatEditorProps {
 
 export function ChatEditor({ sessionId }: ChatEditorProps) {
   const { loadSessions, createSession } = useChatStore((s) => s.actions);
+  const [input, setInput] = useState('');
   const [contextSources, setContextSources] = useState<ContextSources>({});
   const [isCreating, setIsCreating] = useState(false);
   const [sessionError, setSessionError] = useState(false);
+  const contextSourcesRef = useRef(contextSources);
+  contextSourcesRef.current = contextSources;
 
-  // ID real da sessão (não "new-xxx")
   const isNew = sessionId.startsWith('new-');
   const realSessionId = isNew ? null : sessionId;
 
-  const { messages, input, handleSubmit, handleInputChange, isLoading, stop, setMessages } = useChat({
-    api: realSessionId ? `/api/chat/sessions/${realSessionId}/messages` : '/api/chat/sessions/__noop__/messages',
-    streamProtocol: 'text',
-    body: { contextSources },
-    // Backend espera { content, contextSources }, não messages[].
-    // Suprime o envio automático de messages[] pelo SDK.
-    experimental_prepareRequestBody: ({ requestBody }) => ({
-      content: requestBody.messages.at(-1)?.content ?? '',
-      contextSources,
+  const { messages, sendMessage, status, stop, setMessages } = useChat({
+    transport: new TextStreamChatTransport({
+      api: realSessionId
+        ? `/api/chat/sessions/${realSessionId}/messages`
+        : '/api/chat/sessions/__noop__/messages',
+      prepareSendMessagesRequest: ({ messages: msgs }) => ({
+        body: {
+          content: msgs
+            .at(-1)
+            ?.parts.filter((p) => p.type === 'text')
+            .map((p) => (p as { type: 'text'; text: string }).text)
+            .join('') ?? '',
+          contextSources: contextSourcesRef.current,
+        },
+      }),
     }),
     onFinish: () => loadSessions(),
   });
+
+  const isLoading = status === 'streaming' || status === 'submitted';
 
   // Carrega lista de sessões ao montar
   useEffect(() => {
@@ -62,7 +73,7 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
         session.messages.map((m) => ({
           id: m.id,
           role: m.role as 'user' | 'assistant',
-          content: m.content,
+          parts: [{ type: 'text' as const, text: m.content }],
         })),
       );
       if (Object.keys(session.contextSources).length > 0) {
@@ -84,6 +95,14 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
   function handleNewSession() {
     const tempId = `new-${nanoid()}`;
     usePaneController.getState().actions.openFileInPane(`chat://${tempId}`);
+  }
+
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+    const text = input;
+    setInput('');
+    sendMessage({ text });
   }
 
   return (
@@ -110,7 +129,7 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
             <ChatMessages messages={messages} isLoading={isLoading} />
             <ChatInput
               input={input}
-              onInputChange={handleInputChange}
+              onInputChange={(e) => setInput(e.target.value)}
               onSubmit={handleSubmit}
               onStop={stop}
               isLoading={isLoading}

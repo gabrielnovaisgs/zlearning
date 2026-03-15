@@ -47,6 +47,9 @@ importers:
       '@nestjs/platform-express':
         specifier: ^11.1.16
         version: 11.1.16(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)
+      ai:
+        specifier: ^6.0.116
+        version: 6.0.116(zod@3.25.76)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
