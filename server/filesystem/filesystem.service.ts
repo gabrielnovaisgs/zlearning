@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import fs from 'fs/promises';
 import path from 'path';
+import { DOCS_ROOT } from './filesystem.module.js';
 
 export interface FileTreeEntry {
   name: string;
@@ -8,8 +9,6 @@ export interface FileTreeEntry {
   type: 'file' | 'directory';
   children?: FileTreeEntry[];
 }
-
-const DOCS_ROOT = path.resolve(process.cwd(), 'docs');
 
 @Injectable()
 export class FilesystemService {

@@ -1,9 +1,8 @@
 import { Injectable, BadRequestException } from "@nestjs/common";
 import { FilesystemService } from "../filesystem/filesystem.service.js";
+import { DOCS_ROOT } from "../filesystem/filesystem.module.js";
 import fsPromises from "fs/promises";
 import path from "path";
-
-const DOCS_ROOT = path.resolve(process.cwd(), "docs");
 
 function resolveSafe(relPath: string): string {
   const abs = path.resolve(DOCS_ROOT, relPath);
