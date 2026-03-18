@@ -25,9 +25,10 @@ describe('OpenRouterProvider.streamComplete (via LlmService)', () => {
 
     // Importa depois do stub para usar o fetch mockado
     const { LlmService } = await import('./llm.service.js');
-    process.env.OPEN_ROUTER_API_KEY = 'test-key';
-    const service = new LlmService();
-    const provider = service.getProvider();
+    const { ConfigService } = await import('@nestjs/config');
+    const config = new ConfigService({ OPEN_ROUTER_API_KEY: 'test-key' });
+    const service = new LlmService(config);
+    const provider = service.getModel();
 
     const chunks: string[] = [];
     for await (const chunk of provider.streamComplete([{ role: 'user', content: 'hi' }])) {

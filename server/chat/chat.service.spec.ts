@@ -112,7 +112,7 @@ describe('ChatService', () => {
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(baseSession) as any);
       vi.mocked(fs.mkdir).mockResolvedValue(undefined as any);
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-      vi.mocked(mockLlm.getProvider).mockReturnValue({
+      vi.mocked(mockLlm.getModel).mockReturnValue({
         streamComplete: async function* () { yield 'resposta'; },
       });
 
@@ -132,7 +132,7 @@ describe('ChatService', () => {
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(baseSession) as any);
       vi.mocked(fs.mkdir).mockResolvedValue(undefined as any);
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-      vi.mocked(mockLlm.getProvider).mockReturnValue({
+      vi.mocked(mockLlm.getModel).mockReturnValue({
         streamComplete: async function* () { yield 'ok'; },
       } as any);
 
@@ -148,7 +148,7 @@ describe('ChatService', () => {
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
       // filesystemService.readFile não deve ser chamado pois o guard bloqueia antes
       vi.mocked(mockFilesystem.readFile).mockResolvedValue({ content: 'secret', path: '' } as any);
-      vi.mocked(mockLlm.getProvider).mockReturnValue({
+      vi.mocked(mockLlm.getModel).mockReturnValue({
         streamComplete: async function* () { yield 'ok'; },
       } as any);
 
@@ -166,7 +166,7 @@ describe('ChatService', () => {
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(baseSession) as any);
       vi.mocked(fs.mkdir).mockResolvedValue(undefined as any);
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-      vi.mocked(mockLlm.getProvider).mockReturnValue({
+      vi.mocked(mockLlm.getModel).mockReturnValue({
         streamComplete: async function* () { yield 'parte1'; yield 'parte2'; },
       } as any);
 
@@ -183,7 +183,7 @@ describe('ChatService', () => {
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(baseSession) as any);
       vi.mocked(fs.mkdir).mockResolvedValue(undefined as any);
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-      vi.mocked(mockLlm.getProvider).mockReturnValue({
+      vi.mocked(mockLlm.getModel).mockReturnValue({
         streamComplete: async function* () { yield 'ok'; },
       } as any);
 

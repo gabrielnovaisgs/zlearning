@@ -42,7 +42,7 @@ export class ChatService {
 
   constructor(
     private readonly filesystemService: FilesystemService,
-    private readonly llm: LlmService,
+    
   ) {}
 
   private sessionPath(id: string): string {
@@ -166,16 +166,11 @@ export class ChatService {
     await this.writeSession(session);
 
     // Stream do LLM
-    const provider = this.llm.getProvider();
-    let fullResponse = '';
-    for await (const chunk of provider.streamComplete(llmMessages)) {
-      fullResponse += chunk;
-      yield chunk;
-    }
+   
 
     // Persiste resposta do assistente
     const assistantMsg: ChatMessageRecord = {
-      id: nanoid(), role: 'assistant', content: fullResponse,
+      id: nanoid(), role: 'assistant', content: "fullResponse",
       createdAt: new Date().toISOString(),
     };
     session.messages.push(assistantMsg);

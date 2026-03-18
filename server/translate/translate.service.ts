@@ -1,5 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { LlmService } from '../llm/llm.service.js';
+import { AIMessageChunk, HumanMessage, MessageStructure, MessageToolSet, SystemMessage } from '@langchain/core/messages';
 
 export interface Example {
   original: string;
@@ -8,32 +9,22 @@ export interface Example {
 
 const isDev = false
 
-function extractJson(raw: string): unknown {
-  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const src = fenced ? fenced[1] : raw;
-  const start = src.indexOf('[');
-  const end = src.lastIndexOf(']');
-  if (start === -1 || end === -1) throw new Error('No JSON array found');
-  return JSON.parse(src.slice(start, end + 1));
-}
 
 @Injectable()
 export class TranslateService {
   constructor(@Inject(LlmService) private readonly llm: LlmService) {}
 
   async translate(text: string, from: string, to: string): Promise<string> {
-    console.log(isDev)
-    if (isDev) return `${text} (translated from ${from} to ${to})`;
-    try {
+   
+    const model = this.llm.getModel();
 
-      const provider = this.llm.getProvider();
-      const prompt =
-        `Translate the following text from ${from} to ${to}. ` +
-        `Return only the translation, with no explanations or extra text.\n\n${text}`;
-      return (await provider.complete(prompt)).trim();
-    }catch(err) {
-      return `${text} (translation failed: ${err instanceof Error ? err.message : String(err)})`
-    }
+    const prompt = new HumanMessage({
+      content: `You are a translation assistant. Translate the following text from ${from} to ${to}. Return only the translation, with no explanations or extra text. \n\n Text to translate: ${text} \n\n`,
+    });
+
+
+    const result = await model.invoke([prompt])  
+    return result.content as string
   }
 
   async getExamples(text: string, from: string, to: string): Promise<Example[]> {
@@ -44,15 +35,15 @@ export class TranslateService {
         { original: `Example 3 about "${text}"`, translation: `Exemplo 3 sobre "${text}"` },
       ];
     }
-
-    const provider = this.llm.getProvider();
+   
+    const provider = this.llm.getModel();
     const prompt =
       `Give me 3 short example sentences in ${from} that naturally use the word or phrase: "${text}"\n` +
       `For each example provide the original ${from} sentence and its ${to} translation.\n` +
       `Respond ONLY with a JSON array, no markdown, no explanation:\n` +
       `[{"original":"...","translation":"..."},{"original":"...","translation":"..."},{"original":"...","translation":"..."}]`;
 
-    const raw = await provider.complete(prompt);
+    const raw = await provider.invoke(prompt);
     const parsed = extractJson(raw) as Example[];
     if (!Array.isArray(parsed)) throw new Error('Unexpected response shape');
     return parsed
@@ -60,3 +51,24 @@ export class TranslateService {
       .slice(0, 3);
   }
 }
+function extractJson(raw: AIMessageChunk<MessageStructure<MessageToolSet>>): Example[] {
+  const content = raw.content;
+  if (typeof content !== 'string') {
+    throw new Error('Expected string content from LLM');
+  }
+
+  // Remove markdown code block markers if present
+  const cleaned = content
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim();
+
+  try {
+    const parsed = JSON.parse(cleaned);
+    return parsed as Example[];
+  } catch (error) {
+    console.error('Failed to parse JSON from LLM response:', cleaned);
+    throw new Error('Invalid JSON response from LLM');
+  }
+}
+

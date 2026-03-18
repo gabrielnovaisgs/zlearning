@@ -25,8 +25,8 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
 
 export async function translateText(
   text: string,
-  from = "en",
-  to = "pt",
+  from = "en-US",
+  to = "pt-BR",
 ): Promise<string> {
   const data = await postJson<{ translation: string }>("/api/translate", { text, from, to });
   return data.translation ?? "";
@@ -34,8 +34,8 @@ export async function translateText(
 
 export async function getExamples(
   text: string,
-  from = "en",
-  to = "pt",
+  from = "en-US",
+  to = "pt-BR",
 ): Promise<TranslationExample[]> {
   const data = await postJson<{ examples: TranslationExample[] }>(
     "/api/translate/examples",
