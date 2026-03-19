@@ -3,8 +3,8 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { TextStreamChatTransport, isTextUIPart } from 'ai';
 import { nanoid } from 'nanoid';
-import { useChatStore } from './chat.store';
-import { chatService, ContextSources } from './chat.service';
+import { useChatSessions, useChatSession, invalidateSessions } from './use-chat-sessions';
+import type { ContextSources } from './chat.service';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
@@ -16,16 +16,18 @@ interface ChatEditorProps {
 }
 
 export function ChatEditor({ sessionId }: ChatEditorProps) {
-  const { loadSessions, createSession } = useChatStore((s) => s.actions);
+  const isNew = sessionId.startsWith('new-');
+  const realSessionId = isNew ? null : sessionId;
+
+  const { createSession } = useChatSessions();
+  const { session, isError: sessionNotFound } = useChatSession(realSessionId);
+
   const [input, setInput] = useState('');
   const [contextSources, setContextSources] = useState<ContextSources>({});
   const [isCreating, setIsCreating] = useState(false);
   const [sessionError, setSessionError] = useState(false);
   const contextSourcesRef = useRef(contextSources);
   contextSourcesRef.current = contextSources;
-
-  const isNew = sessionId.startsWith('new-');
-  const realSessionId = isNew ? null : sessionId;
 
   const transport = useMemo(
     () =>
@@ -49,15 +51,10 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
 
   const { messages, sendMessage, status, stop, setMessages } = useChat({
     transport,
-    onFinish: () => loadSessions(),
+    onFinish: () => invalidateSessions(),
   });
 
   const isLoading = status === 'streaming' || status === 'submitted';
-
-  // Carrega lista de sessões ao montar
-  useEffect(() => {
-    loadSessions();
-  }, []);
 
   // Se sessionId for "new-xxx", cria a sessão automaticamente
   useEffect(() => {
@@ -75,28 +72,27 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
       });
   }, [sessionId]);
 
-  // Carrega histórico quando sessão real está disponível
+  // Carrega histórico quando sessão real chegar via React Query
   useEffect(() => {
-    if (!realSessionId) return;
-    chatService.getSession(realSessionId).then((session) => {
-      setMessages(
-        session.messages.map((m) => ({
-          id: m.id,
-          role: m.role as 'user' | 'assistant',
-          parts: [{ type: 'text' as const, text: m.content }],
-        })),
-      );
-      if (Object.keys(session.contextSources).length > 0) {
-        setContextSources(session.contextSources);
-      }
-    }).catch((err: unknown) => {
-      // Apenas em 404: exibe erro e remove a tab
-      if (err instanceof Error && err.message.includes('(404)')) {
-        setSessionError(true);
-        usePaneController.getState().actions.removeTabPath(`chat://${realSessionId}`);
-      }
-    });
-  }, [realSessionId]);
+    if (!session) return;
+    setMessages(
+      session.messages.map((m) => ({
+        id: m.id,
+        role: m.role as 'user' | 'assistant',
+        parts: [{ type: 'text' as const, text: m.content }],
+      })),
+    );
+    if (Object.keys(session.contextSources).length > 0) {
+      setContextSources(session.contextSources);
+    }
+  }, [session]);
+
+  // Trata erro 404: exibe erro e remove a tab
+  useEffect(() => {
+    if (!sessionNotFound) return;
+    setSessionError(true);
+    usePaneController.getState().actions.removeTabPath(`chat://${realSessionId}`);
+  }, [sessionNotFound, realSessionId]);
 
   function handleSelectSession(id: string) {
     usePaneController.getState().actions.openFileInPane(`chat://${id}`);

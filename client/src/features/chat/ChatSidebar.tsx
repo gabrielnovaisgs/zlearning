@@ -1,5 +1,5 @@
 // client/src/features/chat/ChatSidebar.tsx
-import { useChatStore } from './chat.store';
+import { useChatSessions } from './use-chat-sessions';
 import type { SessionSummary } from './chat.service';
 
 interface ChatSidebarProps {
@@ -18,8 +18,7 @@ function formatDate(iso: string): string {
 }
 
 export function ChatSidebar({ activeSessionId, onSelectSession, onNewSession }: ChatSidebarProps) {
-  const sessions = useChatStore((s) => s.sessions);
-  const { deleteSession } = useChatStore((s) => s.actions);
+  const { sessions, deleteSession } = useChatSessions();
 
   return (
     <div className="flex flex-col h-full w-48 shrink-0 bg-bg-secondary border-r border-border">

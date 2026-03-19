@@ -1,35 +1,28 @@
 // @vitest-environment happy-dom
-
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ChatEditor } from './ChatEditor';
 
-vi.mock('./chat.store', () => ({
-  useChatStore: vi.fn((selector) => selector({
-    sessions: [
-      { id: 'abc', title: 'Test session', createdAt: '', updatedAt: '' },
-    ],
-    actions: {
-      loadSessions: vi.fn(),
-      createSession: vi.fn().mockResolvedValue({ id: 'new123', title: '', createdAt: '', updatedAt: '' }),
-      deleteSession: vi.fn(),
-    },
+// Mock only the facade hooks — no knowledge of React Query needed
+vi.mock('./use-chat-sessions', () => ({
+  useChatSessions: vi.fn(() => ({
+    sessions: [{ id: 'abc', title: 'Test session', createdAt: '', updatedAt: '' }],
+    isLoading: false,
+    createSession: vi.fn().mockResolvedValue({ id: 'new123', title: '', createdAt: '', updatedAt: '' }),
+    deleteSession: vi.fn(),
   })),
-}));
-
-vi.mock('./chat.service', () => ({
-  chatService: {
-    getSession: vi.fn().mockResolvedValue({
+  useChatSession: vi.fn(() => ({
+    session: {
       id: 'abc', title: 'Test', createdAt: '', updatedAt: '',
       contextSources: {}, messages: [],
-    }),
-    listSessions: vi.fn().mockResolvedValue([]),
-    createSession: vi.fn(),
-    deleteSession: vi.fn(),
-  },
+    },
+    isLoading: false,
+    isError: false,
+  })),
+  invalidateSessions: vi.fn(),
 }));
 
-// Mock @ai-sdk/react with v3 API shape
+// Keep @ai-sdk/react, ai, and pane-controller mocks unchanged from before
 vi.mock('@ai-sdk/react', () => ({
   useChat: vi.fn(() => ({
     messages: [],
@@ -41,7 +34,6 @@ vi.mock('@ai-sdk/react', () => ({
   })),
 }));
 
-// Mock ai package to avoid TextStreamChatTransport constructor errors in tests
 vi.mock('ai', () => {
   class TextStreamChatTransport {
     constructor(_opts: unknown) {}
