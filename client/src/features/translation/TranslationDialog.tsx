@@ -34,8 +34,10 @@ export function TranslationDialog({ original, onClose }: TranslationDialogProps)
   } = useTranslation(original);
 
   useEffect(() => {
-    translate();
+    // translate is called once on mount; text won't change while the dialog is open,
+    // so omitting it from deps is intentional — adding it would cause an infinite loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    translate();
   }, []);
 
   return (
