@@ -21,11 +21,11 @@ export function usePdfNotes(pdfPath: string): UsePdfNotesReturn {
   const createMutation = useMutation({
     mutationFn: ({ pdfPath: p, createStudyModule }: { pdfPath: string; createStudyModule: boolean }) =>
       createPdfNote(p, createStudyModule),
-    onSuccess: () => {
-      // Invalidate both the file tree and the note-info for this PDF so
-      // the component sees noteExists = true without importing queryClient.
+    onSuccess: (_data, variables) => {
+      // Use variables.pdfPath (the actual value used in the mutation) rather than
+      // the closed-over pdfPath to avoid stale closure if the prop changes mid-flight.
       queryClient.invalidateQueries({ queryKey: FILES_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: ['pdf-note-info', pdfPath] });
+      queryClient.invalidateQueries({ queryKey: ['pdf-note-info', variables.pdfPath] });
     },
   });
 
