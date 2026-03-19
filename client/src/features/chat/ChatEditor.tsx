@@ -70,7 +70,10 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
       .catch(() => {
         setSessionError(true);
       });
-  }, [sessionId]);
+    // createSession is a new reference each render (inline arrow in hook); adding it
+    // would cause extra re-runs. isCreating guard prevents double-invocation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, isNew]);
 
   // Carrega histórico quando sessão real chegar via React Query
   useEffect(() => {
