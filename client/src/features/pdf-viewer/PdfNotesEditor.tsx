@@ -1,12 +1,11 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { createEditor, type EditorInstance } from "@features/markdown-editor/setup";
 import { fs } from "@shared/services/filesystem";
-import { useFileStore } from "@shared/file.store";
 import { usePaneController } from "@features/panes/pane-controller.store";
 import { Button } from "@shared/ui/button";
 import { Checkbox } from "@shared/ui/checkbox";
 import { Label } from "@shared/ui/label";
-import { fetchPdfNoteInfo, createPdfNote } from "./pdf-notes.service";
+import { usePdfNotes } from "./use-pdf-notes";
 
 export type { EditorInstance } from "@features/markdown-editor/setup";
 
@@ -25,9 +24,8 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notesPath = useRef("");
 
-  const [noteExists, setNoteExists] = useState<boolean | null>(null);
+  const { noteExists, notesPath: fetchedNotesPath, createNote, isCreating } = usePdfNotes(pdfPath);
   const [createStudyModule, setCreateStudyModule] = useState(true);
-  const [loading, setLoading] = useState(false);
 
   const scheduleSave = useCallback((content: string) => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
@@ -36,18 +34,10 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
     }, 1000);
   }, []);
 
-  // Checar se a nota existe quando o PDF muda
+  // Sync notesPath ref with the value returned by the hook
   useEffect(() => {
-    if (!pdfPath) return;
-    setNoteExists(null);
-
-    fetchPdfNoteInfo(pdfPath)
-      .then(({ exists, notesPath: np }) => {
-        notesPath.current = np;
-        setNoteExists(exists);
-      })
-      .catch(() => setNoteExists(false));
-  }, [pdfPath]);
+    if (fetchedNotesPath) notesPath.current = fetchedNotesPath;
+  }, [fetchedNotesPath]);
 
   // Criar o editor quando a nota existe e o div está montado
   useEffect(() => {
@@ -71,24 +61,17 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
   }, [noteExists, pdfPath]);
 
   const handleCreateNote = useCallback(async () => {
-    setLoading(true);
     try {
-      const { newPdfPath } = await createPdfNote(pdfPath, createStudyModule);
-      await useFileStore.getState().actions.loadFileTree();
+      const { newPdfPath } = await createNote(createStudyModule);
       if (newPdfPath !== pdfPath) {
-        // PDF foi movido: atualiza a tab com o novo caminho.
-        // O useEffect([pdfPath]) vai reagir ao novo prop e setar noteExists=true.
         usePaneController.getState().actions.updateTabPaths(pdfPath, newPdfPath);
-      } else {
-        // Nota simples: pdfPath não muda, então o useEffect não dispara novamente.
-        setNoteExists(true);
       }
+      // When newPdfPath === pdfPath, the note-info invalidation in the hook
+      // causes noteExists to flip to true automatically.
     } catch (err) {
       console.error("Failed to create note:", err);
-    } finally {
-      setLoading(false);
     }
-  }, [pdfPath, createStudyModule]);
+  }, [pdfPath, createStudyModule, createNote]);
 
   return (
     <div className="flex flex-col h-full">
@@ -100,8 +83,8 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
 
       {noteExists === false && (
         <div className="flex flex-col items-center justify-center flex-1 gap-4 px-6">
-          <Button size="sm" onClick={handleCreateNote} disabled={loading}>
-            {loading ? "Criando..." : "Nova nota"}
+          <Button size="sm" onClick={handleCreateNote} disabled={isCreating}>
+            {isCreating ? "Criando..." : "Nova nota"}
           </Button>
           <div className="flex items-center gap-2">
             <Checkbox
