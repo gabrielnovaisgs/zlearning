@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePaneController } from "@features/panes/pane-controller.store";
 import { registry } from "@features/command-palette/CommandRegistry";
 import { FileExplorer } from "@features/file-explorer/FileExplorer";
 import { SplitView } from "@features/panes/SplitView";
 import { CommandPalette } from "@features/command-palette/OpenFilePalette";
 import { resolveFileFromPath, useFileStore } from "@shared/file.store";
+import { useFiles } from "@shared/hooks/use-files";
 import { SidebarInset, SidebarProvider } from "@shared/ui/sidebar";
 import { ActivityBar } from "@features/activity-bar/ActivityBar";
 import { GLOBAL_CONFIG } from "./config";
@@ -24,12 +25,17 @@ document.title = GLOBAL_CONFIG.appName;
 
 export function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const loadFileTree = useFileStore(state => state.actions.loadFileTree);
+  const { isLoading } = useFiles();
+  const hasOpened = useRef(false);
 
   useEffect(() => {
+    if (!isLoading && !hasOpened.current) {
+      hasOpened.current = true;
+      openFileFromURL();
+    }
+  }, [isLoading]);
 
-    loadFileTree().then(() => openFileFromURL());
-
+  useEffect(() => {
     const onPopState = () => openFileFromURL();
     window.addEventListener("popstate", onPopState);
 

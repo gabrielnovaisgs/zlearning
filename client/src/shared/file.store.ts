@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { fs } from "@shared/services/filesystem";
+import { queryClient } from "@shared/query-client";
+import { FILES_QUERY_KEY } from "@shared/hooks/use-files";
 import { FileTreeEntry } from "@shared/types";
 import { usePaneController } from "@features/panes/pane-controller.store";
 import { useFileExplorerStore } from "@features/file-explorer/file-explorer.store";
@@ -18,36 +20,39 @@ interface FileStoreActions {
 }
 
 interface FileStoreState {
-  fileTree: FileTreeEntry[];
   actions: FileStoreActions;
+}
+
+function invalidateFiles() {
+  return queryClient.invalidateQueries({ queryKey: FILES_QUERY_KEY });
 }
 
 // ── Store ───────────────────────────────────────────────────────────────────
 
-export const useFileStore = create<FileStoreState>()((set, get) => ({
-  fileTree: [],
-
+export const useFileStore = create<FileStoreState>()(() => ({
   actions: {
     async loadFileTree() {
-      const fileTree = await fs.listFiles();
-      set({ fileTree });
+      await queryClient.fetchQuery({
+        queryKey: FILES_QUERY_KEY,
+        queryFn: () => fs.listFiles(),
+      });
     },
 
     async createFile(path, content = "") {
       await fs.createFile(path, content);
-      await get().actions.loadFileTree();
+      await invalidateFiles();
     },
 
     async createUntitledFile(dir) {
       if (dir) useFileExplorerStore.getState().expandFolder(dir);
       const { path } = await fs.createUntitled(dir);
-      await get().actions.loadFileTree();
+      await invalidateFiles();
       usePaneController.getState().actions.openFileInPane(path);
     },
 
     async createDirectory(path) {
       await fs.createDirectory(path);
-      await get().actions.loadFileTree();
+      await invalidateFiles();
       const parts = path.split("/");
       const toExpand: string[] = [];
       for (let i = 1; i < parts.length; i++) {
@@ -59,7 +64,7 @@ export const useFileStore = create<FileStoreState>()((set, get) => ({
     async renameFile(oldPath, newName) {
       try {
         const { newPath } = await fs.renameFile(oldPath, newName);
-        await get().actions.loadFileTree();
+        await invalidateFiles();
         usePaneController.getState().actions.updateTabPaths(oldPath, newPath);
         return true;
       } catch (err: any) {
@@ -74,7 +79,7 @@ export const useFileStore = create<FileStoreState>()((set, get) => ({
       try {
         const { newPath } = await fs.moveFile(sourcePath, targetDir);
         if (targetDir) useFileExplorerStore.getState().expandFolder(targetDir);
-        await get().actions.loadFileTree();
+        await invalidateFiles();
         usePaneController.getState().actions.updateTabPaths(sourcePath, newPath);
       } catch (err: any) {
         if (err.message?.includes("409") || err.message?.includes("Conflict")) {
@@ -88,19 +93,23 @@ export const useFileStore = create<FileStoreState>()((set, get) => ({
 
     async duplicateFile(path) {
       const { newPath } = await fs.duplicateFile(path);
-      await get().actions.loadFileTree();
+      await invalidateFiles();
       usePaneController.getState().actions.openFileInPane(newPath);
     },
 
     async deleteFile(path) {
       await fs.deleteFile(path);
       usePaneController.getState().actions.removeTabPath(path);
-      await get().actions.loadFileTree();
+      await invalidateFiles();
     },
   },
 }));
 
 // ── Selectors ───────────────────────────────────────────────────────────────
+
+function getFileTree(): FileTreeEntry[] {
+  return queryClient.getQueryData<FileTreeEntry[]>(FILES_QUERY_KEY) ?? [];
+}
 
 /** Resolve um URL path (sem extensão) para um file path, tentando .md depois .pdf. */
 export function resolveFileFromPath(path: string): string {
@@ -111,7 +120,7 @@ export function resolveFileFromPath(path: string): string {
     }
     return null;
   };
-  return find(useFileStore.getState().fileTree) ?? path + ".md";
+  return find(getFileTree()) ?? path + ".md";
 }
 
 export function resolveWikiLink(linkPath: string): string | null {
@@ -126,6 +135,5 @@ export function resolveWikiLink(linkPath: string): string | null {
     }
     return null;
   };
-  return find(useFileStore.getState().fileTree);
+  return find(getFileTree());
 }
-

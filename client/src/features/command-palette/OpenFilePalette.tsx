@@ -15,7 +15,7 @@ import {
   CommandItem,
   CommandList,
 } from "@shared/ui/command";
-import { useFileStore } from "@shared/file.store";
+import { useFiles } from "@shared/hooks/use-files";
 
 interface Props {
   open: boolean;
@@ -24,7 +24,7 @@ interface Props {
 
 export function CommandPalette({ open, onClose }: Props) {
   const [query, setQuery] = useState("");
-  const fileTree = useFileStore((state) => state.fileTree);
+  const { fileTree } = useFiles();
 
   const files = useMemo(() => flattenFiles(fileTree), [fileTree]);
   const results = useMemo(() => fuzzyMatch(query, files), [query, files]);

@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FileTreeEntry } from "@shared/types";
 import { FileTreeItem } from "./FileTreeItem";
 import { useFileStore } from "@shared/file.store";
+import { useFiles } from "@shared/hooks/use-files";
 
 interface Props {
   onContextMenu: (e: React.MouseEvent, entry: FileTreeEntry | null) => void;
@@ -11,7 +12,7 @@ interface Props {
 }
 
 export function FileTree({ onContextMenu, renamingPath, onStartRename, onEndRename }: Props) {
-  const fileTree = useFileStore((state) => state.fileTree);
+  const { fileTree } = useFiles();
   const [dragOver, setDragOver] = useState(false);
 
   if (fileTree.length === 0) {
