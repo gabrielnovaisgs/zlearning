@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { createEditor, type EditorInstance } from "./setup";
 import { fs } from "@shared/services/filesystem";
 import { useFileStore } from "@shared/file.store";
+import { useFileContent } from "@shared/hooks/use-files";
 
 interface Props {
   filePath: string;
@@ -77,7 +78,7 @@ export function MarkdownEditor({ filePath }: Props) {
   const isExternalUpdate = useRef(false);
   const filePathRef = useRef(filePath);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { content, isLoading } = useFileContent(filePath);
 
   // Keep ref in sync with prop
   useEffect(() => {
@@ -110,18 +111,16 @@ export function MarkdownEditor({ filePath }: Props) {
     };
   }, [scheduleSave]);
 
-  // Load file content when filePath changes
+  // Load file content when filePath or content changes
+  // Depend on BOTH content and filePath: when switching back to a previously
+  // opened file, React Query may return the same cached reference, so the effect
+  // would not re-fire on content alone and the editor would not be populated.
   useEffect(() => {
-    setLoading(true);
-    fs.readFile(filePath).then(({ content }) => {
-      if (editorRef.current) {
-        isExternalUpdate.current = true;
-        editorRef.current.setContent(content);
-        isExternalUpdate.current = false;
-      }
-      setLoading(false);
-    });
-  }, [filePath]);
+    if (content === null || !editorRef.current) return;
+    isExternalUpdate.current = true;
+    editorRef.current.setContent(content);
+    isExternalUpdate.current = false;
+  }, [content, filePath]);
 
   return (
     <>
@@ -130,7 +129,7 @@ export function MarkdownEditor({ filePath }: Props) {
         <div ref={containerRef} className="flex-1" />
       </div>
 
-      {loading && (
+      {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-bg-primary/80">
           <span className="text-text-muted">Loading...</span>
         </div>

@@ -11,3 +11,12 @@ export function useFiles(): { fileTree: FileTreeEntry[]; isLoading: boolean } {
   });
   return { fileTree: data ?? [], isLoading };
 }
+
+export function useFileContent(filePath: string): { content: string | null; isLoading: boolean } {
+  const { data, isLoading } = useQuery({
+    queryKey: ['file-content', filePath] as const,
+    queryFn: () => fs.readFile(filePath),
+    staleTime: Infinity, // editor is authoritative; don't auto-refetch
+  });
+  return { content: data?.content ?? null, isLoading };
+}
