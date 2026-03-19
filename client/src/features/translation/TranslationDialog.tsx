@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { XIcon } from "lucide-react";
-import { translateText, getExamples, type TranslationExample } from "./translation.service";
+import { useTranslation } from "./use-translation";
 import {
   Dialog,
   DialogClose,
@@ -28,33 +28,15 @@ export interface TranslationDialogProps {
 }
 
 export function TranslationDialog({ original, onClose }: TranslationDialogProps) {
-  const [transStatus, setTransStatus] = useState<"loading" | "done" | "error">("loading");
-  const [translation, setTranslation] = useState("");
-  const [transError, setTransError] = useState("");
-
-  const [exStatus, setExStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
-  const [examples, setExamples] = useState<TranslationExample[]>([]);
-  const [exError, setExError] = useState("");
+  const {
+    translation, isTranslating, translationError, translate,
+    examples, isFetchingExamples, examplesError, hasRequestedExamples, fetchExamples,
+  } = useTranslation(original);
 
   useEffect(() => {
-    translateText(original)
-      .then((t) => { setTranslation(t); setTransStatus("done"); })
-      .catch((err: unknown) => {
-        setTransError(err instanceof Error ? err.message : "Falha na tradução");
-        setTransStatus("error");
-      });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    translate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function fetchExamples() {
-    setExStatus("loading");
-    getExamples(original)
-      .then((ex) => { setExamples(ex); setExStatus("done"); })
-      .catch((err: unknown) => {
-        setExError(err instanceof Error ? err.message : "Falha ao buscar exemplos");
-        setExStatus("error");
-      });
-  }
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -91,16 +73,16 @@ export function TranslationDialog({ original, onClose }: TranslationDialogProps)
 
           {/* Translation */}
           <div className="rounded-lg bg-bg-surface border border-border px-3 py-2 min-h-15 flex items-center">
-            {transStatus === "loading" && (
+            {isTranslating && (
               <div className="flex items-center gap-2 text-text-muted text-sm">
                 <Spinner />
                 Traduzindo…
               </div>
             )}
-            {transStatus === "error" && (
-              <p className="text-sm text-red-400">{transError}</p>
+            {translationError && (
+              <p className="text-sm text-red-400">{translationError}</p>
             )}
-            {transStatus === "done" && (
+            {!isTranslating && !translationError && (
               <div className="w-full">
                 <p className="text-[10px] text-text-muted mb-1">Português</p>
                 <p className="text-sm text-text-primary leading-relaxed">{translation}</p>
@@ -109,19 +91,19 @@ export function TranslationDialog({ original, onClose }: TranslationDialogProps)
           </div>
 
           {/* Examples section */}
-          {exStatus !== "idle" && (
+          {hasRequestedExamples && (
             <div className="flex flex-col gap-2">
               <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Exemplos de uso</p>
-              {exStatus === "loading" && (
+              {isFetchingExamples && (
                 <div className="flex items-center gap-2 text-text-muted text-sm px-1">
                   <Spinner />
                   Buscando exemplos…
                 </div>
               )}
-              {exStatus === "error" && (
-                <p className="text-sm text-red-400 px-1">{exError}</p>
+              {examplesError && (
+                <p className="text-sm text-red-400 px-1">{examplesError}</p>
               )}
-              {exStatus === "done" && examples.map((ex, i) => (
+              {hasRequestedExamples && !isFetchingExamples && !examplesError && examples.map((ex, i) => (
                 <div key={i} className="rounded-lg bg-bg-surface border border-border px-3 py-2 flex flex-col gap-1">
                   <p className="text-sm text-text-primary leading-relaxed">{ex.original}</p>
                   <p className="text-xs text-text-muted leading-relaxed italic">{ex.translation}</p>
@@ -136,10 +118,10 @@ export function TranslationDialog({ original, onClose }: TranslationDialogProps)
               variant="outline"
               size="sm"
               onClick={fetchExamples}
-              disabled={exStatus === "loading"}
+              disabled={isFetchingExamples}
               className="gap-1.5"
             >
-              {exStatus === "loading" ? <Spinner /> : (
+              {isFetchingExamples ? <Spinner /> : (
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                   <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
