@@ -16,6 +16,7 @@ export function useFileContent(filePath: string): { content: string | null; isLo
   const { data, isLoading } = useQuery({
     queryKey: ['file-content', filePath] as const,
     queryFn: () => fs.readFile(filePath),
+    enabled: Boolean(filePath),
     staleTime: Infinity, // editor is authoritative; don't auto-refetch
   });
   return { content: data?.content ?? null, isLoading };
