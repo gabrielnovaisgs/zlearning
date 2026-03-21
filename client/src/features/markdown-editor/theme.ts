@@ -16,7 +16,9 @@ export function buildEditorTheme() {
         color: cssVar('--fg-secondary'),
       },
       ".cm-content": {
-        fontFamily: "'Inter', system-ui, sans-serif",
+        fontFamily: "'Geist', system-ui, sans-serif",
+        fontSize: "15px",
+        lineHeight: "1.7",
         padding: "8px 48px 24px",
         maxWidth: "800px",
         margin: "0 auto",
@@ -80,7 +82,7 @@ export function buildEditorTheme() {
 
       // Inline code
       ".cm-md-code": {
-        fontFamily: "'JetBrains Mono', monospace",
+        fontFamily: "'Geist Mono', monospace",
         backgroundColor: "#313244",
         borderRadius: "3px",
         padding: "1px 4px",
@@ -104,7 +106,7 @@ export function buildEditorTheme() {
         paddingRight: "12px",
         color: "#585b70",
         fontSize: "0.85em",
-        fontFamily: "'JetBrains Mono', monospace",
+        fontFamily: "'Geist Mono', monospace",
         userSelect: "none",
         lineHeight: "inherit",
       },
@@ -129,7 +131,7 @@ export function buildEditorTheme() {
         content: "none",
       },
       ".cm-md-codeblock-content": {
-        fontFamily: "'JetBrains Mono', monospace",
+        fontFamily: "'Geist Mono', monospace",
         fontSize: "0.9em",
         color: "#cdd6f4",
       },
@@ -138,7 +140,7 @@ export function buildEditorTheme() {
         right: "12px",
         top: "8px",
         fontSize: "0.75em",
-        fontFamily: "'JetBrains Mono', monospace",
+        fontFamily: "'Geist Mono', monospace",
         color: "#585b70",
         textTransform: "uppercase",
         letterSpacing: "0.05em",

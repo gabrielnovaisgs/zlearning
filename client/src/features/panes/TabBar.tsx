@@ -63,8 +63,8 @@ export function TabBar({ pane }: TabBarProps) {
               actions.activateTab(tab.id, pane.id);
             }}
             className={`
-              relative flex items-center gap-1.5 px-3 py-1 text-sm cursor-pointer select-none
-              border-r border-border/60 shrink-0 transition-colors
+              group/tab relative flex items-center gap-1.5 px-3 text-[12.5px] cursor-pointer select-none
+              border-r border-border/60 shrink-0 transition-colors h-full
               ${isActive
                 ? 'bg-[var(--tab-active-bg)] text-fg after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-accent rounded-t-lg'
                 : 'text-fg-muted hover:text-fg-secondary hover:bg-surface-2'
@@ -78,7 +78,7 @@ export function TabBar({ pane }: TabBarProps) {
                 e.stopPropagation();
                 actions.closeTab(tab.id, pane.id);
               }}
-              className="ml-1 w-4 h-4 flex items-center justify-center rounded opacity-50 hover:opacity-100 hover:bg-surface-2 shrink-0"
+              className="ml-0.5 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover/tab:opacity-60 hover:!opacity-100 hover:bg-surface-2 shrink-0 transition-opacity"
               title="Close tab"
             >
               <X size={10} strokeWidth={2.5} />

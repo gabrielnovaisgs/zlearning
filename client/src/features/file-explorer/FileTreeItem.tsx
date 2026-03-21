@@ -111,16 +111,16 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`
-          flex w-full items-center gap-1.5 rounded-md mx-1.5 px-2 py-1 text-left text-sm
+          flex w-full items-center gap-[7px] rounded-md text-left text-[12.5px]
           transition-colors cursor-pointer select-none
           ${dragOver
-            ? 'bg-accent/10 text-fg'
+            ? 'bg-accent/10 text-fg mx-1.5 px-3 py-[4px]'
             : isActive
-              ? 'bg-accent/10 text-fg border-l-2 border-accent pl-[6px]'
-              : 'text-fg-secondary hover:bg-surface-2 hover:text-fg border-l-2 border-transparent pl-[6px]'
+              ? 'bg-accent-dim text-fg mx-1.5 px-3 py-[4px]'
+              : 'text-fg-secondary hover:bg-surface-2 hover:text-fg mx-1.5 px-3 py-[4px]'
           }
         `}
-        style={{ paddingLeft: `${depth * 16 + 8}px` }}
+        style={{ paddingLeft: `${depth * 16 + 12}px` }}
       >
         {entry.type === "directory" ? (
           <>
