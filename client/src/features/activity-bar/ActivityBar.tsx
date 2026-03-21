@@ -42,7 +42,8 @@ function ActivityBarButton({ action }: { action: ActivityBarAction }) {
 
 export function ActivityBar() {
   const { toggleSidebar, open } = useSidebar();
-  const { mode, actions } = useThemeStore((s) => ({ mode: s.mode, actions: s.actions }));
+  const mode = useThemeStore((s) => s.mode);
+  const actions = useThemeStore((s) => s.actions);
 
   const topActions: ActivityBarAction[] = [
     {

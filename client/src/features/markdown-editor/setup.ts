@@ -5,7 +5,7 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { syntaxHighlighting } from "@codemirror/language";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
-import { obsidianTheme, codeHighlightStyle } from "./theme";
+import { buildEditorTheme, codeHighlightStyle } from "./theme";
 import { markdownWidgets } from "./markdown-widgets";
 import { markdownKeymap } from "./keybindings";
 
@@ -37,7 +37,7 @@ export function createEditor(
       syntaxHighlighting(codeHighlightStyle),
       markdownKeymap,
       keymap.of([...defaultKeymap, ...historyKeymap, ...closeBracketsKeymap]),
-      obsidianTheme,
+      buildEditorTheme(),
       markdownWidgets,
       updateListener,
       EditorView.lineWrapping,

@@ -52,47 +52,49 @@ export function buildEditorTheme() {
 
       // Dimmed syntax (visible but muted, when cursor IS on line)
       ".cm-md-syntax-dim": {
-        color: "#585b70",
+        color: cssVar('--fg-muted'),
         fontSize: "0.85em",
       },
 
-      // Headings
+      // Headings — use accent color like the mock
       ".cm-md-header": {
-        fontWeight: "700",
-        color: "#cba6f7",
+        fontFamily: "'Instrument Serif', Georgia, serif",
+        fontWeight: "400",
+        color: cssVar('--accent'),
       },
-      ".cm-md-header-1": { fontSize: "2em", lineHeight: "1.4" },
-      ".cm-md-header-2": { fontSize: "1.6em", lineHeight: "1.4" },
-      ".cm-md-header-3": { fontSize: "1.3em", lineHeight: "1.3" },
+      ".cm-md-header-1": { fontSize: "2em", lineHeight: "1.3", letterSpacing: "-0.02em" },
+      ".cm-md-header-2": { fontSize: "1.5em", lineHeight: "1.3", letterSpacing: "-0.01em" },
+      ".cm-md-header-3": { fontSize: "1.2em", lineHeight: "1.3" },
       ".cm-md-header-4": { fontSize: "1.1em", lineHeight: "1.3" },
       ".cm-md-header-5": { fontSize: "1.05em", lineHeight: "1.3" },
       ".cm-md-header-6": { fontSize: "1em", lineHeight: "1.3" },
 
-      // Bold
+      // Bold — fg, not accent
       ".cm-md-bold": {
-        fontWeight: "700",
-        color: "#f38ba8",
+        fontWeight: "600",
+        color: cssVar('--fg'),
       },
 
       // Italic
       ".cm-md-italic": {
         fontStyle: "italic",
-        color: "#a6e3a1",
+        color: cssVar('--fg-secondary'),
       },
 
-      // Inline code
+      // Inline code — surface-2 background, accent text
       ".cm-md-code": {
         fontFamily: "'Geist Mono', monospace",
-        backgroundColor: "#313244",
-        borderRadius: "3px",
-        padding: "1px 4px",
-        fontSize: "0.9em",
-        color: "#fab387",
+        backgroundColor: cssVar('--surface-2'),
+        border: `1px solid ${cssVar('--border')}`,
+        borderRadius: "4px",
+        padding: "1px 5px",
+        fontSize: "0.875em",
+        color: cssVar('--accent'),
       },
 
-      // Code block — line decorations for block appearance
+      // Code block — surface background, themed border
       ".cm-md-codeblock-line": {
-        backgroundColor: "#181825",
+        backgroundColor: cssVar('--surface'),
         paddingLeft: "52px",
         position: "relative",
         counterIncrement: "codeblock-line",
@@ -104,7 +106,7 @@ export function buildEditorTheme() {
         width: "40px",
         textAlign: "right",
         paddingRight: "12px",
-        color: "#585b70",
+        color: cssVar('--fg-muted'),
         fontSize: "0.85em",
         fontFamily: "'Geist Mono', monospace",
         userSelect: "none",
@@ -113,27 +115,36 @@ export function buildEditorTheme() {
       ".cm-md-codeblock-first": {
         borderRadius: "8px 8px 0 0",
         paddingTop: "12px",
+        borderTop: `1px solid ${cssVar('--border')}`,
+        borderLeft: `1px solid ${cssVar('--border')}`,
+        borderRight: `1px solid ${cssVar('--border')}`,
         counterReset: "codeblock-line",
         counterIncrement: "codeblock-line",
       },
       ".cm-md-codeblock-last": {
         borderRadius: "0 0 8px 8px",
         paddingBottom: "12px",
+        borderBottom: `1px solid ${cssVar('--border')}`,
+        borderLeft: `1px solid ${cssVar('--border')}`,
+        borderRight: `1px solid ${cssVar('--border')}`,
       },
       ".cm-md-codeblock-first.cm-md-codeblock-last": {
         borderRadius: "8px",
+        border: `1px solid ${cssVar('--border')}`,
       },
       ".cm-md-codeblock-fence": {
-        backgroundColor: "#181825",
+        backgroundColor: cssVar('--surface'),
         paddingLeft: "16px",
+        borderLeft: `1px solid ${cssVar('--border')}`,
+        borderRight: `1px solid ${cssVar('--border')}`,
       },
       ".cm-md-codeblock-fence::before": {
         content: "none",
       },
       ".cm-md-codeblock-content": {
         fontFamily: "'Geist Mono', monospace",
-        fontSize: "0.9em",
-        color: "#cdd6f4",
+        fontSize: "0.875em",
+        color: cssVar('--fg-secondary'),
       },
       ".cm-md-codeblock-lang": {
         position: "absolute",
@@ -141,57 +152,54 @@ export function buildEditorTheme() {
         top: "8px",
         fontSize: "0.75em",
         fontFamily: "'Geist Mono', monospace",
-        color: "#585b70",
+        color: cssVar('--fg-muted'),
         textTransform: "uppercase",
-        letterSpacing: "0.05em",
+        letterSpacing: "0.06em",
         userSelect: "none",
         pointerEvents: "none",
       },
 
-      // Links
+      // Links — accent color
       ".cm-md-link": {
-        color: "#89b4fa",
-        textDecoration: "underline",
+        color: cssVar('--accent'),
+        textDecoration: "none",
+        borderBottom: `1px solid ${cssVar('--accent-dim')}`,
         cursor: "pointer",
       },
 
-      // Wiki links
+      // Wiki links — fg-secondary with dashed underline
       ".cm-md-wikilink": {
-        color: "#cba6f7",
-        textDecoration: "underline",
-        textDecorationColor: "rgba(203, 166, 247, 0.4)",
+        color: cssVar('--fg-secondary'),
+        textDecoration: "none",
+        borderBottom: `1px dashed ${cssVar('--border')}`,
         textUnderlineOffset: "2px",
         cursor: "pointer",
-        "&:hover": {
-          textDecorationColor: "#cba6f7",
-        },
       },
 
       // Strikethrough
       ".cm-md-strikethrough": {
         textDecoration: "line-through",
-        color: "#6c7086",
+        color: cssVar('--fg-muted'),
       },
 
-      // Blockquote
+      // Blockquote — accent left border
       ".cm-md-blockquote": {
-        borderLeft: "3px solid #585b70",
-        paddingLeft: "12px",
-        color: "#a6adc8",
+        borderLeft: `2px solid ${cssVar('--accent')}`,
+        paddingLeft: "16px",
+        color: cssVar('--fg-muted'),
         fontStyle: "italic",
       },
 
       // Horizontal rule widget
       ".cm-md-hr-widget": {
         border: "none",
-        borderTop: "1px solid #585b70",
+        borderTop: `1px solid ${cssVar('--border')}`,
         margin: "12px 0",
       },
 
       // List markers
       ".cm-md-list-marker": {
-        color: "#89b4fa",
-        fontWeight: "700",
+        color: cssVar('--fg-muted'),
       },
 
       // Checkbox widgets
@@ -201,7 +209,7 @@ export function buildEditorTheme() {
         justifyContent: "center",
         width: "16px",
         height: "16px",
-        border: "2px solid #585b70",
+        border: `2px solid ${cssVar('--border')}`,
         borderRadius: "3px",
         marginRight: "4px",
         verticalAlign: "middle",
@@ -210,9 +218,9 @@ export function buildEditorTheme() {
         color: "transparent",
       },
       ".cm-md-checkbox-checked": {
-        backgroundColor: "#a6e3a1",
-        borderColor: "#a6e3a1",
-        color: "#1e1e2e",
+        backgroundColor: cssVar('--accent'),
+        borderColor: cssVar('--accent'),
+        color: cssVar('--bg'),
       },
 
       // Task markers
