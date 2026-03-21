@@ -42,7 +42,6 @@ export function PaneView({ pane, isFocused }: PaneViewProps) {
       const { actions } = usePaneController.getState();
 
       if (side !== null) {
-        // Split without copying the active tab — moveTabToPane will place the dragged tab
         const newPaneId = actions.splitPane(pane.id, side, false);
         if (newPaneId) {
           actions.moveTabToPane(tabId, fromPaneId, newPaneId);
@@ -55,11 +54,10 @@ export function PaneView({ pane, isFocused }: PaneViewProps) {
 
   return (
     <div
-      className="relative flex flex-col min-w-0 min-h-0"
+      className="relative flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden bg-bg"
       style={{ flex: pane.flexRatio }}
       onClick={() => usePaneController.getState().actions.setActivePaneId(pane.id)}
       onDragOver={(e) => {
-        // Only show drop side if over editor area (not TabBar)
         const target = e.target as HTMLElement;
         if (target.closest(".tabbar-root")) return;
         e.preventDefault();
@@ -67,7 +65,6 @@ export function PaneView({ pane, isFocused }: PaneViewProps) {
       }}
       onDrop={handleDrop}
       onDragLeave={(e) => {
-        // Only clear if truly leaving this pane
         if (!e.currentTarget.contains(e.relatedTarget as Node)) {
           setDropSide(null);
         }

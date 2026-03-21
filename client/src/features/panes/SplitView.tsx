@@ -46,7 +46,7 @@ function ResizeHandle({ leftPaneId, rightPaneId }: ResizeHandleProps) {
 
   return (
     <div
-      className="w-1 shrink-0 bg-border hover:bg-accent cursor-col-resize z-10 transition-colors"
+      className="w-px bg-border hover:bg-accent shrink-0 cursor-col-resize z-10 transition-colors hover:w-0.5"
       onMouseDown={onMouseDown}
     />
   );

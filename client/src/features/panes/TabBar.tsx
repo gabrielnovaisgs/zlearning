@@ -1,6 +1,7 @@
 import { usePaneController } from "./pane-controller.store";
 import type { Pane } from "./types";
 import { GLOBAL_CONFIG } from "@app/config";
+import { FileText, BookOpen, MessageSquare, Plus, Columns2, X } from 'lucide-react';
 
 function fileTitle(path: string | null): string {
   if (!path) return 'New Tab';
@@ -12,10 +13,11 @@ function fileTitle(path: string | null): string {
   return name.replace(/\.(md|pdf)$/, '');
 }
 
-function fileIcon(path: string | null): string {
-  if (!path) return '✦';
-  if (path.startsWith('chat://')) return '💬';
-  return path.endsWith('.pdf') ? '📕' : '📄';
+function TabIcon({ path }: { path: string | null }) {
+  if (!path) return <Plus size={12} strokeWidth={2} className="text-fg-muted" />;
+  if (path.startsWith('chat://')) return <MessageSquare size={13} strokeWidth={1.75} className="text-fg-secondary" />;
+  if (path.endsWith('.pdf')) return <BookOpen size={13} strokeWidth={1.75} className="text-[#E07B54]" />;
+  return <FileText size={13} strokeWidth={1.75} className="text-fg-secondary" />;
 }
 
 interface TabBarProps {
@@ -37,48 +39,53 @@ export function TabBar({ pane }: TabBarProps) {
 
   return (
     <div
-      className="flex items-center bg-bg-secondary border-b border-border overflow-x-auto shrink-0"
+      className="flex items-center bg-surface border-b border-border overflow-x-auto shrink-0"
       style={{ height: GLOBAL_CONFIG.headerHeight }}
       onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
       onDrop={handleTabBarDrop}
     >
-      {pane.tabs.map((tab) => (
-        <div
-          key={tab.id}
-          draggable={tab.path !== null}
-          onDragStart={(e) => {
-            if (!tab.path) return;
-            e.dataTransfer.setData(
-              "text/plain",
-              JSON.stringify({ tabId: tab.id, paneId: pane.id })
-            );
-            e.stopPropagation();
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            actions.activateTab(tab.id, pane.id);
-          }}
-          className={`flex items-center gap-1 px-3 py-1 text-sm cursor-pointer shrink-0 border-r border-border select-none
-            ${
-              tab.id === pane.activeTabId
-                ? "bg-bg-primary text-text-primary"
-                : "text-text-muted hover:text-text-primary hover:bg-bg-primary/50"
-            }`}
-        >
-          <span className={`text-xs ${!tab.path ? "text-accent" : ""}`}>{fileIcon(tab.path)}</span>
-          <span className="max-w-32 truncate">{fileTitle(tab.path)}</span>
-          <button
+      {pane.tabs.map((tab) => {
+        const isActive = tab.id === pane.activeTabId;
+        return (
+          <div
+            key={tab.id}
+            draggable={tab.path !== null}
+            onDragStart={(e) => {
+              if (!tab.path) return;
+              e.dataTransfer.setData(
+                "text/plain",
+                JSON.stringify({ tabId: tab.id, paneId: pane.id })
+              );
+              e.stopPropagation();
+            }}
             onClick={(e) => {
               e.stopPropagation();
-              actions.closeTab(tab.id, pane.id);
+              actions.activateTab(tab.id, pane.id);
             }}
-            className="ml-1 w-4 h-4 flex items-center justify-center rounded opacity-50 hover:opacity-100 hover:bg-text-muted/20 text-xs leading-none shrink-0"
-            title="Close tab"
+            className={`
+              relative flex items-center gap-1.5 px-3 py-1 text-sm cursor-pointer select-none
+              border-r border-border/60 shrink-0 transition-colors
+              ${isActive
+                ? 'bg-[var(--tab-active-bg)] text-fg after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-accent rounded-t-lg'
+                : 'text-fg-muted hover:text-fg-secondary hover:bg-surface-2'
+              }
+            `}
           >
-            ×
-          </button>
-        </div>
-      ))}
+            <TabIcon path={tab.path} />
+            <span className="max-w-32 truncate">{fileTitle(tab.path)}</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                actions.closeTab(tab.id, pane.id);
+              }}
+              className="ml-1 w-4 h-4 flex items-center justify-center rounded opacity-50 hover:opacity-100 hover:bg-surface-2 shrink-0"
+              title="Close tab"
+            >
+              <X size={10} strokeWidth={2.5} />
+            </button>
+          </div>
+        );
+      })}
 
       {/* New tab button */}
       <button
@@ -86,7 +93,7 @@ export function TabBar({ pane }: TabBarProps) {
           e.stopPropagation();
           actions.openNewTab(pane.id);
         }}
-        className="px-2 py-1 text-text-muted hover:text-text-primary shrink-0 text-base leading-none"
+        className="px-2 py-1 text-fg-muted hover:text-fg shrink-0 text-base leading-none"
         title="New tab"
       >
         +
@@ -101,10 +108,10 @@ export function TabBar({ pane }: TabBarProps) {
           e.stopPropagation();
           actions.splitPane(pane.id, "right");
         }}
-        className="px-2 py-1 text-text-muted hover:text-text-primary shrink-0 text-sm"
+        className="px-2 py-1 text-fg-muted hover:text-fg hover:bg-surface-2 rounded-md shrink-0 text-sm"
         title="Split pane right"
       >
-        ⧉
+        <Columns2 size={14} strokeWidth={1.75} />
       </button>
 
       {/* Close pane button — only when N > 1 panes */}
@@ -114,10 +121,10 @@ export function TabBar({ pane }: TabBarProps) {
             e.stopPropagation();
             actions.closePane(pane.id);
           }}
-          className="px-2 py-1 text-text-muted hover:text-text-primary shrink-0 text-sm"
+          className="px-2 py-1 text-fg-muted hover:text-fg hover:bg-surface-2 rounded-md shrink-0 text-sm"
           title="Close pane"
         >
-          ✕
+          <X size={14} strokeWidth={1.75} />
         </button>
       )}
     </div>
