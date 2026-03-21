@@ -2,6 +2,8 @@ import { usePaneController } from "./pane-controller.store";
 import type { Pane } from "./types";
 import { GLOBAL_CONFIG } from "@app/config";
 import { FileText, BookOpen, MessageSquare, Plus, Columns2, X } from 'lucide-react';
+import { Button } from "@shared/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@shared/ui/tooltip";
 
 function fileTitle(path: string | null): string {
   if (!path) return 'New Tab';
@@ -88,44 +90,53 @@ export function TabBar({ pane }: TabBarProps) {
       })}
 
       {/* New tab button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          actions.openNewTab(pane.id);
-        }}
-        className="px-2 py-1 text-fg-muted hover:text-fg shrink-0 text-base leading-none"
-        title="New tab"
-      >
-        +
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => { e.stopPropagation(); actions.openNewTab(pane.id); }}
+            className="size-7 shrink-0 text-fg-muted hover:bg-surface-2 hover:text-fg rounded-lg"
+          >
+            <Plus size={13} strokeWidth={2} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Nova aba</TooltipContent>
+      </Tooltip>
 
       {/* Spacer */}
       <div className="flex-1 min-w-2" />
 
       {/* Split right button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          actions.splitPane(pane.id, "right");
-        }}
-        className="px-2 py-1 text-fg-muted hover:text-fg hover:bg-surface-2 rounded-md shrink-0 text-sm"
-        title="Split pane right"
-      >
-        <Columns2 size={14} strokeWidth={1.75} />
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => { e.stopPropagation(); actions.splitPane(pane.id, "right"); }}
+            className="size-7 shrink-0 text-fg-muted hover:bg-surface-2 hover:text-fg rounded-lg"
+          >
+            <Columns2 size={13} strokeWidth={1.75} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Dividir painel</TooltipContent>
+      </Tooltip>
 
       {/* Close pane button — only when N > 1 panes */}
       {panes.length > 1 && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            actions.closePane(pane.id);
-          }}
-          className="px-2 py-1 text-fg-muted hover:text-fg hover:bg-surface-2 rounded-md shrink-0 text-sm"
-          title="Close pane"
-        >
-          <X size={14} strokeWidth={1.75} />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => { e.stopPropagation(); actions.closePane(pane.id); }}
+              className="size-7 shrink-0 text-fg-muted hover:bg-surface-2 hover:text-fg rounded-lg"
+            >
+              <X size={13} strokeWidth={1.75} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Fechar painel</TooltipContent>
+        </Tooltip>
       )}
     </div>
   );
