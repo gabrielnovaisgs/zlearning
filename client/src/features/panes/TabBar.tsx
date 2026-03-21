@@ -47,7 +47,7 @@ export function TabBar({ pane }: TabBarProps) {
       onDrop={handleTabBarDrop}
     >
       {/* Scrollable tabs area */}
-      <div className="tabs-scrollbar flex items-center h-full flex-1 overflow-x-auto min-w-0">
+      <div className="tabs-scrollbar flex items-center h-full flex-1 overflow-x-auto min-w-0 overflow-y-hidden">
         {pane.tabs.map((tab) => {
           const isActive = tab.id === pane.activeTabId;
           return (
