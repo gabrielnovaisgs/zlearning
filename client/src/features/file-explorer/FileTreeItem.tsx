@@ -100,10 +100,7 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
   };
 
   return (
-    <div className="relative">
-      {isActive && (
-        <div className="absolute left-0 top-0.5 bottom-0.5 w-0.5 bg-accent rounded-r-full" />
-      )}
+    <div>
       <button
         draggable={!isRenaming}
         onClick={isRenaming ? undefined : handleClick}
@@ -119,8 +116,8 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
           ${dragOver
             ? 'bg-accent/10 text-fg mx-1.5 px-3 py-1'
             : isActive
-              ? 'bg-accent-dim text-fg mx-1.5 px-3 py-1'
-              : 'text-fg-secondary hover:bg-surface-2 hover:text-fg mx-1.5 px-3 py-1'
+              ? 'bg-accent-dim text-fg mx-1.5 px-3 py-1 border-l-2 border-accent'
+              : 'text-fg-secondary hover:bg-surface-2 hover:text-fg mx-1.5 px-3 py-1 border-l-2 border-transparent'
           }
         `}
         style={{ paddingLeft: `${depth * 16 + 12}px` }}
