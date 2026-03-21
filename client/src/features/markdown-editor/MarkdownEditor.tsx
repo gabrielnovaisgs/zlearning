@@ -3,6 +3,7 @@ import { createEditor, type EditorInstance } from "./setup";
 import { fs } from "@shared/services/filesystem";
 import { useFileStore } from "@shared/file.store";
 import { useFileContent } from "@shared/hooks/use-files";
+import { useThemeStore } from "@features/theme/theme.store";
 
 interface Props {
   filePath: string;
@@ -30,7 +31,7 @@ function EditableTitle({ activeFile }: { activeFile: string }) {
       setValue(fileTitle(activeFile));
       return;
     }
-    
+
     useFileStore.getState().actions.renameFile(activeFile, trimmed).then((ok) => {
       if (!ok) setValue(fileTitle(activeFile));
     });
@@ -43,7 +44,7 @@ function EditableTitle({ activeFile }: { activeFile: string }) {
           setEditing(true);
           requestAnimationFrame(() => inputRef.current?.focus());
         }}
-        className="title-area cursor-text text-3xl font-bold text-text-primary outline-none"
+        className="title-area cursor-text text-3xl font-bold text-fg outline-none"
       >
         {value}
       </h1>
@@ -67,7 +68,7 @@ function EditableTitle({ activeFile }: { activeFile: string }) {
           setEditing(false);
         }
       }}
-      className="title-area w-full bg-transparent text-3xl font-bold text-text-primary outline-none"
+      className="title-area w-full bg-transparent text-3xl font-bold text-fg outline-none"
     />
   );
 }
@@ -79,6 +80,7 @@ export function MarkdownEditor({ filePath }: Props) {
   const filePathRef = useRef(filePath);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { content, isLoading } = useFileContent(filePath);
+  const mode = useThemeStore((s) => s.mode);
 
   // Keep ref in sync with prop
   useEffect(() => {
@@ -88,7 +90,6 @@ export function MarkdownEditor({ filePath }: Props) {
   const scheduleSave = useCallback((path: string, content: string) => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
-      
       fs.writeFile(path, content);
     }, 1000);
   }, []);
@@ -111,10 +112,26 @@ export function MarkdownEditor({ filePath }: Props) {
     };
   }, [scheduleSave]);
 
+  // Rebuild editor when theme mode changes to pick up new CSS vars
+  useEffect(() => {
+    if (!containerRef.current || !editorRef.current) return;
+    const currentContent = editorRef.current.getContent();
+    editorRef.current.destroy();
+
+    const editor = createEditor(containerRef.current, (content) => {
+      const path = filePathRef.current;
+      if (!isExternalUpdate.current && path) {
+        scheduleSave(path, content);
+      }
+    });
+
+    isExternalUpdate.current = true;
+    editor.setContent(currentContent);
+    isExternalUpdate.current = false;
+    editorRef.current = editor;
+  }, [mode, scheduleSave]);
+
   // Load file content when filePath or content changes
-  // Depend on BOTH content and filePath: when switching back to a previously
-  // opened file, React Query may return the same cached reference, so the effect
-  // would not re-fire on content alone and the editor would not be populated.
   useEffect(() => {
     if (content === null || !editorRef.current) return;
     isExternalUpdate.current = true;
@@ -130,8 +147,8 @@ export function MarkdownEditor({ filePath }: Props) {
       </div>
 
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-bg-primary/80">
-          <span className="text-text-muted">Loading...</span>
+        <div className="absolute inset-0 flex items-center justify-center bg-bg/80">
+          <span className="text-fg-muted">Loading...</span>
         </div>
       )}
     </>

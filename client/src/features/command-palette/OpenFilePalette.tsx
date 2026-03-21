@@ -16,6 +16,7 @@ import {
   CommandList,
 } from "@shared/ui/command";
 import { useFiles } from "@shared/hooks/use-files";
+import { FileText, BookOpen } from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -66,12 +67,18 @@ export function CommandPalette({ open, onClose }: Props) {
                   usePaneController.getState().actions.openFileInPane(file.path);
                   handleOpenChange(false);
                 }}
-                className="flex flex-col items-start gap-0.5 px-4 py-2 rounded-none cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer hover:bg-accent/10"
               >
-                <span className="text-sm">
-                  <HighlightedName name={file.name} matches={file.matches} />
-                </span>
-                <span className="text-xs text-muted-foreground">{file.path}</span>
+                {file.path.endsWith('.pdf')
+                  ? <BookOpen size={14} className="text-[#E07B54] shrink-0" />
+                  : <FileText size={14} className="text-fg-secondary shrink-0" />
+                }
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-sm">
+                    <HighlightedName name={file.name} matches={file.matches} />
+                  </span>
+                  <span className="text-xs text-fg-muted truncate">{file.path}</span>
+                </div>
               </CommandItem>
             ))}
           </CommandList>
