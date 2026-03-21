@@ -80,7 +80,8 @@ export function MarkdownEditor({ filePath }: Props) {
   const filePathRef = useRef(filePath);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { content, isLoading } = useFileContent(filePath);
-  const mode = useThemeStore((s) => s.mode);
+  const mode  = useThemeStore((s) => s.mode);
+  const theme = useThemeStore((s) => s.theme);
 
   // Keep ref in sync with prop
   useEffect(() => {
@@ -129,7 +130,7 @@ export function MarkdownEditor({ filePath }: Props) {
     editor.setContent(currentContent);
     isExternalUpdate.current = false;
     editorRef.current = editor;
-  }, [mode, scheduleSave]);
+  }, [mode, theme, scheduleSave]);
 
   // Load file content when filePath or content changes
   useEffect(() => {
