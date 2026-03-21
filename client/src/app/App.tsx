@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import '@features/theme/theme.store'
 import { usePaneController } from "@features/panes/pane-controller.store";
 import { registry } from "@features/command-palette/CommandRegistry";
 import { FileExplorer } from "@features/file-explorer/FileExplorer";
@@ -65,7 +66,7 @@ export function App() {
 
   return (
     <SidebarProvider
-      className="h-screen overflow-hidden bg-bg-primary text-text-primary"
+      className="h-screen overflow-hidden bg-bg text-fg"
       style={{ "--sidebar-start": "3rem" } as React.CSSProperties}
     >
       <ActivityBar />
