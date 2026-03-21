@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ZLearning — Design Mockup</title>
+  <title>ZLearning — Design Mockup v2 (Indigo)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -15,41 +15,61 @@
 
     /* ─── Design Tokens ──────────────────────────────── */
     :root {
-      /* Light */
-      --bg:           #F7F6F3;
+      /* Light — cool neutral, indigo accent */
+      --bg:           #F5F5F7;
       --surface:      #FFFFFF;
-      --surface-2:    #F0EDE8;
-      --border:       #E4E0D8;
-      --border-subtle:#EDE9E2;
-      --fg:           #1C1916;
-      --fg-secondary: #4A4640;
-      --fg-muted:     #9A9289;
-      --accent:       #C9963A;
-      --accent-dim:   rgba(201,150,58,0.12);
-      --accent-hover: rgba(201,150,58,0.08);
-      --glass:        rgba(255,255,255,0.7);
-      --shadow:       0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md:    0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+      --surface-2:    #EBEBED;
+      --border:       #DDDDE0;
+      --border-subtle:#E8E8EB;
+      --fg:           #111118;
+      --fg-secondary: #3C3C4A;
+      --fg-muted:     #8E8EA0;
+      --accent:       #4F6AF0;
+      --accent-dim:   rgba(79,106,240,0.10);
+      --accent-hover: rgba(79,106,240,0.06);
+      --glass:        rgba(255,255,255,0.75);
+      --shadow:       0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md:    0 4px 20px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.04);
       --radius:       6px;
       --tab-active-bg:#FFFFFF;
     }
 
     .dark {
-      --bg:           #0D0C0A;
-      --surface:      #141310;
-      --surface-2:    #1A1916;
-      --border:       #252219;
-      --border-subtle:#1F1D18;
-      --fg:           #E8E2D6;
-      --fg-secondary: #B5AFA4;
-      --fg-muted:     #5C5650;
-      --accent:       #D4A853;
-      --accent-dim:   rgba(212,168,83,0.1);
-      --accent-hover: rgba(212,168,83,0.06);
-      --glass:        rgba(20,19,16,0.8);
-      --shadow:       0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
-      --shadow-md:    0 4px 16px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2);
-      --tab-active-bg:#0D0C0A;
+      --bg:           #0C0C0F;
+      --surface:      #131318;
+      --surface-2:    #1A1A22;
+      --border:       #24242E;
+      --border-subtle:#1E1E28;
+      --fg:           #E2E2F0;
+      --fg-secondary: #AAAAB8;
+      --fg-muted:     #52526A;
+      --accent:       #7B93F5;
+      --accent-dim:   rgba(123,147,245,0.10);
+      --accent-hover: rgba(123,147,245,0.06);
+      --glass:        rgba(19,19,24,0.82);
+      --shadow:       0 1px 3px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.25);
+      --shadow-md:    0 4px 20px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+      --tab-active-bg:#0C0C0F;
+    }
+
+    /* ─── Smooth theme transitions ───────────────────── */
+    *, *::before, *::after {
+      transition:
+        background-color 0.18s ease,
+        border-color     0.18s ease,
+        color            0.18s ease,
+        box-shadow       0.18s ease;
+    }
+    /* Exclude transitions that should remain snappy */
+    .tab, .file-item, .activity-btn, .palette-item,
+    .new-tab-card, .demo-btn, .theme-toggle-wrap,
+    .theme-switch-track, .theme-switch-thumb {
+      transition:
+        background-color 0.12s ease,
+        border-color     0.12s ease,
+        color            0.12s ease,
+        transform        0.15s ease,
+        opacity          0.12s ease;
     }
 
     /* ─── Base ───────────────────────────────────────── */
@@ -60,7 +80,6 @@
       color: var(--fg);
       display: flex;
       height: 100vh;
-      transition: background 0.2s, color 0.2s;
       -webkit-font-smoothing: antialiased;
     }
 
@@ -699,12 +718,14 @@
 
     .palette-match { color: var(--accent); font-weight: 500; }
 
-    /* ─── Theme Toggle (demo control) ───────────────── */
+    /* ─── Demo Controls ──────────────────────────────── */
     .demo-controls {
       position: fixed;
       bottom: 20px;
       right: 20px;
       display: flex;
+      flex-direction: column;
+      align-items: flex-end;
       gap: 8px;
       z-index: 200;
     }
@@ -727,6 +748,70 @@
     }
     .demo-btn:hover { border-color: var(--accent); color: var(--fg); background: var(--surface-2); }
     .demo-btn svg { width: 13px; height: 13px; stroke-width: 1.75; }
+
+    /* Theme Toggle Switch */
+    .theme-toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .theme-toggle-wrap:hover { border-color: var(--accent); }
+
+    .theme-toggle-label {
+      font-family: 'Geist', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--fg-secondary);
+      min-width: 68px;
+    }
+
+    .theme-switch {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .theme-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+
+    .theme-switch-track {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .theme-switch input:checked + .theme-switch-track {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+    }
+
+    .theme-switch-thumb {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--fg-muted);
+      transition: transform 0.2s, background 0.2s;
+      pointer-events: none;
+    }
+    .theme-switch input:checked ~ .theme-switch-thumb {
+      transform: translateX(16px);
+      background: var(--accent);
+    }
+
+    .theme-icon { color: var(--fg-muted); display: flex; align-items: center; }
+    .theme-icon svg { width: 13px; height: 13px; stroke-width: 1.75; }
 
     /* ─── Tooltip ────────────────────────────────────── */
     [data-tooltip] { position: relative; }
@@ -956,11 +1041,11 @@
 
             <div class="code-block">
               <span class="code-lang-label">python</span>
-<span style="color:#D4A853">import</span> numpy <span style="color:#D4A853">as</span> np
+<span style="color:var(--accent)">import</span> numpy <span style="color:var(--accent)">as</span> np
 
-A = np.array([[<span style="color:#98C97A">1</span>, <span style="color:#98C97A">2</span>], [<span style="color:#98C97A">3</span>, <span style="color:#98C97A">4</span>]])
+A = np.array([[<span style="color:#7DC98A">1</span>, <span style="color:#7DC98A">2</span>], [<span style="color:#7DC98A">3</span>, <span style="color:#7DC98A">4</span>]])
 eigenvalues, eigenvectors = np.linalg.eig(A)
-<span style="color:#69B0F0">print</span>(f<span style="color:#F5A97F">"Autovalores: {eigenvalues}"</span>)</div>
+<span style="color:#6EB5FF">print</span>(f<span style="color:#F5A97F">"Autovalores: {eigenvalues}"</span>)</div>
 
             <h2>Transformações Lineares</h2>
 
@@ -1163,30 +1248,55 @@ eigenvalues, eigenvectors = np.linalg.eig(A)
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       Palette (Ctrl+O)
     </button>
-    <button class="demo-btn" onclick="toggleTheme()">
-      <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-      </svg>
-      <span id="theme-label">Light Mode</span>
-    </button>
+
+    <label class="theme-toggle-wrap" for="theme-switch-input">
+      <!-- sun icon -->
+      <span class="theme-icon" id="icon-light">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="12" cy="12" r="5"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+      </span>
+
+      <div class="theme-switch">
+        <input type="checkbox" id="theme-switch-input" onchange="toggleTheme(this)" />
+        <div class="theme-switch-track"></div>
+        <div class="theme-switch-thumb"></div>
+      </div>
+
+      <!-- moon icon -->
+      <span class="theme-icon" id="icon-dark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </span>
+
+      <span class="theme-toggle-label" id="theme-label">Escuro</span>
+    </label>
   </div>
 
   <script>
     // ── Theme Toggle ──────────────────────────────────────
     let isDark = true;
-    function toggleTheme() {
-      isDark = !isDark;
+
+    function applyTheme() {
       document.documentElement.classList.toggle('dark', isDark);
-      const icon = document.getElementById('theme-icon');
       const label = document.getElementById('theme-label');
-      if (isDark) {
-        icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
-        label.textContent = 'Light Mode';
-      } else {
-        icon.innerHTML = '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
-        label.textContent = 'Dark Mode';
-      }
+      const iconLight = document.getElementById('icon-light');
+      const iconDark = document.getElementById('icon-dark');
+      label.textContent = isDark ? 'Escuro' : 'Claro';
+      iconLight.style.color = isDark ? 'var(--fg-muted)' : 'var(--accent)';
+      iconDark.style.color  = isDark ? 'var(--accent)'   : 'var(--fg-muted)';
     }
+
+    function toggleTheme(checkbox) {
+      // checkbox.checked = true → light mode
+      isDark = !checkbox.checked;
+      applyTheme();
+    }
+
+    // init state
+    applyTheme();
 
     // ── Sidebar Toggle ────────────────────────────────────
     function toggleSidebar() {
