@@ -3,8 +3,7 @@ import type { FileTreeEntry } from "@shared/types";
 import { usePaneController } from "@features/panes/pane-controller.store";
 import { useFileStore } from "@shared/file.store";
 import { useFileExplorerStore } from "./file-explorer.store";
-
-
+import { FileText, BookOpen, Folder, FolderOpen, ChevronRight } from 'lucide-react';
 
 interface Props {
   entry: FileTreeEntry;
@@ -13,6 +12,19 @@ interface Props {
   onContextMenu: (e: React.MouseEvent, entry: FileTreeEntry) => void;
   onStartRename: (path: string) => void;
   onEndRename: () => void;
+}
+
+function FileIcon({ path, isOpen }: { path: string; isOpen?: boolean }) {
+  if (!path) return null;
+  if (path.endsWith('.pdf')) {
+    return <BookOpen size={14} strokeWidth={1.75} className="shrink-0 text-[#E07B54]" />;
+  }
+  if (isOpen !== undefined) {
+    return isOpen
+      ? <FolderOpen size={14} strokeWidth={1.75} className="shrink-0 text-accent" />
+      : <Folder size={14} strokeWidth={1.75} className="shrink-0 text-fg-muted" />;
+  }
+  return <FileText size={14} strokeWidth={1.75} className="shrink-0 text-fg-secondary" />;
 }
 
 export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStartRename, onEndRename }: Props) {
@@ -98,19 +110,29 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-sm transition-colors ${
-          dragOver
-            ? "bg-accent/20 text-accent"
+        className={`
+          flex w-full items-center gap-1.5 rounded-md mx-1.5 px-2 py-1 text-left text-sm
+          transition-colors cursor-pointer select-none
+          ${dragOver
+            ? 'bg-accent/10 text-fg'
             : isActive
-              ? "bg-bg-surface text-accent"
-              : "text-text-secondary hover:bg-bg-hover hover:text-text-primary"
-        }`}
+              ? 'bg-accent/10 text-fg border-l-2 border-accent pl-[6px]'
+              : 'text-fg-secondary hover:bg-surface-2 hover:text-fg border-l-2 border-transparent pl-[6px]'
+          }
+        `}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
         {entry.type === "directory" ? (
-          <span className="text-xs text-text-muted">{expanded ? "▾" : "▸"}</span>
+          <>
+            <ChevronRight
+              size={12}
+              strokeWidth={2.5}
+              className={`shrink-0 text-fg-muted transition-transform ${expanded ? 'rotate-90' : ''}`}
+            />
+            <FileIcon path={entry.path} isOpen={expanded} />
+          </>
         ) : (
-          <span className="text-xs text-text-muted">{entry.name.endsWith(".pdf") ? "📕" : "📄"}</span>
+          <FileIcon path={entry.path} />
         )}
         {isRenaming ? (
           <input
@@ -128,7 +150,7 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
               }
             }}
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 min-w-0 bg-bg-primary rounded px-1 text-sm text-text-primary outline-none border border-accent"
+            className="flex-1 min-w-0 bg-bg rounded px-1 text-sm text-fg outline-none border border-accent"
           />
         ) : (
           <span className="truncate">{displayName}</span>

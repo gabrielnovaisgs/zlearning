@@ -1,10 +1,11 @@
-import { PanelLeftClose, PanelLeftOpen, MessageSquare } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, MessageSquare, Sun, Moon } from 'lucide-react';
 import { Button } from '@shared/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@shared/ui/tooltip';
 import { useSidebar } from '@shared/ui/sidebar';
 import { GLOBAL_CONFIG } from '@app/config';
 import { nanoid } from 'nanoid';
 import { usePaneController } from '@features/panes/pane-controller.store';
+import { useThemeStore } from '@features/theme/theme.store';
 
 interface ActivityBarAction {
   id: string;
@@ -24,8 +25,8 @@ function ActivityBarButton({ action }: { action: ActivityBarAction }) {
           onClick={action.onClick}
           className={
             action.active
-              ? 'size-9 text-text-primary'
-              : 'size-9 text-text-muted hover:bg-bg-hover hover:text-text-primary'
+              ? 'size-9 text-fg bg-accent/10 rounded-lg'
+              : 'size-9 text-fg-muted hover:bg-surface-2 hover:text-fg rounded-lg'
           }
           aria-label={action.label}
         >
@@ -41,6 +42,7 @@ function ActivityBarButton({ action }: { action: ActivityBarAction }) {
 
 export function ActivityBar() {
   const { toggleSidebar, open } = useSidebar();
+  const { mode, actions } = useThemeStore((s) => ({ mode: s.mode, actions: s.actions }));
 
   const topActions: ActivityBarAction[] = [
     {
@@ -65,7 +67,7 @@ export function ActivityBar() {
   ];
 
   return (
-    <div className="flex h-full w-12 shrink-0 flex-col items-center border-r border-border bg-bg-secondary z-99999">
+    <div className="flex h-full w-11 shrink-0 flex-col items-center border-r border-border bg-surface py-2 gap-0.5 z-99999">
       <div
         className="flex w-full items-center justify-center shrink-0"
         style={{ height: GLOBAL_CONFIG.headerHeight }}
@@ -83,6 +85,19 @@ export function ActivityBar() {
         {bottomActions.map((action) => (
           <ActivityBarButton key={action.id} action={action} />
         ))}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={actions.toggleMode}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-fg-muted hover:bg-surface-2 hover:text-fg transition-colors"
+            >
+              {mode === 'dark' ? <Sun size={15} strokeWidth={1.75} /> : <Moon size={15} strokeWidth={1.75} />}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            {mode === 'dark' ? 'Modo claro' : 'Modo escuro'}
+          </TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );

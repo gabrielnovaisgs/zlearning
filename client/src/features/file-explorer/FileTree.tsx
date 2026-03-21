@@ -17,7 +17,7 @@ export function FileTree({ onContextMenu, renamingPath, onStartRename, onEndRena
 
   if (fileTree.length === 0) {
     return (
-      <div className="px-4 py-8 text-center text-sm text-text-muted">
+      <div className="px-4 py-8 text-center text-sm text-fg-muted">
         No markdown files found.
         <br />
         Add .md files to the docs/ folder.
@@ -28,7 +28,6 @@ export function FileTree({ onContextMenu, renamingPath, onStartRename, onEndRena
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-    // Only highlight when dragging over the container itself (not children)
     if (e.target === e.currentTarget) {
       setDragOver(true);
     }
@@ -51,7 +50,7 @@ export function FileTree({ onContextMenu, renamingPath, onStartRename, onEndRena
 
   return (
     <div
-      className={`flex min-h-full flex-col gap-0.5 py-2 ${dragOver ? "bg-accent/10 rounded" : ""}`}
+      className={`flex min-h-full flex-col gap-0.5 py-2 ${dragOver ? "bg-accent/10 rounded-md" : ""}`}
       onContextMenu={(e) => {
         if (e.target === e.currentTarget) {
           onContextMenu(e, null);
