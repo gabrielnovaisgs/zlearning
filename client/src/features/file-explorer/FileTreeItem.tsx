@@ -14,7 +14,7 @@ interface Props {
   onEndRename: () => void;
 }
 
-function FileIcon({ path, isOpen }: { path: string; isOpen?: boolean }) {
+function FileIcon({ path, isOpen, isActive }: { path: string; isOpen?: boolean; isActive?: boolean }) {
   if (!path) return null;
   if (path.endsWith('.pdf')) {
     return <BookOpen size={14} strokeWidth={1.75} className="shrink-0 text-[#E07B54]" />;
@@ -24,7 +24,7 @@ function FileIcon({ path, isOpen }: { path: string; isOpen?: boolean }) {
       ? <FolderOpen size={14} strokeWidth={1.75} className="shrink-0 text-accent" />
       : <Folder size={14} strokeWidth={1.75} className="shrink-0 text-fg-muted" />;
   }
-  return <FileText size={14} strokeWidth={1.75} className="shrink-0 text-fg-secondary" />;
+  return <FileText size={14} strokeWidth={1.75} className={`shrink-0 ${isActive ? 'text-accent' : 'text-fg-secondary'}`} />;
 }
 
 export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStartRename, onEndRename }: Props) {
@@ -100,7 +100,10 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
   };
 
   return (
-    <div>
+    <div className="relative">
+      {isActive && (
+        <div className="absolute left-0 top-0.5 bottom-0.5 w-0.5 bg-accent rounded-r-full" />
+      )}
       <button
         draggable={!isRenaming}
         onClick={isRenaming ? undefined : handleClick}
@@ -132,7 +135,7 @@ export function FileTreeItem({ entry, depth, renamingPath, onContextMenu, onStar
             <FileIcon path={entry.path} isOpen={expanded} />
           </>
         ) : (
-          <FileIcon path={entry.path} />
+          <FileIcon path={entry.path} isActive={isActive} />
         )}
         {isRenaming ? (
           <input
