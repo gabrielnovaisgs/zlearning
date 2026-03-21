@@ -41,103 +41,107 @@ export function TabBar({ pane }: TabBarProps) {
 
   return (
     <div
-      className="tabs-scrollbar flex items-center bg-surface border-b border-border overflow-x-auto shrink-0"
+      className="flex items-center bg-surface border-b border-border shrink-0"
       style={{ height: GLOBAL_CONFIG.headerHeight }}
       onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
       onDrop={handleTabBarDrop}
     >
-      {pane.tabs.map((tab) => {
-        const isActive = tab.id === pane.activeTabId;
-        return (
-          <div
-            key={tab.id}
-            draggable={tab.path !== null}
-            onDragStart={(e) => {
-              if (!tab.path) return;
-              e.dataTransfer.setData(
-                "text/plain",
-                JSON.stringify({ tabId: tab.id, paneId: pane.id })
-              );
-              e.stopPropagation();
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              actions.activateTab(tab.id, pane.id);
-            }}
-            className={`
-              group/tab relative flex items-center gap-1.5 px-3 text-xs cursor-pointer select-none
-              border-r border-border/60 shrink-0 transition-colors h-full
-              ${isActive
-                ? 'bg-[var(--tab-active-bg)] text-fg after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-accent rounded-t-lg'
-                : 'text-fg-muted hover:text-fg-secondary hover:bg-surface-2'
-              }
-            `}
-          >
-            <TabIcon path={tab.path} />
-            <span className="max-w-32 truncate">{fileTitle(tab.path)}</span>
-            <button
+      {/* Scrollable tabs area */}
+      <div className="tabs-scrollbar flex items-center h-full flex-1 overflow-x-auto min-w-0">
+        {pane.tabs.map((tab) => {
+          const isActive = tab.id === pane.activeTabId;
+          return (
+            <div
+              key={tab.id}
+              draggable={tab.path !== null}
+              onDragStart={(e) => {
+                if (!tab.path) return;
+                e.dataTransfer.setData(
+                  "text/plain",
+                  JSON.stringify({ tabId: tab.id, paneId: pane.id })
+                );
+                e.stopPropagation();
+              }}
               onClick={(e) => {
                 e.stopPropagation();
-                actions.closeTab(tab.id, pane.id);
+                actions.activateTab(tab.id, pane.id);
               }}
-              className="ml-0.5 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover/tab:opacity-60 hover:!opacity-100 hover:bg-surface-2 shrink-0 transition-opacity"
-              title="Close tab"
+              className={`
+                group/tab relative flex items-center gap-1.5 px-3 text-xs cursor-pointer select-none
+                border-r border-border/60 shrink-0 transition-colors h-full
+                ${isActive
+                  ? 'bg-[var(--tab-active-bg)] text-fg after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-accent rounded-t-lg'
+                  : 'text-fg-muted hover:text-fg-secondary hover:bg-surface-2'
+                }
+              `}
             >
-              <X size={10} strokeWidth={2.5} />
-            </button>
-          </div>
-        );
-      })}
+              <TabIcon path={tab.path} />
+              <span className="max-w-32 truncate">{fileTitle(tab.path)}</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => { e.stopPropagation(); actions.closeTab(tab.id, pane.id); }}
+                    className="ml-0.5 size-5 rounded opacity-0 group-hover/tab:opacity-60 hover:!opacity-100 hover:bg-surface-2 hover:text-fg shrink-0 transition-opacity"
+                  >
+                    <X size={10} strokeWidth={2.5} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Fechar aba</TooltipContent>
+              </Tooltip>
+            </div>
+          );
+        })}
 
-      {/* New tab button */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => { e.stopPropagation(); actions.openNewTab(pane.id); }}
-            className="size-7 shrink-0 text-fg-muted hover:bg-surface-2 hover:text-fg rounded-lg"
-          >
-            <Plus size={13} strokeWidth={2} />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">Nova aba</TooltipContent>
-      </Tooltip>
-
-      {/* Spacer */}
-      <div className="flex-1 min-w-2" />
-
-      {/* Split right button */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => { e.stopPropagation(); actions.splitPane(pane.id, "right"); }}
-            className="size-7 shrink-0 text-fg-muted hover:bg-surface-2 hover:text-fg rounded-lg"
-          >
-            <Columns2 size={13} strokeWidth={1.75} />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">Dividir painel</TooltipContent>
-      </Tooltip>
-
-      {/* Close pane button — only when N > 1 panes */}
-      {panes.length > 1 && (
+        {/* New tab button */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              onClick={(e) => { e.stopPropagation(); actions.closePane(pane.id); }}
-              className="size-7 shrink-0 text-fg-muted hover:bg-surface-2 hover:text-fg rounded-lg"
+              onClick={(e) => { e.stopPropagation(); actions.openNewTab(pane.id); }}
+              className="ml-1 size-7 shrink-0 text-fg-muted hover:bg-surface-2 hover:text-fg rounded-lg"
             >
-              <X size={13} strokeWidth={1.75} />
+              <Plus size={13} strokeWidth={2} />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom">Fechar painel</TooltipContent>
+          <TooltipContent side="bottom">Nova aba</TooltipContent>
         </Tooltip>
-      )}
+      </div>
+
+      {/* Fixed pane action buttons */}
+      <div className="flex items-center gap-0.5 px-1 shrink-0 border-l border-border/60">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => { e.stopPropagation(); actions.splitPane(pane.id, "right"); }}
+              className="size-7 text-fg-muted hover:bg-surface-2 hover:text-fg rounded-lg"
+            >
+              <Columns2 size={13} strokeWidth={1.75} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Dividir painel</TooltipContent>
+        </Tooltip>
+
+        {panes.length > 1 && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => { e.stopPropagation(); actions.closePane(pane.id); }}
+                className="size-7 text-fg-muted hover:bg-surface-2 hover:text-fg rounded-lg"
+              >
+                <X size={13} strokeWidth={1.75} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Fechar painel</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
     </div>
   );
 }
