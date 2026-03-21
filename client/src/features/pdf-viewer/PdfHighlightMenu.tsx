@@ -81,12 +81,10 @@ export function HighlightMenu({
 }: HighlightMenuProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const bgClass = onDelete ? "bg-secondary" : "bg-bg-secondary";
-
   return (
     <>
-      <div className={`flex items-center gap-2 rounded-lg ${bgClass} border border-border shadow-2xl px-3 py-2`}>
-        {showLabel && <span className="text-xs text-text-muted shrink-0">Destacar:</span>}
+      <div className="flex items-center gap-2 rounded-lg bg-surface border border-border shadow-2xl px-3 py-2">
+        {showLabel && <span className="text-xs text-fg-muted shrink-0">Destacar:</span>}
         {COLORS.map((c) => (
           <ColorButton
             key={c.id}
@@ -102,7 +100,7 @@ export function HighlightMenu({
         {textToTranslate && (
           <button
             title={onDelete ? "Traduzir marcação" : "Traduzir seleção"}
-            className="flex items-center gap-1 px-2 py-0.5 rounded text-xs text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors shrink-0"
+            className="flex items-center gap-1 px-2 py-0.5 rounded text-xs text-fg-muted hover:text-fg hover:bg-surface-2 transition-colors shrink-0"
             {...(useMouseDownForColor
               ? {
                   onMouseDown: (e) => {
@@ -122,7 +120,7 @@ export function HighlightMenu({
         {onDelete && (
           <Button
             title="Deletar marcação"
-            className="flex items-center justify-center w-6 h-6 rounded text-text-muted hover:text-red-400 hover:bg-bg-hover transition-colors shrink-0"
+            className="flex items-center justify-center w-6 h-6 rounded text-fg-muted hover:text-red-400 hover:bg-surface-2 transition-colors shrink-0"
             onClick={onDelete}
           >
             {DELETE_ICON}

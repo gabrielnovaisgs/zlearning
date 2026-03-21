@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
-import { XIcon } from "lucide-react";
+import { XIcon, BookOpen } from "lucide-react";
 import { useTranslation } from "./use-translation";
 import {
   Dialog,
@@ -34,8 +34,6 @@ export function TranslationDialog({ original, onClose }: TranslationDialogProps)
   } = useTranslation(original);
 
   useEffect(() => {
-    // translate is called once on mount; text won't change while the dialog is open,
-    // so omitting it from deps is intentional — adding it would cause an infinite loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     translate();
   }, []);
@@ -43,40 +41,36 @@ export function TranslationDialog({ original, onClose }: TranslationDialogProps)
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogPortal>
-        {/* stopPropagation prevents react-pdf-highlighter's document listener
-            from closing the HighlightMenu */}
         <DialogOverlay
-          className="bg-black/50"
+          className="bg-black/40 backdrop-blur-sm"
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         />
         <DialogPrimitive.Content
-          className="fixed top-[50%] left-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-xl bg-bg-secondary border border-border shadow-2xl p-5 flex flex-col gap-3 max-h-[90vh] overflow-y-auto outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
-          onPointerDownCapture={(e) => {
-            e.stopPropagation();
-          }}
+          className="fixed top-[50%] left-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-xl bg-surface border border-border shadow-xl p-5 flex flex-col gap-3 max-h-[90vh] overflow-y-auto outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
+          onPointerDownCapture={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <DialogHeader>
-            <DialogTitle className="text-xs font-semibold text-text-muted uppercase tracking-wide">
+            <DialogTitle className="text-xs font-semibold text-fg-muted uppercase tracking-widest">
               Tradução — EN → PT
             </DialogTitle>
           </DialogHeader>
-          <DialogClose className="absolute top-4 right-4 p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors">
-            <XIcon className="size-3" />
+          <DialogClose className="absolute top-4 right-4 p-1 rounded-md text-fg-muted hover:text-fg hover:bg-surface-2 transition-colors">
+            <XIcon className="size-3.5" />
             <span className="sr-only">Close</span>
           </DialogClose>
 
           {/* Original */}
-          <div className="rounded-lg bg-bg-surface border border-border px-3 py-2">
-            <p className="text-[10px] text-text-muted mb-1">Original</p>
-            <p className="text-sm text-text-secondary leading-relaxed line-clamp-6">{original}</p>
+          <div className="rounded-lg bg-bg border border-border px-3 py-2.5">
+            <p className="text-xs text-fg-muted mb-1">Original</p>
+            <p className="text-sm text-fg-secondary leading-relaxed line-clamp-6">{original}</p>
           </div>
 
           {/* Translation */}
-          <div className="rounded-lg bg-bg-surface border border-border px-3 py-2 min-h-15 flex items-center">
+          <div className="rounded-lg bg-bg border border-border px-3 py-2.5 min-h-14 flex items-center">
             {isTranslating && (
-              <div className="flex items-center gap-2 text-text-muted text-sm">
+              <div className="flex items-center gap-2 text-fg-muted text-sm">
                 <Spinner />
                 Traduzindo…
               </div>
@@ -86,8 +80,8 @@ export function TranslationDialog({ original, onClose }: TranslationDialogProps)
             )}
             {!isTranslating && !translationError && (
               <div className="w-full">
-                <p className="text-[10px] text-text-muted mb-1">Português</p>
-                <p className="text-sm text-text-primary leading-relaxed">{translation}</p>
+                <p className="text-xs text-fg-muted mb-1">Português</p>
+                <p className="text-sm text-fg leading-relaxed">{translation}</p>
               </div>
             )}
           </div>
@@ -95,9 +89,9 @@ export function TranslationDialog({ original, onClose }: TranslationDialogProps)
           {/* Examples section */}
           {hasRequestedExamples && (
             <div className="flex flex-col gap-2">
-              <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Exemplos de uso</p>
+              <p className="text-xs font-semibold text-fg-muted uppercase tracking-widest">Exemplos de uso</p>
               {isFetchingExamples && (
-                <div className="flex items-center gap-2 text-text-muted text-sm px-1">
+                <div className="flex items-center gap-2 text-fg-muted text-sm px-1">
                   <Spinner />
                   Buscando exemplos…
                 </div>
@@ -105,10 +99,10 @@ export function TranslationDialog({ original, onClose }: TranslationDialogProps)
               {examplesError && (
                 <p className="text-sm text-red-400 px-1">{examplesError}</p>
               )}
-              {hasRequestedExamples && !isFetchingExamples && !examplesError && examples.map((ex, i) => (
-                <div key={i} className="rounded-lg bg-bg-surface border border-border px-3 py-2 flex flex-col gap-1">
-                  <p className="text-sm text-text-primary leading-relaxed">{ex.original}</p>
-                  <p className="text-xs text-text-muted leading-relaxed italic">{ex.translation}</p>
+              {!isFetchingExamples && !examplesError && examples.map((ex, i) => (
+                <div key={i} className="rounded-lg bg-bg border border-border px-3 py-2.5 flex flex-col gap-1">
+                  <p className="text-sm text-fg leading-relaxed">{ex.original}</p>
+                  <p className="text-xs text-fg-muted leading-relaxed italic">{ex.translation}</p>
                 </div>
               ))}
             </div>
@@ -123,12 +117,7 @@ export function TranslationDialog({ original, onClose }: TranslationDialogProps)
               disabled={isFetchingExamples}
               className="gap-1.5"
             >
-              {isFetchingExamples ? <Spinner /> : (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                </svg>
-              )}
+              {isFetchingExamples ? <Spinner /> : <BookOpen size={12} strokeWidth={1.75} />}
               Exemplos
             </Button>
             <DialogClose asChild>

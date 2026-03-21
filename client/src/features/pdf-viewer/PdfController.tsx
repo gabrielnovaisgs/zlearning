@@ -34,13 +34,13 @@ function OutlineTree({
             className={`w-full text-left py-1 text-xs transition-colors flex items-center gap-1 ${
               item.page === currentPage
                 ? "text-accent font-medium bg-accent/10"
-                : "text-text-secondary hover:bg-bg-hover"
+                : "text-fg-secondary hover:bg-surface-2"
             }`}
             style={{ paddingLeft: `${12 + item.level * 12}px`, paddingRight: "12px" }}
           >
             <span className="truncate flex-1">{item.title}</span>
             {item.page > 0 && (
-              <span className="shrink-0 text-text-muted tabular-nums">{item.page}</span>
+              <span className="shrink-0 text-fg-muted tabular-nums">{item.page}</span>
             )}
           </button>
           {item.items.length > 0 && (
@@ -163,7 +163,7 @@ export function PdfController({
   return (
     <div className="flex flex-col flex-1 overflow-hidden min-w-0">
       {/* ── Toolbar ─────────────────────────────────────────────── */}
-      <div className="flex items-center px-2 py-1 bg-bg-secondary border-b border-border shrink-0">
+      <div className="flex items-center px-2 py-1 bg-surface border-b border-border shrink-0">
         {/* Left: TOC toggle */}
         <div className="flex items-center">
           <button
@@ -172,7 +172,7 @@ export function PdfController({
             className={`p-1.5 rounded transition-colors ${
               showToc
                 ? "bg-accent/20 text-accent"
-                : "text-text-muted hover:text-text-primary hover:bg-bg-hover"
+                : "text-fg-muted hover:text-fg hover:bg-surface-2"
             }`}
           >
             <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
@@ -190,7 +190,7 @@ export function PdfController({
               <button
                 onClick={() => scrollToPage(currentPage - 1)}
                 disabled={currentPage <= 1}
-                className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-1 rounded text-fg-muted hover:text-fg hover:bg-surface-2 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 title="Página anterior"
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -214,14 +214,14 @@ export function PdfController({
                     if (!isNaN(n)) scrollToPage(n);
                     else setPageInput(String(currentPage));
                   }}
-                  className="w-9 text-center bg-bg-surface border border-border rounded px-1 py-0.5 text-xs text-text-primary focus:outline-none focus:border-accent"
+                  className="w-9 text-center bg-surface-2 border border-border rounded px-1 py-0.5 text-xs text-fg focus:outline-none focus:border-accent"
                 />
-                <span className="text-xs text-text-muted">/ {numPages}</span>
+                <span className="text-xs text-fg-muted">/ {numPages}</span>
               </div>
               <button
                 onClick={() => scrollToPage(currentPage + 1)}
                 disabled={currentPage >= numPages}
-                className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-1 rounded text-fg-muted hover:text-fg hover:bg-surface-2 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 title="Próxima página"
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -237,7 +237,7 @@ export function PdfController({
           <button
             onClick={() => applyZoom(getViewerScale() - 0.1)}
             title="Diminuir zoom"
-            className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+            className="p-1 rounded text-fg-muted hover:text-fg hover:bg-surface-2 transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="5.5" cy="5.5" r="3.5" />
@@ -274,14 +274,14 @@ export function PdfController({
                   e.currentTarget.blur();
                 }
               }}
-              className="w-9 text-center bg-bg-surface border border-border rounded-l px-1 py-0.5 text-xs text-text-primary focus:outline-none focus:border-accent tabular-nums"
+              className="w-9 text-center bg-surface-2 border border-border rounded-l px-1 py-0.5 text-xs text-fg focus:outline-none focus:border-accent tabular-nums"
             />
-            <span className="px-1 py-0.5 text-xs text-text-muted bg-bg-surface border border-l-0 border-border rounded-r select-none">%</span>
+            <span className="px-1 py-0.5 text-xs text-fg-muted bg-surface-2 border border-l-0 border-border rounded-r select-none">%</span>
           </div>
           <button
             onClick={() => applyZoom(getViewerScale() + 0.1)}
             title="Aumentar zoom"
-            className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+            className="p-1 rounded text-fg-muted hover:text-fg hover:bg-surface-2 transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="5.5" cy="5.5" r="3.5" />
@@ -292,7 +292,7 @@ export function PdfController({
           <button
             onClick={() => applyZoom(1.0)}
             title="Redefinir zoom para 100%"
-            className="ml-1 px-2 py-0.5 text-xs text-text-muted hover:text-text-primary bg-bg-surface border border-border rounded hover:bg-bg-hover transition-colors"
+            className="ml-1 px-2 py-0.5 text-xs text-fg-muted hover:text-fg bg-surface-2 border border-border rounded hover:bg-surface-2 transition-colors"
           >
             reset
           </button>
@@ -303,7 +303,7 @@ export function PdfController({
                   variant="ghost"
                   size="icon-sm"
                   onClick={fitPage}
-                  className="ml-0.5 text-text-muted hover:text-text-primary"
+                  className="ml-0.5 text-fg-muted hover:text-fg"
                   aria-label="Ajustar página"
                 >
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -325,7 +325,7 @@ export function PdfController({
                   variant="ghost"
                   size="icon-sm"
                   onClick={onToggleNotes}
-                  className={showNotes ? "text-accent bg-accent/10 hover:bg-accent/20" : "text-text-muted hover:text-text-primary"}
+                  className={showNotes ? "text-accent bg-accent/10 hover:bg-accent/20" : "text-fg-muted hover:text-fg"}
                   aria-label={showNotes ? "Esconder notas" : "Mostrar notas"}
                 >
                   <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
@@ -349,7 +349,7 @@ export function PdfController({
       <div className="flex flex-1 min-h-0">
         {/* TOC sidebar */}
         {showToc && (
-          <div className="w-56 shrink-0 overflow-y-auto bg-bg-secondary border-r border-border">
+          <div className="w-56 shrink-0 overflow-y-auto bg-surface border-r border-border">
             {outline.length > 0 ? (
               <OutlineTree
                 items={outline}
@@ -357,7 +357,7 @@ export function PdfController({
                 currentPage={currentPage}
               />
             ) : (
-              <p className="px-4 py-6 text-xs text-text-muted text-center">
+              <p className="px-4 py-6 text-xs text-fg-muted text-center">
                 Sem índice disponível
               </p>
             )}

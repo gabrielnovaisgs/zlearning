@@ -76,7 +76,7 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center px-4 py-2 border-b border-border shrink-0">
-        <span className="text-xs font-semibold text-text-muted uppercase tracking-wide">
+        <span className="text-xs font-semibold text-fg-muted uppercase tracking-widest">
           Notes
         </span>
       </div>
@@ -94,7 +94,7 @@ export function PdfNotesEditor({ pdfPath, onEditorReady }: PdfNotesEditorProps) 
             />
             <Label
               htmlFor="study-module"
-              className="text-xs text-muted-foreground cursor-pointer"
+              className="text-xs text-fg-muted cursor-pointer"
             >
               Criar módulo de estudo
             </Label>

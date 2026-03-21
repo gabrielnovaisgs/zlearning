@@ -163,7 +163,7 @@ export function PdfRenderer({
       <PdfLoader
         url={`/api/files/raw/${pdfPath}`}
         beforeLoad={
-          <div className="flex items-center justify-center h-full text-text-muted text-sm">
+          <div className="flex items-center justify-center h-full text-fg-muted text-sm">
             Carregando PDF…
           </div>
         }
