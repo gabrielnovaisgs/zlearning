@@ -40,9 +40,20 @@ function ActivityBarButton({ action }: { action: ActivityBarAction }) {
   );
 }
 
+const THEME_COLORS: Record<string, string> = {
+  indigo: '#7B93F5',
+  amber:  '#D4A853',
+};
+
+const THEME_LABELS: Record<string, string> = {
+  indigo: 'Índigo',
+  amber:  'Âmbar',
+};
+
 export function ActivityBar() {
   const { toggleSidebar, open } = useSidebar();
-  const mode = useThemeStore((s) => s.mode);
+  const mode    = useThemeStore((s) => s.mode);
+  const theme   = useThemeStore((s) => s.theme);
   const actions = useThemeStore((s) => s.actions);
 
   const topActions: ActivityBarAction[] = [
@@ -68,7 +79,7 @@ export function ActivityBar() {
   ];
 
   return (
-    <div className="flex h-full w-11 shrink-0 flex-col items-center border-r border-border bg-surface py-2 gap-0.5 z-99999">
+    <div className="flex h-full w-11 shrink-0 flex-col items-center border-r border-border bg-surface py-2 gap-0.5 z-20">
       <div
         className="flex w-full items-center justify-center shrink-0"
         style={{ height: GLOBAL_CONFIG.headerHeight }}
@@ -86,6 +97,23 @@ export function ActivityBar() {
         {bottomActions.map((action) => (
           <ActivityBarButton key={action.id} action={action} />
         ))}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={actions.cycleTheme}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-fg-muted hover:bg-surface-2 transition-colors"
+              aria-label="Trocar tema"
+            >
+              <span
+                className="block w-3.5 h-3.5 rounded-full ring-2 ring-border"
+                style={{ backgroundColor: THEME_COLORS[theme] }}
+              />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            Tema: {THEME_LABELS[theme]}
+          </TooltipContent>
+        </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <button

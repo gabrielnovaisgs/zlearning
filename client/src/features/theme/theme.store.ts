@@ -10,6 +10,7 @@ interface ThemeState {
     setMode: (mode: ThemeMode) => void
     setTheme: (theme: ThemeName) => void
     toggleMode: () => void
+    cycleTheme: () => void
   }
 }
 
@@ -42,6 +43,12 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     toggleMode: () => {
       const next = get().mode === 'dark' ? 'light' : 'dark'
       get().actions.setMode(next)
+    },
+    cycleTheme: () => {
+      const themes: ThemeName[] = ['indigo', 'amber']
+      const idx = themes.indexOf(get().theme)
+      const next = themes[(idx + 1) % themes.length]
+      get().actions.setTheme(next)
     },
   },
 }))
