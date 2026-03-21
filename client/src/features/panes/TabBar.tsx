@@ -63,10 +63,10 @@ export function TabBar({ pane }: TabBarProps) {
               actions.activateTab(tab.id, pane.id);
             }}
             className={`
-              group/tab relative flex items-center gap-1.5 px-3 text-[12.5px] cursor-pointer select-none
+              group/tab relative flex items-center gap-1.5 px-3 text-xs cursor-pointer select-none
               border-r border-border/60 shrink-0 transition-colors h-full
               ${isActive
-                ? 'bg-[var(--tab-active-bg)] text-fg after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-accent rounded-t-lg'
+                ? 'bg-[var(--tab-active-bg)] text-fg after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-accent rounded-t-lg'
                 : 'text-fg-muted hover:text-fg-secondary hover:bg-surface-2'
               }
             `}

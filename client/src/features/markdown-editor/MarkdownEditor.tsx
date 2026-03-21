@@ -44,7 +44,7 @@ function EditableTitle({ activeFile }: { activeFile: string }) {
           setEditing(true);
           requestAnimationFrame(() => inputRef.current?.focus());
         }}
-        className="title-area cursor-text font-serif text-[32px] font-normal tracking-[-0.02em] leading-[1.2] text-fg outline-none"
+        className="title-area cursor-text font-serif text-3xl font-normal tracking-tight leading-tight text-fg outline-none"
       >
         {value}
       </h1>
@@ -68,7 +68,7 @@ function EditableTitle({ activeFile }: { activeFile: string }) {
           setEditing(false);
         }
       }}
-      className="title-area w-full bg-transparent font-serif text-[32px] font-normal tracking-[-0.02em] leading-[1.2] text-fg outline-none"
+      className="title-area w-full bg-transparent font-serif text-3xl font-normal tracking-tight leading-tight text-fg outline-none"
     />
   );
 }
