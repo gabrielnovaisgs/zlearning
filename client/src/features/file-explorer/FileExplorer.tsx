@@ -61,7 +61,7 @@ export function FileExplorer() {
   return (
     <>
       <Sidebar collapsible="offcanvas">
-        <SidebarHeader className="h-9 w-full flex items-center justify-between px-3 border-b border-border/60 bg-surface">
+        <SidebarHeader className="h-9 w-full flex items-center justify-center gap-2 px-3 border-b border-border/60 bg-surface">
           <span className="text-xs font-semibold uppercase tracking-widest text-fg-muted leading-none">
             {GLOBAL_CONFIG.appName}
           </span>
