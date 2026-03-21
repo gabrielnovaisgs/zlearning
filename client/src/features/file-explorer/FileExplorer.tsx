@@ -5,6 +5,9 @@ import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { useCallback, useState } from "react";
 import { GLOBAL_CONFIG } from "@app/config";
 import { Sidebar, SidebarContent, SidebarHeader } from "@shared/ui/sidebar";
+import { Button } from "@shared/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@shared/ui/tooltip";
+import { FilePlus } from "lucide-react";
 
 interface MenuState {
   x: number;
@@ -58,17 +61,23 @@ export function FileExplorer() {
   return (
     <>
       <Sidebar collapsible="offcanvas">
-        <SidebarHeader className="h-9 flex items-center justify-between px-3 border-b border-border/60 bg-surface">
-          <span className="text-xs font-semibold uppercase tracking-widest text-fg-muted">
+        <SidebarHeader className="h-9 w-full flex items-center justify-between px-3 border-b border-border/60 bg-surface">
+          <span className="text-xs font-semibold uppercase tracking-widest text-fg-muted leading-none">
             {GLOBAL_CONFIG.appName}
           </span>
-          <button
-            onClick={() => handleNewFile("")}
-            className="rounded px-2 py-0.5 text-lg text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg"
-            title="New file"
-          >
-            +
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => handleNewFile("")}
+                variant="ghost"
+                size="icon"
+                className="size-7 text-fg-muted hover:bg-surface-2 hover:text-fg rounded-lg"
+              >
+                <FilePlus size={13} strokeWidth={1.75} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Novo arquivo</TooltipContent>
+          </Tooltip>
         </SidebarHeader>
         <SidebarContent
           className="px-2 py-1"
