@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZLearning — Option A: Soft Geometric</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─── Reset ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+
+    /* ─── Design Tokens ──────────────────────────────── */
+    :root {
+      /* Light — cool neutral, indigo accent */
+      --bg:           #F5F5F7;
+      --surface:      #FFFFFF;
+      --surface-2:    #EBEBED;
+      --border:       #DDDDE0;
+      --border-subtle:#E8E8EB;
+      --fg:           #111118;
+      --fg-secondary: #3C3C4A;
+      --fg-muted:     #8E8EA0;
+      --accent:       #4F6AF0;
+      --accent-dim:   rgba(79,106,240,0.10);
+      --accent-hover: rgba(79,106,240,0.06);
+      --glass:        rgba(255,255,255,0.75);
+      --shadow:       0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md:    0 4px 20px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.04);
+      --radius:       6px;
+      --tab-active-bg:#FFFFFF;
+    }
+
+    .dark {
+      --bg:           #0C0C0F;
+      --surface:      #131318;
+      --surface-2:    #1A1A22;
+      --border:       #24242E;
+      --border-subtle:#1E1E28;
+      --fg:           #E2E2F0;
+      --fg-secondary: #AAAAB8;
+      --fg-muted:     #52526A;
+      --accent:       #7B93F5;
+      --accent-dim:   rgba(123,147,245,0.10);
+      --accent-hover: rgba(123,147,245,0.06);
+      --glass:        rgba(19,19,24,0.82);
+      --shadow:       0 1px 3px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.25);
+      --shadow-md:    0 4px 20px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+      --tab-active-bg:#0C0C0F;
+    }
+
+    /* ─── Smooth theme transitions ───────────────────── */
+    *, *::before, *::after {
+      transition:
+        background-color 0.18s ease,
+        border-color     0.18s ease,
+        color            0.18s ease,
+        box-shadow       0.18s ease;
+    }
+    /* Exclude transitions that should remain snappy */
+    .tab, .file-item, .activity-btn, .palette-item,
+    .new-tab-card, .demo-btn, .theme-toggle-wrap,
+    .theme-switch-track, .theme-switch-thumb {
+      transition:
+        background-color 0.12s ease,
+        border-color     0.12s ease,
+        color            0.12s ease,
+        transform        0.15s ease,
+        opacity          0.12s ease;
+    }
+
+    /* ─── Base ───────────────────────────────────────── */
+    body {
+      font-family: 'Geist', system-ui, sans-serif;
+      font-size: 13px;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Activity Bar ───────────────────────────────── */
+    .activity-bar {
+      width: 44px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 8px 0;
+      gap: 2px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .activity-bar-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 32px;
+      width: 100%;
+      margin-bottom: 4px;
+    }
+
+    .activity-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--fg-muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      font-size: 14px;
+    }
+    .activity-btn:hover { background: var(--surface-2); color: var(--fg); }
+    .activity-btn.active { color: var(--fg); background: var(--accent-dim); }
+    .activity-btn svg { width: 15px; height: 15px; stroke-width: 1.75; }
+
+    .activity-spacer { flex: 1; }
+
+    .activity-bar-bottom {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      width: 100%;
+      padding: 0 6px;
+    }
+
+    /* ─── Sidebar ────────────────────────────────────── */
+    .sidebar {
+      width: 220px;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      flex-shrink: 0;
+      overflow: hidden;
+      transition: width 0.2s ease;
+    }
+
+    .sidebar.collapsed { width: 0; border-right: none; }
+
+    .sidebar-header {
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      flex-shrink: 0;
+    }
+
+    .sidebar-title {
+      font-family: 'Geist', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+    }
+
+    .sidebar-action {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--fg-muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      font-size: 14px;
+      font-weight: 300;
+    }
+    .sidebar-action:hover { background: var(--surface-2); color: var(--fg); }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 0;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--fg-muted); }
+
+    .file-section {
+      padding: 4px 0;
+    }
+
+    .file-section-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 12px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--fg-muted);
+      cursor: pointer;
+      user-select: none;
+    }
+    .file-section-label:hover { color: var(--fg-secondary); }
+    .file-section-label .chevron {
+      width: 12px;
+      height: 12px;
+      transition: transform 0.15s;
+      flex-shrink: 0;
+    }
+    .file-section-label.open .chevron { transform: rotate(90deg); }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 4px 12px;
+      padding-left: 18px;
+      font-size: 12.5px;
+      color: var(--fg-secondary);
+      cursor: pointer;
+      border-radius: 6px;
+      margin: 1px 6px;
+      transition: background 0.1s, color 0.1s;
+      user-select: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      position: relative;
+    }
+    .file-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 2px;
+      bottom: 2px;
+      width: 2px;
+      background: transparent;
+      border-radius: 0 2px 2px 0;
+      transition: background 0.15s;
+    }
+    .file-item:hover { background: var(--surface-2); color: var(--fg); }
+    .file-item.active {
+      color: var(--fg);
+      background: var(--accent-dim);
+    }
+    .file-item.active::before { background: var(--accent); }
+
+    .file-icon { font-size: 13px; flex-shrink: 0; opacity: 0.7; }
+    .file-item.active .file-icon { opacity: 1; }
+
+    .file-nested { padding-left: 36px; }
+
+    /* ─── Main Area ──────────────────────────────────── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    /* ─── Tab Bar ────────────────────────────────────── */
+    .tabbar {
+      height: 36px;
+      display: flex;
+      align-items: stretch;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px;
+      font-size: 12.5px;
+      color: var(--fg-muted);
+      cursor: pointer;
+      border-right: 1px solid var(--border-subtle);
+      border-radius: 8px 8px 0 0;
+      transition: background 0.1s, color 0.1s;
+      white-space: nowrap;
+      user-select: none;
+      position: relative;
+    }
+    .tab::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0; right: 0;
+      height: 1.5px;
+      background: transparent;
+      transition: background 0.15s;
+    }
+    .tab:hover { background: var(--surface-2); color: var(--fg-secondary); }
+    .tab.active {
+      background: var(--tab-active-bg);
+      color: var(--fg);
+    }
+    .tab.active::after { background: var(--accent); }
+
+    .tab-icon { font-size: 12px; opacity: 0.7; }
+    .tab.active .tab-icon { opacity: 1; }
+
+    .tab-close {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      font-size: 11px;
+      color: var(--fg-muted);
+      opacity: 0;
+      transition: opacity 0.15s, background 0.15s;
+      margin-left: 2px;
+    }
+    .tab:hover .tab-close { opacity: 0.6; }
+    .tab-close:hover { opacity: 1 !important; background: var(--surface-2); }
+
+    .tabbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 1px;
+      margin-left: auto;
+      padding: 0 8px;
+    }
+
+    .tabbar-btn {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--fg-muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      font-size: 13px;
+    }
+    .tabbar-btn:hover { background: var(--surface-2); color: var(--fg); }
+    .tabbar-btn svg { width: 13px; height: 13px; stroke-width: 1.75; }
+
+    /* ─── Editor Area ────────────────────────────────── */
+    .editor-area {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .editor-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .editor-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 40px 56px 60px;
+    }
+
+    .editor-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 32px;
+      font-weight: 400;
+      color: var(--fg);
+      line-height: 1.2;
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
+      outline: none;
+      max-width: 740px;
+    }
+
+    .editor-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 32px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .editor-meta-item {
+      font-size: 11.5px;
+      color: var(--fg-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .editor-meta-item svg { width: 12px; height: 12px; }
+
+    .editor-tag {
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      background: var(--surface-2);
+      color: var(--fg-muted);
+      border: 1px solid var(--border);
+    }
+    .editor-tag.accent {
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-color: transparent;
+    }
+
+    .editor-content {
+      font-family: 'Geist', sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--fg-secondary);
+      max-width: 720px;
+    }
+
+    .editor-content h2 {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--fg);
+      margin: 36px 0 12px;
+      letter-spacing: -0.01em;
+    }
+
+    .editor-content h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--fg);
+      margin: 24px 0 8px;
+      letter-spacing: 0.01em;
+      text-transform: uppercase;
+    }
+
+    .editor-content p { margin-bottom: 16px; }
+
+    .editor-content code {
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+
+    .editor-content .code-block {
+      font-family: 'Geist Mono', monospace;
+      font-size: 12.5px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      overflow-x: auto;
+      color: var(--fg-secondary);
+      line-height: 1.65;
+      position: relative;
+    }
+
+    .code-lang-label {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      font-size: 10px;
+      color: var(--fg-muted);
+      font-family: 'Geist', sans-serif;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .editor-content blockquote {
+      border-left: 2px solid var(--accent);
+      padding-left: 16px;
+      margin: 20px 0;
+      color: var(--fg-muted);
+      font-style: italic;
+    }
+
+    .editor-content ul {
+      list-style: none;
+      margin-bottom: 16px;
+      padding: 0;
+    }
+
+    .editor-content ul li {
+      padding: 3px 0;
+      padding-left: 20px;
+      position: relative;
+      color: var(--fg-secondary);
+    }
+
+    .editor-content ul li::before {
+      content: '–';
+      position: absolute;
+      left: 2px;
+      color: var(--fg-muted);
+    }
+
+    .md-bold { color: var(--fg); font-weight: 600; }
+    .md-link { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent-dim); }
+    .md-link:hover { border-bottom-color: var(--accent); }
+    .md-wikilink { color: var(--fg-secondary); text-decoration: none; border-bottom: 1px dashed var(--border); }
+    .md-wikilink:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* Cursor line simulation */
+    .cursor-line {
+      background: var(--surface-2);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    /* ─── Split Pane ─────────────────────────────────── */
+    .resize-handle {
+      width: 1px;
+      background: var(--border);
+      cursor: col-resize;
+      flex-shrink: 0;
+      transition: background 0.15s, width 0.15s;
+      position: relative;
+    }
+    .resize-handle:hover {
+      background: var(--accent);
+      width: 2px;
+    }
+
+    /* ─── New Tab Screen ─────────────────────────────── */
+    .new-tab-screen {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+    }
+
+    .new-tab-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .new-tab-wordmark {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 28px;
+      color: var(--fg-muted);
+      opacity: 0.4;
+      letter-spacing: -0.02em;
+    }
+
+    .new-tab-prompt {
+      font-size: 12px;
+      color: var(--fg-muted);
+      letter-spacing: 0.01em;
+    }
+
+    .new-tab-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .new-tab-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 28px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.15s;
+      width: 130px;
+    }
+    .new-tab-card:hover {
+      border-color: var(--accent);
+      background: var(--surface-2);
+      transform: translateY(-1px);
+    }
+
+    .new-tab-card-icon {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      background: var(--surface-2);
+      color: var(--fg-secondary);
+      font-size: 16px;
+    }
+    .new-tab-card:hover .new-tab-card-icon {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    .new-tab-card-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--fg-secondary);
+      text-align: center;
+    }
+
+    .new-tab-card-hint {
+      font-family: 'Geist Mono', monospace;
+      font-size: 10px;
+      color: var(--fg-muted);
+    }
+
+    /* ─── Command Palette ────────────────────────────── */
+    .palette-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 20vh;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s;
+    }
+    .palette-overlay.open { opacity: 1; pointer-events: all; }
+
+    .palette {
+      width: 480px;
+      background: var(--glass);
+      backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow-md), 0 0 0 1px rgba(255,255,255,0.04);
+      overflow: hidden;
+      transform: translateY(-8px);
+      transition: transform 0.15s;
+    }
+    .palette-overlay.open .palette { transform: translateY(0); }
+
+    .palette-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .palette-input-icon { color: var(--fg-muted); }
+    .palette-input-icon svg { width: 15px; height: 15px; }
+
+    .palette-input {
+      flex: 1;
+      height: 46px;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: 'Geist', sans-serif;
+      font-size: 14px;
+      color: var(--fg);
+      caret-color: var(--accent);
+    }
+    .palette-input::placeholder { color: var(--fg-muted); }
+
+    .palette-results { padding: 6px; }
+
+    .palette-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .palette-item:hover, .palette-item.selected { background: var(--accent-hover); }
+
+    .palette-item-icon {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: var(--surface-2);
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .palette-item-info { flex: 1; min-width: 0; }
+    .palette-item-name {
+      font-size: 13px;
+      color: var(--fg);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .palette-item-path {
+      font-size: 11px;
+      color: var(--fg-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .palette-match { color: var(--accent); font-weight: 500; }
+
+    /* ─── Demo Controls ──────────────────────────────── */
+    .demo-controls {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      z-index: 200;
+    }
+
+    .demo-btn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--fg-secondary);
+      cursor: pointer;
+      font-family: 'Geist', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      box-shadow: var(--shadow);
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .demo-btn:hover { border-color: var(--accent); color: var(--fg); background: var(--surface-2); }
+    .demo-btn svg { width: 13px; height: 13px; stroke-width: 1.75; }
+
+    /* Theme Toggle Switch */
+    .theme-toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .theme-toggle-wrap:hover { border-color: var(--accent); }
+
+    .theme-toggle-label {
+      font-family: 'Geist', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--fg-secondary);
+      min-width: 68px;
+    }
+
+    .theme-switch {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .theme-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+
+    .theme-switch-track {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .theme-switch input:checked + .theme-switch-track {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+    }
+
+    .theme-switch-thumb {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--fg-muted);
+      transition: transform 0.2s, background 0.2s;
+      pointer-events: none;
+    }
+    .theme-switch input:checked ~ .theme-switch-thumb {
+      transform: translateX(16px);
+      background: var(--accent);
+    }
+
+    .theme-icon { color: var(--fg-muted); display: flex; align-items: center; }
+    .theme-icon svg { width: 13px; height: 13px; stroke-width: 1.75; }
+
+    /* ─── Tooltip ────────────────────────────────────── */
+    [data-tooltip] { position: relative; }
+    [data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: calc(100% + 8px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--fg-secondary);
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 5px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.1s;
+      box-shadow: var(--shadow);
+      z-index: 50;
+    }
+    [data-tooltip]:hover::after { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Style Label ──────────────────────────────────── -->
+  <div style="position:fixed;top:8px;left:8px;z-index:999;font-family:'Geist',sans-serif;font-size:10px;font-weight:500;color:var(--fg-muted);letter-spacing:0.04em;pointer-events:none;">A — Soft Geometric</div>
+
+  <!-- ── Activity Bar ─────────────────────────────────── -->
+  <div class="activity-bar">
+    <div class="activity-bar-header">
+      <!-- Logo mark -->
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="color: var(--accent)">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <button class="activity-btn active" data-tooltip="Explorador" onclick="toggleSidebar()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <rect x="3" y="3" width="7" height="18" rx="1"/>
+        <path d="M14 8h6M14 12h6M14 16h4"/>
+      </svg>
+    </button>
+
+    <button class="activity-btn" data-tooltip="Busca">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+    </button>
+
+    <div class="activity-spacer"></div>
+
+    <div class="activity-bar-bottom">
+      <button class="activity-btn" data-tooltip="Chat IA" onclick="openChat()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </button>
+
+      <button class="activity-btn" data-tooltip="Configurações">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M2 12h2M20 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Sidebar ──────────────────────────────────────── -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">ZLearning</span>
+      <button class="sidebar-action" title="Novo arquivo" onclick="alert('Novo arquivo')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="sidebar-content">
+      <!-- Folder: Estudos -->
+      <div class="file-section">
+        <div class="file-section-label open" onclick="toggleFolder(this)">
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+          Estudos
+        </div>
+        <div class="folder-content">
+          <div class="file-item active" onclick="switchTab('matematica')">
+            <span class="file-icon">◆</span> Álgebra Linear
+          </div>
+          <div class="file-item" onclick="switchTab('calculo')">
+            <span class="file-icon">◆</span> Cálculo Diferencial
+          </div>
+          <div class="file-item" onclick="switchTab('probabilidade')">
+            <span class="file-icon">◆</span> Probabilidade
+          </div>
+        </div>
+      </div>
+
+      <!-- Folder: Pesquisa -->
+      <div class="file-section">
+        <div class="file-section-label open" onclick="toggleFolder(this)">
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+          Pesquisa
+        </div>
+        <div class="folder-content">
+          <div class="file-item" onclick="switchTab('redes-neurais')">
+            <span class="file-icon">◆</span> Redes Neurais
+          </div>
+          <div class="file-item" onclick="switchTab('transformers')">
+            <span class="file-icon">◆</span> Transformers
+          </div>
+          <div class="file-item nested" onclick="switchTab('attention')">
+            <span class="file-icon">◆</span> Attention Mechanism
+          </div>
+          <div class="file-item nested" onclick="switchTab('bert')">
+            <span class="file-icon">◆</span> BERT Fine-tuning
+          </div>
+          <div class="file-item">
+            <span class="file-icon" style="opacity:.5; font-size:11px">📕</span> CS229 Lecture Notes
+          </div>
+        </div>
+      </div>
+
+      <!-- Folder: Anotações -->
+      <div class="file-section">
+        <div class="file-section-label" onclick="toggleFolder(this)">
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+          Anotações Rápidas
+        </div>
+        <div class="folder-content" style="display:none">
+          <div class="file-item">
+            <span class="file-icon">◆</span> Ideias
+          </div>
+          <div class="file-item">
+            <span class="file-icon">◆</span> Referências
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main Area ────────────────────────────────────── -->
+  <div class="main">
+
+    <!-- Tab Bar -->
+    <div class="tabbar">
+      <div class="tab active" id="tab-matematica" onclick="switchTab('matematica')">
+        <span class="tab-icon">◆</span>
+        Álgebra Linear
+        <span class="tab-close">×</span>
+      </div>
+      <div class="tab" id="tab-redes" onclick="switchTab('redes')">
+        <span class="tab-icon">◆</span>
+        Redes Neurais
+        <span class="tab-close">×</span>
+      </div>
+      <div class="tab" id="tab-chat" onclick="switchTab('chat')">
+        <span class="tab-icon" style="font-size:11px">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </span>
+        Chat
+        <span class="tab-close">×</span>
+      </div>
+
+      <div style="display:flex;align-items:center;padding:0 4px;border-right:1px solid var(--border-subtle)">
+        <button class="tabbar-btn" title="Nova aba">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+
+      <div class="tabbar-actions">
+        <button class="tabbar-btn" title="Dividir painel" onclick="toggleSplit()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M12 3v18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Editor Area -->
+    <div class="editor-area" id="editor-area">
+
+      <!-- Editor: Álgebra Linear (active) -->
+      <div class="editor-pane" id="pane-matematica">
+        <div class="editor-scroll">
+          <h1 class="editor-title" contenteditable="true" spellcheck="false">Álgebra Linear</h1>
+
+          <div class="editor-meta">
+            <span class="editor-meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              Editado há 2h
+            </span>
+            <span class="editor-meta-item" style="opacity:.4">·</span>
+            <span class="editor-tag accent">Estudos</span>
+            <span class="editor-tag">Matemática</span>
+          </div>
+
+          <div class="editor-content">
+            <h2>Vetores e Espaços Vetoriais</h2>
+
+            <p>
+              Um <span class="md-bold">espaço vetorial</span> sobre um corpo 𝔽 é um conjunto <em>V</em> equipado com
+              duas operações — adição de vetores e multiplicação por escalar — que satisfazem os axiomas de fechamento,
+              associatividade, comutatividade e distributividade.
+            </p>
+
+            <blockquote>
+              "A geometria de espaços de alta dimensão é contra-intuitiva: quase todo volume de uma hiperesfera
+              concentra-se na superfície." — <a class="md-link">Blum, Hopcroft & Kannan</a>
+            </blockquote>
+
+            <h3>Definição formal</h3>
+
+            <p>
+              Seja <code>V</code> um espaço vetorial de dimensão <code>n</code>. Uma base de <em>V</em>
+              é um conjunto <span class="md-bold">linearmente independente</span> que <a class="md-wikilink">[[gera V]]</a>.
+            </p>
+
+            <div class="code-block">
+              <span class="code-lang-label">python</span>
+<span style="color:var(--accent)">import</span> numpy <span style="color:var(--accent)">as</span> np
+
+A = np.array([[<span style="color:#7DC98A">1</span>, <span style="color:#7DC98A">2</span>], [<span style="color:#7DC98A">3</span>, <span style="color:#7DC98A">4</span>]])
+eigenvalues, eigenvectors = np.linalg.eig(A)
+<span style="color:#6EB5FF">print</span>(f<span style="color:#F5A97F">"Autovalores: {eigenvalues}"</span>)</div>
+
+            <h2>Transformações Lineares</h2>
+
+            <p>
+              Uma função <code>T: V → W</code> é uma <span class="md-bold">transformação linear</span> se preserva
+              adição vetorial e multiplicação por escalar. Toda transformação linear entre espaços de dimensão finita
+              pode ser representada por uma matriz.
+            </p>
+
+            <ul>
+              <li>O <span class="md-bold">núcleo</span> (kernel) de T é o conjunto de vetores mapeados para zero</li>
+              <li>A <span class="md-bold">imagem</span> é o conjunto de todos os valores possíveis de T(v)</li>
+              <li>Pelo Teorema do Núcleo-Imagem: <code>dim(ker T) + dim(im T) = dim(V)</code></li>
+            </ul>
+
+            <p>
+              Ver também: <a class="md-wikilink">[[Decomposição SVD]]</a> e <a class="md-wikilink">[[Autovetores e Autovalores]]</a>
+              para aplicações em <a class="md-link">machine learning</a>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Split pane (hidden by default) -->
+      <div class="resize-handle" id="resize-handle" style="display:none"></div>
+      <div class="editor-pane" id="pane-split" style="display:none">
+        <div class="editor-scroll">
+          <h1 class="editor-title">Redes Neurais</h1>
+          <div class="editor-meta">
+            <span class="editor-tag accent">Pesquisa</span>
+            <span class="editor-tag">IA</span>
+          </div>
+          <div class="editor-content">
+            <h2>Fundamentos</h2>
+            <p>Uma rede neural artificial é um modelo computacional inspirado na estrutura do cérebro biológico, composto por camadas de neurônios artificiais conectados.</p>
+            <h2>Backpropagation</h2>
+            <p>O algoritmo de <span class="md-bold">retropropagação</span> calcula gradientes eficientemente usando a regra da cadeia do cálculo diferencial.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- New Tab (hidden) -->
+      <div class="new-tab-screen" id="pane-newtab" style="display:none">
+        <div class="new-tab-inner">
+          <div class="new-tab-wordmark">ZLearning</div>
+          <p class="new-tab-prompt">O que deseja fazer?</p>
+          <div class="new-tab-actions">
+            <div class="new-tab-card" onclick="alert('Abrir arquivo')">
+              <div class="new-tab-card-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
+                </svg>
+              </div>
+              <div class="new-tab-card-label">Abrir arquivo</div>
+              <div class="new-tab-card-hint">Ctrl+O</div>
+            </div>
+            <div class="new-tab-card" onclick="alert('Nova nota')">
+              <div class="new-tab-card-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+              </div>
+              <div class="new-tab-card-label">Nova nota</div>
+              <div class="new-tab-card-hint">Ctrl+N</div>
+            </div>
+            <div class="new-tab-card" onclick="openChat()">
+              <div class="new-tab-card-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              </div>
+              <div class="new-tab-card-label">Chat IA</div>
+              <div class="new-tab-card-hint">Ctrl+J</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat (hidden) -->
+      <div class="editor-pane" id="pane-chat" style="display:none; padding: 0;">
+        <div style="display:flex;flex-direction:column;height:100%;background:var(--bg);">
+          <!-- Messages -->
+          <div style="flex:1;overflow-y:auto;padding:32px 40px;display:flex;flex-direction:column;gap:20px;max-width:720px;margin:0 auto;width:100%">
+            <!-- AI message -->
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <div style="width:28px;height:28px;border-radius:8px;background:var(--accent-dim);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--fg-muted);margin-bottom:6px;font-weight:500;">ZLearning</div>
+                <div style="font-size:14px;color:var(--fg-secondary);line-height:1.65;">
+                  Olá! Sou seu assistente de estudos. Posso ajudar você a entender conceitos, criar resumos,
+                  ou pesquisar tópicos relacionados às suas notas. Como posso ajudar hoje?
+                </div>
+              </div>
+            </div>
+
+            <!-- User message -->
+            <div style="display:flex;gap:12px;align-items:flex-start;flex-direction:row-reverse;">
+              <div style="width:28px;height:28px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-size:12px;color:var(--fg-muted);">G</div>
+              <div>
+                <div style="font-size:11px;color:var(--fg-muted);margin-bottom:6px;font-weight:500;text-align:right;">Você</div>
+                <div style="font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--border);padding:10px 14px;border-radius:12px 4px 12px 12px;line-height:1.65;">
+                  Explica o que é decomposição SVD e como se relaciona com álgebra linear
+                </div>
+              </div>
+            </div>
+
+            <!-- AI response -->
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <div style="width:28px;height:28px;border-radius:8px;background:var(--accent-dim);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+              </div>
+              <div style="flex:1">
+                <div style="font-size:11px;color:var(--fg-muted);margin-bottom:6px;font-weight:500;">ZLearning</div>
+                <div style="font-size:14px;color:var(--fg-secondary);line-height:1.65;">
+                  A <strong style="color:var(--fg)">Decomposição em Valores Singulares (SVD)</strong> é uma das ferramentas
+                  mais importantes da álgebra linear. Ela fatora qualquer matriz <code style="font-family:'Geist Mono';font-size:12px;background:var(--surface-2);padding:1px 5px;border-radius:3px;color:var(--accent)">A</code>
+                  em três matrizes: <code style="font-family:'Geist Mono';font-size:12px;background:var(--surface-2);padding:1px 5px;border-radius:3px;color:var(--accent)">A = UΣVᵀ</code>
+                  <br><br>
+                  Relacionada às suas notas em <span style="color:var(--accent);border-bottom:1px dashed var(--accent);cursor:pointer;">Álgebra Linear →</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Input -->
+          <div style="padding:16px 40px 20px;border-top:1px solid var(--border-subtle);background:var(--surface);max-width:720px;margin:0 auto;width:100%;align-self:center;">
+            <div style="display:flex;gap:10px;align-items:flex-end;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:10px 12px;transition:border-color 0.15s;">
+              <textarea placeholder="Pergunte algo sobre seus estudos..." style="flex:1;background:transparent;border:none;outline:none;font-family:'Geist',sans-serif;font-size:13.5px;color:var(--fg);resize:none;line-height:1.5;min-height:20px;max-height:120px;caret-color:var(--accent);" rows="1"></textarea>
+              <button style="width:28px;height:28px;border-radius:8px;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity 0.15s;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                  <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 19-7z"/>
+                </svg>
+              </button>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:8px;align-items:center;">
+              <span style="font-size:11px;color:var(--fg-muted);">Contexto:</span>
+              <span style="padding:2px 8px;border-radius:6px;font-size:11px;background:var(--accent-dim);color:var(--accent);border:1px solid transparent;cursor:pointer;">Álgebra Linear</span>
+              <button style="font-size:11px;color:var(--fg-muted);background:transparent;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;">+ Adicionar nota</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Command Palette ──────────────────────────────── -->
+  <div class="palette-overlay" id="palette" onclick="closePalette(event)">
+    <div class="palette">
+      <div class="palette-input-wrap">
+        <span class="palette-input-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </span>
+        <input class="palette-input" placeholder="Abrir arquivo..." id="palette-input" />
+      </div>
+      <div class="palette-results">
+        <div class="palette-item selected">
+          <div class="palette-item-icon">◆</div>
+          <div class="palette-item-info">
+            <div class="palette-item-name">Á<span class="palette-match">l</span>gebra <span class="palette-match">L</span>inear</div>
+            <div class="palette-item-path">estudos/Álgebra Linear.md</div>
+          </div>
+        </div>
+        <div class="palette-item">
+          <div class="palette-item-icon">◆</div>
+          <div class="palette-item-info">
+            <div class="palette-item-name">Á<span class="palette-match">l</span>gebra Abstrata</div>
+            <div class="palette-item-path">estudos/Álgebra Abstrata.md</div>
+          </div>
+        </div>
+        <div class="palette-item">
+          <div class="palette-item-icon" style="font-size:11px">📕</div>
+          <div class="palette-item-info">
+            <div class="palette-item-name">CS229 <span class="palette-match">L</span>ecture Notes</div>
+            <div class="palette-item-path">pesquisa/CS229 Lecture Notes.pdf</div>
+          </div>
+        </div>
+        <div class="palette-item">
+          <div class="palette-item-icon">◆</div>
+          <div class="palette-item-info">
+            <div class="palette-item-name">Transformers &amp; Attention</div>
+            <div class="palette-item-path">pesquisa/Transformers.md</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Demo Controls ────────────────────────────────── -->
+  <div class="demo-controls">
+    <button class="demo-btn" onclick="openPalette()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      Palette (Ctrl+O)
+    </button>
+
+    <label class="theme-toggle-wrap" for="theme-switch-input">
+      <!-- sun icon -->
+      <span class="theme-icon" id="icon-light">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="12" cy="12" r="5"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+      </span>
+
+      <div class="theme-switch">
+        <input type="checkbox" id="theme-switch-input" onchange="toggleTheme(this)" />
+        <div class="theme-switch-track"></div>
+        <div class="theme-switch-thumb"></div>
+      </div>
+
+      <!-- moon icon -->
+      <span class="theme-icon" id="icon-dark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </span>
+
+      <span class="theme-toggle-label" id="theme-label">Escuro</span>
+    </label>
+  </div>
+
+  <script>
+    // ── Theme Toggle ──────────────────────────────────────
+    let isDark = true;
+
+    function applyTheme() {
+      document.documentElement.classList.toggle('dark', isDark);
+      const label = document.getElementById('theme-label');
+      const iconLight = document.getElementById('icon-light');
+      const iconDark = document.getElementById('icon-dark');
+      label.textContent = isDark ? 'Escuro' : 'Claro';
+      iconLight.style.color = isDark ? 'var(--fg-muted)' : 'var(--accent)';
+      iconDark.style.color  = isDark ? 'var(--accent)'   : 'var(--fg-muted)';
+    }
+
+    function toggleTheme(checkbox) {
+      // checkbox.checked = true → light mode
+      isDark = !checkbox.checked;
+      applyTheme();
+    }
+
+    // init state
+    applyTheme();
+
+    // ── Sidebar Toggle ────────────────────────────────────
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('collapsed');
+    }
+
+    // ── Folder Toggle ─────────────────────────────────────
+    function toggleFolder(el) {
+      el.classList.toggle('open');
+      const content = el.nextElementSibling;
+      content.style.display = content.style.display === 'none' ? '' : 'none';
+    }
+
+    // ── Tab / Pane Switching ──────────────────────────────
+    let splitOpen = false;
+
+    function switchTab(name) {
+      // Update tabs
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      const tabEl = document.getElementById('tab-' + name) || document.querySelector('.tab');
+      if (tabEl) tabEl.classList.add('active');
+
+      // Show correct pane
+      const panes = ['pane-matematica', 'pane-newtab', 'pane-chat', 'pane-split'];
+      panes.forEach(p => {
+        const el = document.getElementById(p);
+        if (el) el.style.display = 'none';
+      });
+
+      if (name === 'chat') {
+        document.getElementById('tab-chat').classList.add('active');
+        document.getElementById('pane-chat').style.display = 'flex';
+      } else {
+        document.getElementById('pane-matematica').style.display = 'flex';
+      }
+    }
+
+    function openChat() {
+      switchTab('chat');
+    }
+
+    function toggleSplit() {
+      splitOpen = !splitOpen;
+      const handle = document.getElementById('resize-handle');
+      const pane = document.getElementById('pane-split');
+      handle.style.display = splitOpen ? '' : 'none';
+      pane.style.display = splitOpen ? 'flex' : 'none';
+    }
+
+    // ── Command Palette ───────────────────────────────────
+    function openPalette() {
+      const overlay = document.getElementById('palette');
+      overlay.classList.add('open');
+      setTimeout(() => document.getElementById('palette-input').focus(), 50);
+    }
+
+    function closePalette(e) {
+      if (e.target === document.getElementById('palette')) {
+        document.getElementById('palette').classList.remove('open');
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+        e.preventDefault();
+        openPalette();
+      }
+      if (e.key === 'Escape') {
+        document.getElementById('palette').classList.remove('open');
+      }
+    });
+  </script>
+</body>
+</html>
