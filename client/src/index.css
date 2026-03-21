@@ -113,6 +113,22 @@ body,
   background: var(--fg-muted);
 }
 
+/* Tabs scrollbar — 2px height so it doesn't resize the tab bar */
+.tabs-scrollbar::-webkit-scrollbar {
+  height: 2px;
+}
+.tabs-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tabs-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 1px;
+}
+.tabs-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
 /* Resize handle */
 .resize-handle {
   width: 3px;

@@ -39,7 +39,7 @@ export function TabBar({ pane }: TabBarProps) {
 
   return (
     <div
-      className="flex items-center bg-surface border-b border-border overflow-x-auto shrink-0"
+      className="tabs-scrollbar flex items-center bg-surface border-b border-border overflow-x-auto shrink-0"
       style={{ height: GLOBAL_CONFIG.headerHeight }}
       onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
       onDrop={handleTabBarDrop}
