@@ -23,6 +23,7 @@ interface ModelOption {
 
 const AVAILABLE_MODELS: ModelOption[] = [
   { label: 'ollama/qwen3.5:4b', model: 'qwen3.5:4b', provider: 'ollama' },
+  { label: 'ollama/llama3.2:1b', model: 'llama3.2:1b', provider: 'ollama' }
 ]
 
 interface ModelComboboxProps {
