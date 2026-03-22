@@ -1,4 +1,4 @@
-import { PanelLeftClose, PanelLeftOpen, MessageSquare, Sun, Moon } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, MessageSquare, Sun, Moon, Settings } from 'lucide-react';
 import { Button } from '@shared/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@shared/ui/tooltip';
 import { useSidebar } from '@shared/ui/sidebar';
@@ -6,6 +6,7 @@ import { GLOBAL_CONFIG } from '@app/config';
 import { nanoid } from 'nanoid';
 import { usePaneController } from '@features/panes/pane-controller.store';
 import { useThemeStore } from '@features/theme/theme.store';
+import { useConfigStore } from '@features/config/config.store';
 
 interface ActivityBarAction {
   id: string;
@@ -97,6 +98,14 @@ export function ActivityBar() {
         {bottomActions.map((action) => (
           <ActivityBarButton key={action.id} action={action} />
         ))}
+        <ActivityBarButton
+          action={{
+            id: 'open-config',
+            icon: <Settings className="size-4" />,
+            label: 'Configurações',
+            onClick: () => useConfigStore.getState().actions.open(),
+          }}
+        />
         <Tooltip>
           <TooltipTrigger asChild>
             <button
