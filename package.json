@@ -6,8 +6,8 @@
   "main": "out/main/index.js",
   "scripts": {
     "dev:electron": "electron-vite",
-    "dev": "vite",
-    "start:dev": "nest start --watch ",
+    "dev:client": "vite",
+    "dev:server": "nest start --watch",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
@@ -56,6 +56,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@nestjs/cli": "^11.0.16",
     "@tailwindcss/vite": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
