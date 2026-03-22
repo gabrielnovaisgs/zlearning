@@ -4,6 +4,7 @@ import { Env } from '../env.js';
 import { ModelConfigService, Providers, Services } from '../model-config/model-config.service.js';
 import {ChatOpenRouter} from '@langchain/openrouter'
 import {ChatGoogle} from '@langchain/google'
+import {ChatOllama} from "@langchain/ollama"
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -28,6 +29,11 @@ export class LlmService {
               apiKey: apiKey,
               model: model,
             });
+      case Providers.OLLAMA:
+            return new ChatOllama({
+              model: model,
+              
+            })
       default:
             throw new Error(`Provider ${provider} not found`);  
     }

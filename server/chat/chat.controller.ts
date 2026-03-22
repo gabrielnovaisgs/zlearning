@@ -2,10 +2,17 @@ import {
   Controller, Get, Post, Delete, Body, Param, Res, HttpCode,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { ChatService, ContextSources } from './chat.service.js';
+import { ChatService, type ContextSources } from './chat.service.js';
 
-interface SendMessageDto {
+import { IsString, IsNotEmpty, IsOptional, IsObject } from 'class-validator';
+
+class SendMessageDto {
+  @IsString()
+  @IsNotEmpty()
   content: string;
+
+  @IsOptional()
+  @IsObject()
   contextSources?: ContextSources;
 }
 
@@ -40,19 +47,8 @@ export class ChatController {
     @Body() body: SendMessageDto,
     @Res() res: Response,
   ) {
-    const newContent = body.content ?? '';
-    const contextSources: ContextSources = body.contextSources ?? {};
-
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-
-    try {
-      for await (const chunk of this.chatService.streamMessage(id, newContent, contextSources)) {
-        res.write(chunk);
-      }
-    } finally {
-      res.end();
-    }
+    console.log(body.content)
+    const resp = await this.chatService.streamMessage(id, body.content, body.contextSources)
+    return res.send(resp)
   }
 }

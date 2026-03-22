@@ -41,25 +41,19 @@ describe('ChatController', () => {
   });
 
   it('streamMessage chama service.streamMessage com content e contextSources', async () => {
-    async function* fakeStream() { yield 'chunk1'; yield 'chunk2'; }
-    vi.mocked(mockService.streamMessage).mockReturnValue(fakeStream());
+    vi.mocked(mockService.streamMessage).mockResolvedValue('test response');
 
-    const written: string[] = [];
     const mockRes = {
-      setHeader: vi.fn(),
-      write: vi.fn((data: string) => written.push(data)),
-      end: vi.fn(),
+      send: vi.fn(),
     } as unknown as import('express').Response;
 
     await controller.streamMessage(
       'abc',
-      { content: 'hello', contextSources: {} },
+      { content: 'hello', contextSources: {} } as any,
       mockRes,
     );
 
     expect(mockService.streamMessage).toHaveBeenCalledWith('abc', 'hello', {});
-    expect(written).toContain('chunk1');
-    expect(written).toContain('chunk2');
-    expect(mockRes.end).toHaveBeenCalled();
+    expect(mockRes.send).toHaveBeenCalledWith('test response');
   });
 });

@@ -5,6 +5,7 @@ import { DOCS_ROOT } from '../filesystem/filesystem.module.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { nanoid } from 'nanoid';
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 
 const CHAT_ROOT = path.resolve(process.cwd(), 'docs/chat/history');
 
@@ -42,6 +43,7 @@ export class ChatService {
 
   constructor(
     private readonly filesystemService: FilesystemService,
+    private readonly llmService: LlmService,
     
   ) {}
 
@@ -113,68 +115,17 @@ export class ChatService {
     }
   }
 
-  async *streamMessage(
+  async streamMessage(
     sessionId: string,
     newContent: string,
-    contextSources: ContextSources,
-  ): AsyncIterable<string> {
-    const session = await this.readSession(sessionId);
-
-    // Monta contexto local
-    const contextChunks: string[] = [];
-    const localSources = contextSources['local'] ?? [];
-    for (const src of localSources) {
-      try {
-        const abs = path.resolve(DOCS_ROOT, src.source);
-        if (!abs.startsWith(DOCS_ROOT)) continue; // path traversal guard
-        const { content } = await this.filesystemService.readFile(abs);
-        contextChunks.push(`### ${src.source}\n${content}`);
-      } catch {
-        this.logger.warn(`Context source not found: ${src.source}`);
-      }
-    }
-
-    // Outros providers (web, etc.) ignorados nesta iteração
-    for (const provider of Object.keys(contextSources)) {
-      if (provider !== 'local') {
-        this.logger.warn(`Provider "${provider}" not yet implemented`);
-      }
-    }
-
-    // Monta messages para o LLM
-    const llmMessages: ChatMessage[] = [
-      {
-        role: 'system',
-        content: contextChunks.length
-          ? `You are a helpful assistant. Use the following notes as context:\n\n${contextChunks.join('\n\n---\n\n')}`
-          : 'You are a helpful assistant.',
-      },
-      ...session.messages.map((m) => ({ role: m.role, content: m.content })),
-      { role: 'user', content: newContent },
-    ];
-
-    // Persiste mensagem do usuário
-    const userMsg: ChatMessageRecord = {
-      id: nanoid(), role: 'user', content: newContent,
-      createdAt: new Date().toISOString(),
-    };
-    session.messages.push(userMsg);
-    if (session.messages.length === 1) {
-      session.title = newContent.slice(0, 50) + (newContent.length > 50 ? '...' : '');
-    }
-    session.updatedAt = userMsg.createdAt;
-    await this.writeSession(session);
-
-    // Stream do LLM
-   
-
-    // Persiste resposta do assistente
-    const assistantMsg: ChatMessageRecord = {
-      id: nanoid(), role: 'assistant', content: "fullResponse",
-      createdAt: new Date().toISOString(),
-    };
-    session.messages.push(assistantMsg);
-    session.updatedAt = assistantMsg.createdAt;
-    await this.writeSession(session);
+    contextSources?: ContextSources,
+  ):Promise<string>{
+    
+    const model = this.llmService.getModel();
+    const system = new SystemMessage({content: 'Você é um assistente de IA. Pense pouco e responda  as mensagens de maneria sucinta'})
+    const human = new HumanMessage({content: newContent})
+    const response = await model.invoke([system, human])
+    
+    return response.content;
   }
 }

@@ -25,12 +25,13 @@ export type ModelConfig =  {
 @Injectable()
 export class ModelConfigService {
       private configs: ModelConfig = {
-      [Services.CHAT]: { model: 'gemma-3-270m-it', provider: Providers.OPEN_ROUTER,  apiKey: process.env.OPENROUTER_API_KEY},
-      [Services.TRANSLATE]: { model: 'gemma-3-1b-it', provider: Providers.GOOGLE, apiKey: process.env.GOOGLE_API_KEY  },
+      [Services.CHAT]: { model: 'llama3.2:1b', provider: Providers.OLLAMA,  apiKey: process.env.OPENROUTER_API_KEY},
+      [Services.TRANSLATE]: { model: 'llama3.2:1b', provider: Providers.OLLAMA, apiKey: process.env.GOOGLE_API_KEY  },
     };
 
     getConfig(service: Services) {
-      if(!this.configs[service].apiKey) {
+
+      if(!this.configs[service].apiKey && this.configs[service].provider !== Providers.OLLAMA) {
         throw new Error(`${service} not configured, missing ${this.configs[service].provider} api key`);
       }
       return this.configs[service];
