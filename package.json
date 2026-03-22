@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "out/main/index.js",
   "scripts": {
+    "dev:electron": "electron-vite",
     "dev": "vite",
     "start:dev": "nest start --watch ",
     "build": "vite build",
@@ -65,6 +67,8 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
     "@vitest/coverage-v8": "^4.0.18",
+    "electron": "^41.0.3",
+    "electron-vite": "^5.0.0",
     "happy-dom": "^20.7.0",
     "jsdom": "^28.1.0",
     "shadcn": "^3.8.5",

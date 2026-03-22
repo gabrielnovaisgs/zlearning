@@ -6,7 +6,7 @@ jspm_packages/
 build/
 dist/
 coverage/
-
+out/
 # Logs
 logs/
 *.log
