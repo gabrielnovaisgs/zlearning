@@ -5,6 +5,8 @@ import { registry } from "@features/command-palette/CommandRegistry";
 import { FileExplorer } from "@features/file-explorer/FileExplorer";
 import { SplitView } from "@features/panes/SplitView";
 import { CommandPalette } from "@features/command-palette/OpenFilePalette";
+import { ConfigDialog } from "@features/config/ConfigDialog";
+import { useConfigStore } from "@features/config/config.store";
 import { resolveFileFromPath, useFileStore } from "@shared/file.store";
 import { useFiles } from "@shared/hooks/use-files";
 import { SidebarInset, SidebarProvider } from "@shared/ui/sidebar";
@@ -56,6 +58,12 @@ export function App() {
         useFileStore.getState().actions.createUntitledFile(dir);
       },
     });
+    registry.register({
+      id: 'open-config',
+      name: 'Configurações',
+      shortcut: { ctrl: true, key: ',' },
+      execute: () => useConfigStore.getState().actions.open(),
+    });
     registry.init();
 
     return () => {
@@ -75,6 +83,7 @@ export function App() {
         <SplitView />
       </SidebarInset>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <ConfigDialog />
     </SidebarProvider>
   );
 }
