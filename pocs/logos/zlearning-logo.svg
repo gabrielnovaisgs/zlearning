@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80" fill="none">
+  <defs>
+    <linearGradient id="zGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Z shape: top bar → diagonal → bottom bar, com cortes angulados -->
+  <path
+    d="M18 20 L58 20 L22 60 L62 60"
+    stroke="url(#zGrad)"
+    stroke-width="7"
+    stroke-linecap="square"
+    stroke-linejoin="miter"
+    filter="url(#glow)"
+  />
+</svg>

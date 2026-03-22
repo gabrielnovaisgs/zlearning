@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 80" width="168" height="80">
+  <defs>
+    <linearGradient id="g" x1="10" y1="10" x2="158" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Z — Top bar com lightning cut à direita -->
+  <path d="M 10,10 L 78,10 L 60,28 L 10,28 Z" fill="url(#g)"/>
+
+  <!-- Z — Diagonal parallelogram -->
+  <path d="M 40,28 L 60,28 L 48,52 L 28,52 Z" fill="url(#g)"/>
+
+  <!-- Z — Bottom bar com lightning cut à esquerda -->
+  <path d="M 28,52 L 78,52 L 78,70 L 10,70 Z" fill="url(#g)"/>
+
+  <!-- L — barra vertical + barra horizontal com lightning cut no canto inferior-direito -->
+  <path d="M 88,10 L 106,10 L 106,52 L 158,52 L 140,70 L 88,70 Z" fill="url(#g)"/>
+</svg>
