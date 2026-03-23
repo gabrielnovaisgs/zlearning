@@ -1,7 +1,7 @@
 // client/src/features/chat/ChatEditor.tsx
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { TextStreamChatTransport, isTextUIPart } from 'ai';
+import { DefaultChatTransport, TextStreamChatTransport, isTextUIPart } from 'ai';
 import { nanoid } from 'nanoid';
 import { useChatSessions, useChatSession, invalidateSessions } from './use-chat-sessions';
 import type { ContextSources } from './chat.service';
@@ -29,30 +29,20 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
   const contextSourcesRef = useRef(contextSources);
   contextSourcesRef.current = contextSources;
 
-  const transport = useMemo(
-    () =>
-      new TextStreamChatTransport({
-        api: realSessionId
-          ? `/api/chat/sessions/${realSessionId}/messages`
-          : '/api/chat/sessions/__noop__/messages',
-        prepareSendMessagesRequest: ({ messages: msgs }) => ({
-          body: {
-            content: msgs
-              .at(-1)
-              ?.parts.filter(isTextUIPart)
-              .map((p) => p.text)
-              .join('') ?? '',
-            contextSources: contextSourcesRef.current,
-          },
-        }),
-      }),
-    [realSessionId],
-  );
 
-  const { messages, sendMessage, status, stop, setMessages } = useChat({
+
+  const transport = useMemo(() => {
+    return new DefaultChatTransport({
+      api: `http://localhost:3000/api/chat/sessions/${sessionId}/messages`
+    });
+  }, [sessionId]);
+
+
+  const { messages, sendMessage, status, stop } = useChat({
     transport,
     onFinish: () => invalidateSessions(),
   });
+
 
   const isLoading = status === 'streaming' || status === 'submitted';
 
@@ -70,25 +60,13 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
       .catch(() => {
         setSessionError(true);
       });
+
+    console.log("session id", sessionId)
     // createSession is a new reference each render (inline arrow in hook); adding it
     // would cause extra re-runs. isCreating guard prevents double-invocation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, isNew]);
 
-  // Carrega histórico quando sessão real chegar via React Query
-  useEffect(() => {
-    if (!session) return;
-    setMessages(
-      session.messages.map((m) => ({
-        id: m.id,
-        role: m.role as 'user' | 'assistant',
-        parts: [{ type: 'text' as const, text: m.content }],
-      })),
-    );
-    if (Object.keys(session.contextSources).length > 0) {
-      setContextSources(session.contextSources);
-    }
-  }, [session]);
 
   // Trata erro 404: exibe erro e remove a tab
   useEffect(() => {
@@ -109,6 +87,7 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
+    console.log("Message", input)
     const text = input;
     setInput('');
     sendMessage({ text });

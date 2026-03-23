@@ -2,10 +2,14 @@ import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { LlmService, ChatMessage } from '../llm/llm.service.js';
 import { FilesystemService } from '../filesystem/filesystem.service.js';
 import { DOCS_ROOT } from '../filesystem/filesystem.module.js';
+
+import { createAgent, SystemMessage } from "langchain";
 import fs from 'fs/promises';
 import path from 'path';
 import { nanoid } from 'nanoid';
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import type { BaseMessage } from "@langchain/core/messages";
+import { MemorySaver } from "@langchain/langgraph";
+import { IterableReadableStream } from '@langchain/core/utils/stream';
 
 const CHAT_ROOT = path.resolve(process.cwd(), 'docs/chat/history');
 
@@ -40,12 +44,16 @@ export interface Session extends SessionSummary {
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
+  private readonly checkpointer: MemorySaver;
 
   constructor(
     private readonly filesystemService: FilesystemService,
     private readonly llmService: LlmService,
     
-  ) {}
+  ) {
+   
+    this.checkpointer = new MemorySaver();
+  }
 
   private sessionPath(id: string): string {
     return path.join(CHAT_ROOT, `chat-${id}.json`);
@@ -117,15 +125,28 @@ export class ChatService {
 
   async streamMessage(
     sessionId: string,
-    newContent: string,
+    messages: BaseMessage[],
     contextSources?: ContextSources,
-  ):Promise<string>{
+  ): Promise<IterableReadableStream<any>> {
     
+    const config = {
+      configurable: {
+        thread_id: sessionId,
+      }
+    }
     const model = this.llmService.getModel();
-    const system = new SystemMessage({content: 'Você é um assistente de IA. Pense pouco e responda  as mensagens de maneria sucinta'})
-    const human = new HumanMessage({content: newContent})
-    const response = await model.invoke([system, human])
+    const chatAgent = createAgent({
+      model,
+      checkpointer: this.checkpointer
+    })
     
-    return response.content;
+    const system = new SystemMessage({content: 'You are a helpful assistant. Be long-winded'})
+    const stream = await chatAgent.stream({messages: [system, ...messages]}, {
+      streamMode: ['messages', 'updates', 'checkpoints'],
+      configurable: config.configurable
+     }, )
+     return stream
+  
+    
   }
 }

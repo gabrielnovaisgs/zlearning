@@ -15,6 +15,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@ai-sdk/langchain": "^2.0.140",
     "@ai-sdk/react": "^3.0.118",
     "@codemirror/autocomplete": "^6.20.0",
     "@codemirror/commands": "^6.10.2",

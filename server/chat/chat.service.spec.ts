@@ -1,5 +1,7 @@
 import 'reflect-metadata';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { FakeListChatModel } from "@langchain/core/utils/testing";
+
 import fs from 'fs/promises';
 import { ChatService } from './chat.service.js';
 import { LlmService } from '../llm/llm.service.js';
@@ -11,6 +13,8 @@ import type { FilesystemService } from '../filesystem/filesystem.service.js';
 import { ModelConfigService, Services } from '../model-config/model-config.service.js';
 import { ConfigService } from '@nestjs/config';
 import { Env } from 'env.js';
+import { lastValueFrom, toArray } from 'rxjs';
+import { AIMessageChunk, HumanMessage } from 'langchain';
 
 const mockFilesystem = {
   readFile: vi.fn(),
@@ -18,8 +22,15 @@ const mockFilesystem = {
 
 const modelConfigService = new ModelConfigService()
 const config = new ConfigService<Env, true>()
-const mockLlm = new LlmService(modelConfigService, Services.CHAT, config)
-
+const chatResponses = ["Olá, me chamo teste", "Essa é uma resposta para sua segunda mensagem"]
+const mockLlm: LlmService = {
+  getModel: () =>  new FakeListChatModel({
+      responses:chatResponses,
+    })
+  ,
+  
+} as unknown as LlmService
+const realLlmService = new LlmService(modelConfigService, Services.CHAT, config)
 describe('ChatService', () => {
   let service: ChatService;
 
@@ -101,18 +112,25 @@ describe('ChatService', () => {
     });
   });
 
-  describe.only('streamMessage', () => {
-    it('deve retornar uma string vazia conforme implementação atual', async () => {
+  describe('streamMessage', () => {
+    it('deve retornar uma resposta para do modelo', async () => {
       const baseSession = {
         id: 'abc', title: 'Nova conversa',
         createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
         contextSources: {}, messages: [],
       };
+      const message = new HumanMessage({content: 'olá, como você se chama? escreva um poema de 100 palavras'})
+      const stream = await service.streamMessage(baseSession.id, [message]);
+      const chunks: any[] = [];
+      for await (const chunk of stream) {
+        chunks.push(chunk)
+      }
+      const aiMessages = chunks.filter(c => c[0] === 'messages').map(c => c[1][0])
+      const fullText = aiMessages.map(c => c.content).join('');
+      
+      expect(fullText).toBe(chatResponses[0]);
+      expect(aiMessages[0]).toBeInstanceOf(AIMessageChunk)
+    },10000);
 
-      
-      const response = await service.streamMessage(baseSession.id, 'olá, como você se chama?');
-      console.log(response)
-      
-    }, 1000000);
   });
 });
