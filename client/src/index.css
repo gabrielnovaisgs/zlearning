@@ -37,6 +37,21 @@
   --accent-hover: rgba(123, 147, 245, 0.06);
   --glass: rgba(19, 19, 24, 0.82);
   --tab-active-bg: #0C0C0F;
+  /* shadcn token bridges */
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card: var(--surface);
+  --card-foreground: var(--fg);
+  --popover: var(--surface);
+  --popover-foreground: var(--fg);
+  --primary: var(--accent);
+  --primary-foreground: var(--bg);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--fg);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--fg-muted);
+  --input: var(--surface-2);
+  --ring: var(--accent);
 }
 
 /* ── Indigo Light ─────────────────────────────────── */
@@ -54,6 +69,21 @@
   --accent-hover: rgba(79, 106, 240, 0.06);
   --glass: rgba(255, 255, 255, 0.75);
   --tab-active-bg: #FFFFFF;
+  /* shadcn token bridges */
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card: var(--surface);
+  --card-foreground: var(--fg);
+  --popover: var(--surface);
+  --popover-foreground: var(--fg);
+  --primary: var(--accent);
+  --primary-foreground: var(--bg);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--fg);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--fg-muted);
+  --input: var(--surface-2);
+  --ring: var(--accent);
 }
 
 /* ── Amber Dark ───────────────────────────────────── */
@@ -71,6 +101,21 @@
   --accent-hover: rgba(212, 168, 83, 0.06);
   --glass: rgba(20, 19, 16, 0.80);
   --tab-active-bg: #0D0C0A;
+  /* shadcn token bridges */
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card: var(--surface);
+  --card-foreground: var(--fg);
+  --popover: var(--surface);
+  --popover-foreground: var(--fg);
+  --primary: var(--accent);
+  --primary-foreground: var(--bg);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--fg);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--fg-muted);
+  --input: var(--surface-2);
+  --ring: var(--accent);
 }
 
 /* ── Amber Light ──────────────────────────────────── */
@@ -88,6 +133,21 @@
   --accent-hover: rgba(201, 150, 58, 0.08);
   --glass: rgba(255, 255, 255, 0.70);
   --tab-active-bg: #FFFFFF;
+  /* shadcn token bridges */
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card: var(--surface);
+  --card-foreground: var(--fg);
+  --popover: var(--surface);
+  --popover-foreground: var(--fg);
+  --primary: var(--accent);
+  --primary-foreground: var(--bg);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--fg);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--fg-muted);
+  --input: var(--surface-2);
+  --ring: var(--accent);
 }
 
 html,

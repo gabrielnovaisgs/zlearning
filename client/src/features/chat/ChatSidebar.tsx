@@ -21,19 +21,19 @@ export function ChatSidebar({ activeSessionId, onSelectSession, onNewSession }: 
   const { sessions, deleteSession } = useChatSessions();
 
   return (
-    <div className="flex flex-col h-full w-48 shrink-0 bg-bg-secondary border-r border-border">
+    <div className="flex flex-col h-full w-48 shrink-0 bg-surface border-r border-border">
       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-        <span className="text-[10px] uppercase tracking-wider text-text-muted font-semibold">Conversas</span>
+        <span className="text-[10px] uppercase tracking-wider text-fg-muted font-semibold">Conversas</span>
         <button
           onClick={onNewSession}
-          className="text-text-muted hover:text-text-primary text-lg leading-none"
+          className="text-fg-muted hover:text-fg text-lg leading-none"
           title="Nova conversa"
         >+</button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         {sessions.length === 0 && (
-          <p className="px-3 py-4 text-text-muted text-xs">Nenhuma conversa ainda</p>
+          <p className="px-3 py-4 text-fg-muted text-xs">Nenhuma conversa ainda</p>
         )}
         {sessions.map((session: SessionSummary) => (
           <div
@@ -41,16 +41,16 @@ export function ChatSidebar({ activeSessionId, onSelectSession, onNewSession }: 
             onClick={() => onSelectSession(session.id)}
             className={`group flex flex-col px-3 py-2 cursor-pointer border-l-2 transition-colors ${
               activeSessionId === session.id
-                ? 'border-accent bg-bg-primary text-accent'
-                : 'border-transparent text-text-primary hover:bg-bg-hover'
+                ? 'border-accent bg-bg text-accent'
+                : 'border-transparent text-fg hover:bg-surface-2'
             }`}
           >
             <span className="text-xs truncate">{session.title}</span>
             <div className="flex items-center justify-between mt-0.5">
-              <span className="text-[10px] text-text-muted">{formatDate(session.updatedAt)}</span>
+              <span className="text-[10px] text-fg-muted">{formatDate(session.updatedAt)}</span>
               <button
                 onClick={(e) => { e.stopPropagation(); deleteSession(session.id); }}
-                className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-red-400 text-xs"
+                className="opacity-0 group-hover:opacity-100 text-fg-muted hover:text-destructive text-xs"
                 title="Excluir"
               >×</button>
             </div>

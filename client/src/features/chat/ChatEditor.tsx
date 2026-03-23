@@ -108,12 +108,12 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
       <div className="flex flex-col flex-1 min-w-0">
         {sessionError ? (
           <div className="flex flex-1 items-center justify-center">
-            <p className="text-red-400 text-sm">Sessão não encontrada.</p>
+            <p className="text-destructive text-sm">Sessão não encontrada.</p>
           </div>
         ) : !realSessionId ? (
           // Estado de criação — aguardando backend
           <div className="flex flex-1 items-center justify-center">
-            <p className="text-text-muted text-sm">Criando conversa...</p>
+            <p className="text-fg-muted text-sm">Criando conversa...</p>
           </div>
         ) : (
           <>

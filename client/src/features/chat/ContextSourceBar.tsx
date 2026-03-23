@@ -39,9 +39,9 @@ export function ContextSourceBar({ value, onChange }: ContextSourceBarProps) {
   return (
     <div
       ref={containerRef}
-      className="flex items-center gap-2 px-3 py-1.5 bg-bg-secondary border-b border-border text-xs relative flex-wrap"
+      className="flex items-center gap-2 px-3 py-1.5 bg-surface border-b border-border text-xs relative flex-wrap"
     >
-      <span className="text-text-muted uppercase tracking-wider text-[10px]">Contexto</span>
+      <span className="text-fg-muted uppercase tracking-wider text-[10px]">Contexto</span>
 
       {/* Local chip */}
       <button
@@ -49,12 +49,12 @@ export function ContextSourceBar({ value, onChange }: ContextSourceBarProps) {
         className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs transition-colors ${
           localSources.length > 0
             ? 'border-accent text-accent'
-            : 'border-border text-text-muted hover:border-text-muted'
+            : 'border-border text-fg-muted hover:border-fg-muted'
         }`}
       >
         📁 Local
         {localSources.length > 0 && (
-          <span className="bg-accent text-bg-primary rounded-full px-1.5 text-[10px] font-semibold">
+          <span className="bg-accent text-bg rounded-full px-1.5 text-[10px] font-semibold">
             {localSources.length}
           </span>
         )}
@@ -62,19 +62,19 @@ export function ContextSourceBar({ value, onChange }: ContextSourceBarProps) {
 
       {/* Local panel */}
       {openPanel === 'local' && (
-        <div className="absolute top-full left-0 mt-1 ml-3 bg-bg-secondary border border-border rounded-lg shadow-xl z-50 min-w-65">
-          <div className="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wider text-text-muted">
+        <div className="absolute top-full left-0 mt-1 ml-3 bg-surface border border-border rounded-lg shadow-xl z-50 min-w-65">
+          <div className="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wider text-fg-muted">
             Arquivos locais
           </div>
           {localSources.length === 0 && (
-            <div className="px-3 py-3 text-text-muted text-xs">Nenhum arquivo adicionado</div>
+            <div className="px-3 py-3 text-fg-muted text-xs">Nenhum arquivo adicionado</div>
           )}
           {localSources.map((src, i) => (
-            <div key={i} className="flex items-center gap-2 px-3 py-2 hover:bg-bg-hover group">
+            <div key={i} className="flex items-center gap-2 px-3 py-2 hover:bg-surface-2 group">
               <span className="text-sm">📄</span>
-              <span className="flex-1 text-text-primary truncate">{src.source}</span>
+              <span className="flex-1 text-fg truncate">{src.source}</span>
               <button
-                className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-text-primary"
+                className="opacity-0 group-hover:opacity-100 text-fg-muted hover:text-fg"
                 onClick={() => onChange({
                   ...value,
                   local: localSources.filter((_, j) => j !== i),
@@ -90,13 +90,13 @@ export function ContextSourceBar({ value, onChange }: ContextSourceBarProps) {
         onClick={toggleWeb}
         className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs transition-colors ${
           webEnabled
-            ? 'border-blue-400 text-blue-400'
-            : 'border-border text-text-muted hover:border-text-muted'
+            ? 'border-accent text-accent'
+            : 'border-border text-fg-muted hover:border-fg-muted'
         }`}
       >
         🌐 Web
         {webEnabled && (
-          <span className="bg-blue-400 text-bg-primary rounded-full px-1.5 text-[10px] font-semibold">
+          <span className="bg-accent text-bg rounded-full px-1.5 text-[10px] font-semibold">
             on
           </span>
         )}
@@ -105,15 +105,15 @@ export function ContextSourceBar({ value, onChange }: ContextSourceBarProps) {
       {/* Add source button */}
       <button
         onClick={() => setShowProviderMenu(!showProviderMenu)}
-        className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-dashed border-border text-text-muted hover:border-text-muted hover:text-text-primary text-xs transition-colors"
+        className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-dashed border-border text-fg-muted hover:border-fg-muted hover:text-fg text-xs transition-colors"
       >
         ＋ fonte
       </button>
 
       {/* Provider menu */}
       {showProviderMenu && (
-        <div className="absolute top-full left-0 mt-1 bg-bg-secondary border border-border rounded-lg shadow-xl z-50 w-70">
-          <div className="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wider text-text-muted">
+        <div className="absolute top-full left-0 mt-1 bg-surface border border-border rounded-lg shadow-xl z-50 w-70">
+          <div className="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wider text-fg-muted">
             Adicionar fonte de contexto
           </div>
           <div className="py-1">
@@ -124,15 +124,15 @@ export function ContextSourceBar({ value, onChange }: ContextSourceBarProps) {
             ].map((p) => (
               <div
                 key={p.provider}
-                className={`flex items-center gap-3 px-3 py-2 ${p.available ? 'hover:bg-bg-hover cursor-pointer' : 'opacity-50'}`}
+                className={`flex items-center gap-3 px-3 py-2 ${p.available ? 'hover:bg-surface-2 cursor-pointer' : 'opacity-50'}`}
               >
                 <span className="text-lg w-6 text-center">{p.icon}</span>
                 <div className="flex-1">
-                  <div className="text-text-primary text-xs font-medium">{p.name}</div>
-                  <div className="text-text-muted text-[10px]">{p.desc}</div>
+                  <div className="text-fg text-xs font-medium">{p.name}</div>
+                  <div className="text-fg-muted text-[10px]">{p.desc}</div>
                 </div>
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
-                  p.available ? 'bg-accent text-bg-primary' : 'bg-bg-hover text-text-muted'
+                  p.available ? 'bg-accent text-bg' : 'bg-surface-2 text-fg-muted'
                 }`}>{p.label}</span>
               </div>
             ))}
