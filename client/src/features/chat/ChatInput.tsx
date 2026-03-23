@@ -45,6 +45,7 @@ export function ChatInput({
           placeholder="Pergunte sobre suas notas... (Enter para enviar)"
           disabled={disabled || isLoading}
           rows={1}
+          className="min-h-9 max-h-32 overflow-y-auto"
         />
         <InputGroupAddon align="inline-end">
           {isLoading ? (

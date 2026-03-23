@@ -32,4 +32,15 @@ describe('ChatMessages', () => {
     const dots = container.querySelectorAll('.animate-bounce');
     expect(dots).toHaveLength(3);
   });
+
+  it('oculta dots de carregamento quando já existe mensagem do assistente', () => {
+    const { container } = render(
+      <ChatMessages
+        messages={[{ id: 'm1', role: 'assistant', parts: [{ type: 'text', text: 'Olá' }] }]}
+        isLoading={true}
+      />
+    );
+    const dots = container.querySelectorAll('.animate-bounce');
+    expect(dots).toHaveLength(0);
+  });
 });
