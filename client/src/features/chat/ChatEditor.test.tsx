@@ -38,7 +38,14 @@ vi.mock('ai', () => {
   class TextStreamChatTransport {
     constructor(_opts: unknown) {}
   }
-  return { TextStreamChatTransport };
+  class DefaultChatTransport {
+    constructor(_opts: unknown) {}
+  }
+  return {
+    TextStreamChatTransport,
+    DefaultChatTransport,
+    isTextUIPart: (part: { type: string }) => part.type === 'text',
+  };
 });
 
 vi.mock('@features/panes/pane-controller.store', () => ({
