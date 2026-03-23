@@ -6,19 +6,9 @@ import { createUIMessageStreamResponse } from 'ai';
 import type { UIMessage } from 'ai';
 import { Readable } from 'node:stream';
 import type { Response } from 'express';
-import { ChatService, type ContextSources } from './chat.service.js';
+import { ChatService } from './chat.service.js';
 
-import { IsString, IsNotEmpty, IsOptional, IsObject } from 'class-validator';
 
-class SendMessageDto {
-  @IsString()
-  @IsNotEmpty()
-  content: string;
-
-  @IsOptional()
-  @IsObject()
-  contextSources?: ContextSources;
-}
 
 @Controller('chat')
 export class ChatController {

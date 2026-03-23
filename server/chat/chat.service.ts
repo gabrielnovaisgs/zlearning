@@ -140,7 +140,7 @@ export class ChatService {
       checkpointer: this.checkpointer
     })
     
-    const system = new SystemMessage({content: 'You are a helpful assistant. Be long-winded'})
+    const system = new SystemMessage({content: 'You are a helpful assistant. Be concise'})
     const stream = await chatAgent.stream({messages: [system, ...messages]}, {
       streamMode: ['messages', 'updates', 'checkpoints'],
       configurable: config.configurable

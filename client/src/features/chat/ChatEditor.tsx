@@ -93,6 +93,10 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
     sendMessage({ text });
   }
 
+  useEffect(() => {
+    console.log("messages", messages)
+  }, [messages])
+
   return (
     <div className="flex h-full">
       <ChatSidebar
