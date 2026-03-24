@@ -14,6 +14,7 @@ export function buildEditorTheme() {
         fontSize: "16px",
         backgroundColor: cssVar('--bg'),
         color: cssVar('--fg-secondary'),
+        outline: "none",
       },
       ".cm-content": {
         fontFamily: "'Geist', system-ui, sans-serif",
@@ -236,6 +237,60 @@ export function buildEditorTheme() {
         maxWidth: "100%",
         borderRadius: "8px",
         margin: "8px 0",
+      },
+
+      // Table wrapper
+      ".cm-md-table-wrapper": {
+        margin: "8px 0",
+        overflowX: "auto",
+        borderRadius: "8px",
+        border: `1px solid ${cssVar('--border')}`,
+      },
+
+      // Table element
+      ".cm-md-table": {
+        borderCollapse: "collapse",
+        width: "100%",
+        fontSize: "0.9em",
+      },
+
+      // Header cells
+      ".cm-md-table th": {
+        backgroundColor: cssVar('--surface'),
+        color: cssVar('--fg'),
+        fontWeight: "600",
+        padding: "8px 16px",
+        textAlign: "left",
+        borderBottom: `2px solid ${cssVar('--border')}`,
+        borderRight: `1px solid ${cssVar('--border')}`,
+        whiteSpace: "nowrap",
+      },
+      ".cm-md-table th:last-child": {
+        borderRight: "none",
+      },
+
+      // Data cells
+      ".cm-md-table td": {
+        padding: "7px 16px",
+        color: cssVar('--fg-secondary'),
+        borderBottom: `1px solid ${cssVar('--border')}`,
+        borderRight: `1px solid ${cssVar('--border')}`,
+      },
+      ".cm-md-table td:last-child": {
+        borderRight: "none",
+      },
+      ".cm-md-table tr:last-child td": {
+        borderBottom: "none",
+      },
+      ".cm-md-table tbody tr:hover td": {
+        backgroundColor: `${cssVar('--surface-2')}66`,
+      },
+
+      // Raw table lines (when cursor is inside table)
+      ".cm-md-table-raw-line": {
+        fontFamily: "'Geist Mono', monospace",
+        fontSize: "0.875em",
+        color: cssVar('--fg-muted'),
       },
     },
     { dark: true }

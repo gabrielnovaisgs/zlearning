@@ -8,6 +8,7 @@ import { syntaxTree } from "@codemirror/language";
 import { Range, StateField, StateEffect, Extension } from "@codemirror/state";
 import { resolveWikiLink } from "@shared/file.store";
 import { usePaneController } from "@features/panes/pane-controller.store";
+import { TableWidget } from "./table-widget";
 
 class ImageWidget extends WidgetType {
   constructor(private url: string, private alt: string) {
@@ -90,11 +91,31 @@ function buildDecorations(view: EditorView): DecorationSet {
     decorations.push(Decoration.widget({ widget: w, block }).range(pos));
   };
 
+  // Pre-scan: collect non-active table ranges to skip during wiki link processing
+  const nonActiveTables: Array<{ from: number; to: number }> = [];
+  tree.iterate({
+    enter(node) {
+      if (node.name !== "Table") return;
+      const startLine = view.state.doc.lineAt(node.from).number;
+      const endLine = view.state.doc.lineAt(node.to).number;
+      let active = false;
+      for (let l = startLine; l <= endLine; l++) {
+        if (activeLines.has(l)) { active = true; break; }
+      }
+      if (!active) nonActiveTables.push({ from: node.from, to: node.to });
+      return false;
+    },
+  });
+
+  const inNonActiveTable = (pos: number) =>
+    nonActiveTables.some((t) => pos >= t.from && pos <= t.to);
+
   // Wiki links [[note name]] — regex-based since the markdown parser doesn't know them
   const wikiLinkRe = /\[\[([^\]]+)\]\]/g;
   const doc = view.state.doc;
   for (let i = 1; i <= doc.lines; i++) {
     const lineObj = doc.line(i);
+    if (inNonActiveTable(lineObj.from)) continue;
     const lineActive = activeLines.has(i);
     let match: RegExpExecArray | null;
     wikiLinkRe.lastIndex = 0;
@@ -121,6 +142,32 @@ function buildDecorations(view: EditorView): DecorationSet {
       const to = node.to;
       const type = node.name;
       const active = isLineActive(view, from, activeLines);
+
+      // Tables — render as HTML when cursor is outside, raw styled when inside
+      if (type === "Table") {
+        const startLine = view.state.doc.lineAt(from).number;
+        const endLine = view.state.doc.lineAt(to).number;
+        let cursorInTable = false;
+        for (let l = startLine; l <= endLine; l++) {
+          if (activeLines.has(l)) { cursorInTable = true; break; }
+        }
+
+        if (!cursorInTable) {
+          const startLineObj = view.state.doc.lineAt(from);
+          const endLineObj = view.state.doc.lineAt(to);
+          const rawText = view.state.sliceDoc(startLineObj.from, endLineObj.to);
+          decorations.push(
+            Decoration.replace({ widget: new TableWidget(rawText), block: true })
+              .range(startLineObj.from, endLineObj.to)
+          );
+        } else {
+          for (let l = startLine; l <= endLine; l++) {
+            const lineObj = view.state.doc.line(l);
+            line(lineObj.from, "cm-md-table-raw-line");
+          }
+        }
+        return false;
+      }
 
       // ATX headings
       if (/^ATXHeading[1-6]$/.test(type)) {
