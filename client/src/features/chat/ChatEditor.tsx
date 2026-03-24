@@ -97,6 +97,7 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
     console.log("messages", messages)
   }, [messages])
 
+  // TODO: ao crescer as mensagens o input é empurrado para baixo, ajustar para que ele sempre fique no canto interior sem sumir
   return (
     <div className="flex h-full">
       <ChatSidebar
@@ -105,7 +106,7 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
         onNewSession={handleNewSession}
       />
 
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col flex-1 min-w-0 min-h-0">
         {sessionError ? (
           <div className="flex flex-1 items-center justify-center">
             <p className="text-destructive text-sm">Sessão não encontrada.</p>
