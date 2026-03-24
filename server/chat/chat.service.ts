@@ -1,15 +1,15 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { LlmService, ChatMessage } from '../llm/llm.service.js';
 import { FilesystemService } from '../filesystem/filesystem.service.js';
-import { DOCS_ROOT } from '../filesystem/filesystem.module.js';
 
-import { createAgent, SystemMessage } from "langchain";
+
 import fs from 'fs/promises';
 import path from 'path';
 import { nanoid } from 'nanoid';
 import type { BaseMessage } from "@langchain/core/messages";
-import { MemorySaver } from "@langchain/langgraph";
+
 import { IterableReadableStream } from '@langchain/core/utils/stream';
+import { ChatAgent } from './chat.agent.js';
 
 const CHAT_ROOT = path.resolve(process.cwd(), 'docs/chat/history');
 
@@ -44,15 +44,15 @@ export interface Session extends SessionSummary {
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
-  private readonly checkpointer: MemorySaver;
+
 
   constructor(
     private readonly filesystemService: FilesystemService,
-    private readonly llmService: LlmService,
+    private readonly chatAgent: ChatAgent,
     
   ) {
    
-    this.checkpointer = new MemorySaver();
+
   }
 
   private sessionPath(id: string): string {
@@ -134,14 +134,9 @@ export class ChatService {
         thread_id: sessionId,
       }
     }
-    const model = this.llmService.getModel();
-    const chatAgent = createAgent({
-      model,
-      checkpointer: this.checkpointer
-    })
-    
-    const system = new SystemMessage({content: 'You are a helpful assistant. Be concise'})
-    const stream = await chatAgent.stream({messages: [system, ...messages]}, {
+    const chatAgent = await this.chatAgent.createAgent({})
+
+    const stream = await chatAgent.stream({messages: [ ...messages]}, {
       streamMode: ['messages', 'updates', 'checkpoints'],
       configurable: config.configurable
      }, )

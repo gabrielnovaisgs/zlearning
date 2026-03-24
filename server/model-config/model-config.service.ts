@@ -25,7 +25,7 @@ export type ModelConfig =  {
 @Injectable()
 export class ModelConfigService {
       private configs: ModelConfig = {
-      [Services.CHAT]: { model: 'qwen3.5:4b', provider: Providers.OLLAMA,  apiKey: process.env.OPENROUTER_API_KEY},
+      [Services.CHAT]: { model: 'llama3.2:1b', provider: Providers.OLLAMA,  apiKey: process.env.OPENROUTER_API_KEY},
       [Services.TRANSLATE]: { model: 'llama3.2:1b', provider: Providers.OLLAMA, apiKey: process.env.GOOGLE_API_KEY  },
     };
 

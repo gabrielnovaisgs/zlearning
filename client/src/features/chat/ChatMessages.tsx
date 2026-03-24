@@ -1,7 +1,8 @@
 // client/src/features/chat/ChatMessages.tsx
+import { useState } from 'react';
 import type { UIMessage } from 'ai';
 import { isTextUIPart } from 'ai';
-import { Copy } from 'lucide-react';
+import { Check, Copy } from 'lucide-react';
 import {
   Message,
   MessageContent,
@@ -17,9 +18,12 @@ interface ChatMessagesProps {
 
 export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
   const lastAssistantIndex = messages.findLastIndex((m) => m.role === 'assistant');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  function handleCopy(text: string) {
-    navigator.clipboard.writeText(text).catch(() => {});
+  function handleCopy(id: string, text: string) {
+    navigator.clipboard.writeText(text).catch(() => { });
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   }
 
   return (
@@ -30,19 +34,23 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
           isLoading && msg.role === 'assistant' && index === lastAssistantIndex;
 
         return (
-          <Message key={msg.id} from={msg.role}>
-            <MessageContent>
-              <MessageResponse isAnimating={isStreamingThis}>
+          <Message key={msg.id} from={msg.role} >
+            <MessageContent >
+              <MessageResponse isAnimating={isStreamingThis} >
                 {text}
               </MessageResponse>
             </MessageContent>
-            <MessageActions>
+            <MessageActions className={`
+              ${msg.role === 'user' ? 'ml-auto' : ''}
+              
+              `}>
               <MessageAction
-                tooltip="Copiar"
+                className={copiedId === msg.id ? 'bg-green-300 transition-all text-black' : ''}
+                tooltip={copiedId === msg.id ? 'Copiado!' : 'Copiar'}
                 label="Copiar mensagem"
-                onClick={() => handleCopy(text)}
+                onClick={() => handleCopy(msg.id, text)}
               >
-                <Copy size={13} />
+                {copiedId === msg.id ? <Check size={13} /> : <Copy size={13} />}
               </MessageAction>
             </MessageActions>
           </Message>
