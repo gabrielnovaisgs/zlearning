@@ -95,7 +95,10 @@ export function MarkdownEditor({ filePath }: Props) {
   }, [filePath]);
 
   // Reset to edit mode on file switch
-  useEffect(() => { setViewMode("edit"); }, [filePath]);
+  useEffect(() => {
+    setViewMode("edit");
+    setReadContent("");
+  }, [filePath]);
 
   const scheduleSave = useCallback((path: string, content: string) => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -182,15 +185,15 @@ export function MarkdownEditor({ filePath }: Props) {
 
   return (
     <>
-      {/* Sticky toggle bar — outside the scroll container */}
-      <div
-        className="sticky top-0 z-10 flex justify-end px-12 py-2"
-        style={{ maxWidth: "800px", margin: "0 auto", width: "100%" }}
-      >
-        <ViewToggle mode={viewMode} onChange={handleViewModeChange} />
-      </div>
-
       <div className="flex flex-1 flex-col overflow-y-auto">
+        {/* Sticky toggle bar — inside scroll container so sticky works */}
+        <div
+          className="sticky top-0 z-10 flex justify-end px-12 py-2"
+          style={{ maxWidth: "800px", margin: "0 auto", width: "100%" }}
+        >
+          <ViewToggle mode={viewMode} onChange={handleViewModeChange} />
+        </div>
+
         <EditableTitle activeFile={filePath} />
 
         {/* CodeMirror — always mounted, hidden in read mode */}
