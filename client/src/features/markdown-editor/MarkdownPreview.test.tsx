@@ -3,8 +3,7 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MarkdownPreview } from "./MarkdownPreview";
-import { Square as SquareIcon, SquareCheck as SquareCheckIcon } from "lucide-react";
+import { MarkdownPreview, CheckboxRenderer, ImgRenderer } from "./MarkdownPreview";
 import { resolveWikiLink } from "@shared/file.store";
 import { usePaneController } from "@features/panes/pane-controller.store";
 
@@ -79,19 +78,18 @@ describe("MarkdownPreview", () => {
 
   describe("checkbox component", () => {
     it("renders Square icon for unchecked checkbox", () => {
-      // Render the input component directly
-      renderCheckboxComponent(false);
+      render(<CheckboxRenderer checked={false} index={0} onToggle={vi.fn()} />);
       expect(screen.getByTestId("icon-square")).toBeInTheDocument();
     });
 
     it("renders SquareCheck icon for checked checkbox", () => {
-      renderCheckboxComponent(true);
+      render(<CheckboxRenderer checked={true} index={0} onToggle={vi.fn()} />);
       expect(screen.getByTestId("icon-square-check")).toBeInTheDocument();
     });
 
     it("calls onCheckboxToggle with index and new state on click", async () => {
       const onToggle = vi.fn();
-      renderCheckboxComponent(false, 2, onToggle);
+      render(<CheckboxRenderer checked={false} index={2} onToggle={onToggle} />);
       await userEvent.click(screen.getByTestId("icon-square").closest("span")!);
       expect(onToggle).toHaveBeenCalledWith(2, true);
     });
@@ -99,12 +97,12 @@ describe("MarkdownPreview", () => {
 
   describe("image component", () => {
     it("prefixes relative src with /api/files/raw/", () => {
-      renderImgComponent("docs/img.png");
+      render(<ImgRenderer src="docs/img.png" alt="test" />);
       expect(screen.getByRole("img")).toHaveAttribute("src", "/api/files/raw/docs/img.png");
     });
 
     it("does not prefix absolute http URLs", () => {
-      renderImgComponent("https://example.com/img.png");
+      render(<ImgRenderer src="https://example.com/img.png" alt="test" />);
       expect(screen.getByRole("img")).toHaveAttribute("src", "https://example.com/img.png");
     });
   });
@@ -136,44 +134,6 @@ describe("MarkdownPreview", () => {
 });
 
 // ── Helpers to render individual custom components ──────────────────────────
-
-function renderCheckboxComponent(checked: boolean, index = 0, onToggle = vi.fn()) {
-  // Import and render the internal CheckboxComp directly by rendering MarkdownPreview
-  // and extracting; easier to test the component in isolation via a wrapper.
-  // For simplicity in this plan, test via a thin wrapper:
-  const CheckboxComp = makeCheckboxComponent(index, onToggle);
-  render(<CheckboxComp node={{}} checked={checked} />);
-}
-
-function renderImgComponent(src: string) {
-  const ImgComp = makeImgComponent();
-  render(<ImgComp src={src} alt="test" node={{}} />);
-}
-
-// These factory functions mirror the internals of MarkdownPreview.tsx.
-// If the implementation exports them, import directly instead.
-function makeCheckboxComponent(index: number, onToggle: (i: number, c: boolean) => void) {
-  // Use the top-level imports (which are mocked via vi.mock hoisting)
-  const Square = SquareIcon as any;
-  const SquareCheck = SquareCheckIcon as any;
-  return function CheckboxComp({ checked }: { checked?: boolean; node: any }) {
-    return (
-      <span
-        className={`preview-checkbox${checked ? " checked" : ""}`}
-        onClick={() => onToggle(index, !checked)}
-      >
-        {checked ? <SquareCheck size={15} /> : <Square size={15} />}
-      </span>
-    );
-  };
-}
-
-function makeImgComponent() {
-  return function ImgComp({ src, alt }: { src?: string; alt?: string; node: any }) {
-    const resolved = src?.startsWith("http") ? src : `/api/files/raw/${src}`;
-    return <img src={resolved} alt={alt} className="md-preview-img" />;
-  };
-}
 
 function makeWikiLinkComponent(wikiValue: string, openFileInPane: ReturnType<typeof vi.fn>) {
   return function WikiLinkComp({ node, children }: { node: any; children: any }) {

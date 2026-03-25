@@ -20,6 +20,32 @@ function stripFrontmatter(content: string): string {
   return content.slice(end + 5);
 }
 
+// Exported for testing
+export function CheckboxRenderer({
+  checked,
+  index,
+  onToggle,
+}: {
+  checked?: boolean;
+  index: number;
+  onToggle: (i: number, c: boolean) => void;
+}) {
+  return (
+    <span
+      className={`preview-checkbox${checked ? " checked" : ""}`}
+      onClick={() => onToggle(index, !checked)}
+    >
+      {checked ? <SquareCheck size={15} /> : <Square size={15} />}
+    </span>
+  );
+}
+
+// Exported for testing
+export function ImgRenderer({ src, alt }: { src?: string; alt?: string }) {
+  const resolvedSrc = src?.startsWith("http") ? src : `/api/files/raw/${src}`;
+  return <img src={resolvedSrc} alt={alt} className="md-preview-img" />;
+}
+
 export function MarkdownPreview({ content, onCheckboxToggle }: Props) {
   const checkboxIndexRef = useRef(0);
   checkboxIndexRef.current = 0;
@@ -69,20 +95,13 @@ export function MarkdownPreview({ content, onCheckboxToggle }: Props) {
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkWikiLink]}
       components={{
-        input({ checked, node: _node, ...props }) {
+        input({ checked, node: _node }) {
           const idx = checkboxIndexRef.current++;
-          return (
-            <span
-              className={`preview-checkbox${checked ? " checked" : ""}`}
-              onClick={() => onCheckboxToggle(idx, !checked)}
-            >
-              {checked ? <SquareCheck size={15} /> : <Square size={15} />}
-            </span>
-          );
+          return <CheckboxRenderer checked={checked} index={idx} onToggle={onCheckboxToggle} />;
         },
 
         span({ node, children, ...props }) {
-          const wikiLinkValue = (node as any)?.properties?.dataWikilink as string | undefined;
+          const wikiLinkValue = node?.properties?.["dataWikilink"] as string | undefined;
           if (wikiLinkValue) {
             return (
               <span
@@ -112,9 +131,8 @@ export function MarkdownPreview({ content, onCheckboxToggle }: Props) {
           );
         },
 
-        img({ src, alt, node: _node, ...props }) {
-          const resolvedSrc = src?.startsWith("http") ? src : `/api/files/raw/${src}`;
-          return <img {...props} src={resolvedSrc} alt={alt} className="md-preview-img" />;
+        img({ src, alt, node: _node }) {
+          return <ImgRenderer src={src} alt={alt} />;
         },
       }}
     >
