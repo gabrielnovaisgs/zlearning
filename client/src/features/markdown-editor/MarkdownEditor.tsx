@@ -4,6 +4,10 @@ import { fs } from "@shared/services/filesystem";
 import { useFileStore } from "@shared/file.store";
 import { useFileContent } from "@shared/hooks/use-files";
 import { useThemeStore } from "@features/theme/theme.store";
+import { ViewToggle } from "./ViewToggle";
+import { MarkdownPreview } from "./MarkdownPreview";
+
+type ViewMode = "edit" | "read";
 
 interface Props {
   filePath: string;
@@ -82,11 +86,16 @@ export function MarkdownEditor({ filePath }: Props) {
   const { content, isLoading } = useFileContent(filePath);
   const mode  = useThemeStore((s) => s.mode);
   const theme = useThemeStore((s) => s.theme);
+  const [viewMode, setViewMode] = useState<ViewMode>("edit");
+  const [readContent, setReadContent] = useState<string>("");
 
   // Keep ref in sync with prop
   useEffect(() => {
     filePathRef.current = filePath;
   }, [filePath]);
+
+  // Reset to edit mode on file switch
+  useEffect(() => { setViewMode("edit"); }, [filePath]);
 
   const scheduleSave = useCallback((path: string, content: string) => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -140,11 +149,65 @@ export function MarkdownEditor({ filePath }: Props) {
     isExternalUpdate.current = false;
   }, [content, filePath]);
 
+  const handleViewModeChange = useCallback((next: ViewMode) => {
+    if (next === "read" && editorRef.current) {
+      setReadContent(editorRef.current.getContent());
+    }
+    setViewMode(next);
+  }, []);
+
+  const handleCheckboxToggle = useCallback((index: number, checked: boolean) => {
+    if (!editorRef.current) return;
+    const current = editorRef.current.getContent();
+    let count = 0;
+    const updated = current.split("\n").map((line) => {
+      if (/^(\s*(?:[-*+]|\d+\.)\s+)\[[ x]\]/i.test(line)) {
+        if (count++ === index) {
+          return line.replace(/\[[ x]\]/i, checked ? "[x]" : "[ ]");
+        }
+      }
+      return line;
+    });
+    const newContent = updated.join("\n");
+
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    fs.writeFile(filePathRef.current, newContent);
+
+    isExternalUpdate.current = true;
+    editorRef.current.setContent(newContent);
+    isExternalUpdate.current = false;
+
+    setReadContent(newContent);
+  }, []);
+
   return (
     <>
+      {/* Sticky toggle bar — outside the scroll container */}
+      <div
+        className="sticky top-0 z-10 flex justify-end px-12 py-2"
+        style={{ maxWidth: "800px", margin: "0 auto", width: "100%" }}
+      >
+        <ViewToggle mode={viewMode} onChange={handleViewModeChange} />
+      </div>
+
       <div className="flex flex-1 flex-col overflow-y-auto">
         <EditableTitle activeFile={filePath} />
-        <div ref={containerRef} className="flex-1" />
+
+        {/* CodeMirror — always mounted, hidden in read mode */}
+        <div
+          ref={containerRef}
+          className="flex-1"
+          style={{ display: viewMode === "read" ? "none" : undefined }}
+        />
+
+        {/* Preview — only mounted in read mode */}
+        {viewMode === "read" && (
+          <MarkdownPreview
+            content={readContent}
+            filePath={filePath}
+            onCheckboxToggle={handleCheckboxToggle}
+          />
+        )}
       </div>
 
       {isLoading && (
