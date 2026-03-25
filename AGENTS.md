@@ -66,29 +66,37 @@ Os tokens mudam automaticamente com o tema (`data-theme="indigo"` ou `data-theme
 - NestJS: controllers usam `@Get`, `@Put`, `@Post`, `@Patch`, `@Delete`; serviços são `@Injectable()`
 - Arquitetura feature-based com colocation: cada feature agrupa componentes, stores e testes no mesmo diretório
 
-## Specs e POCs
+## Planejamento e exploração
 
-### `specs/`
+### `specs/` — especificações de features
 
-Design specs aprovadas que guiam a implementação de features. Cada arquivo segue o padrão:
+Specs seguem o padrão Spec-Driven Development (SDD). Features simples usam arquivo único; features maiores usam pasta com arquivos separados.
 
 ```
-specs/YYYY-MM-DD-nome-da-feature-design.md
+specs/
+  YYYY-MM-DD-nome-da-feature.md          ← spec simples (feature pequena)
+  YYYY-MM-DD-nome-da-feature/            ← spec completa (feature maior)
+    requirements.md                        ← O quê e por quê (user stories, critérios de aceite)
+    design.md                              ← Como (arquitetura, decisões técnicas, componentes)
+    tasks.md                               ← Lista de tarefas atômicas para execução
 ```
 
-A spec documenta: arquitetura de componentes, estados, comportamentos e decisões de design. Deve ser lida antes de implementar a feature correspondente.
+Workflow esperado: **spec aprovada → agente executa com base nos arquivos de tasks**.
+Ao implementar uma feature, leia o arquivo de spec correspondente antes de começar.
 
-### `pocs/`
+### `pocs/` — provas de conceito e exploração
 
-Provas de conceito visuais e exploratórias — mockups HTML, paletas de cores, logos, exploração de interface. Não são código de produção. Estrutura atual:
+Explorations visuais, mockups e experimentos que não vão direto para o código de produção.
 
 ```
 pocs/
-  design-mockup.html       — mockup geral da interface
-  logos/                   — variações do logo SVG
-  interface/               — alternativas de layout (option-a/b/c)
-  design-system/           — paletas de cor, plano de implementação do design system
+  design-mockup.html          ← mockup geral de interface
+  interface/                  ← variações de UI (HTML + docs)
+  design-system/              ← exploração de paletas, tokens, padrões visuais
+  logos/                      ← assets de identidade visual
 ```
+
+POCs são **referência**, não código de produção. Consulte-as para entender intenção de design antes de implementar componentes de UI.
 
 ## Arquivos de contexto por área
 
