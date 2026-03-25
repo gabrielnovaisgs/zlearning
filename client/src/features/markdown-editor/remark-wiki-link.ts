@@ -1,61 +1,46 @@
-import { visit, SKIP } from "unist-util-visit";
+import { visit } from "unist-util-visit";
 import type { Root, Text, Parent } from "mdast";
 
 const WIKI_LINK_RE = /\[\[([^\]]+)\]\]/g;
 
-function transformWikiLinks(tree: Root): void {
-  visit(tree, "text", (node: Text, index: number | undefined, parent: Parent | undefined) => {
-    if (!parent || index === undefined) return;
+export function remarkWikiLink() {
+  return (tree: Root) => {
+    visit(tree, "text", (node: Text, index: number | undefined, parent: Parent | undefined) => {
+      if (!parent || index === undefined) return;
 
-    const matches: Array<{ value: string; start: number; end: number }> = [];
-    let match: RegExpExecArray | null;
-    WIKI_LINK_RE.lastIndex = 0;
-    while ((match = WIKI_LINK_RE.exec(node.value)) !== null) {
-      matches.push({ value: match[1], start: match.index, end: WIKI_LINK_RE.lastIndex });
-    }
-
-    if (matches.length === 0) return;
-
-    const newNodes: any[] = [];
-    let cursor = 0;
-
-    for (const { value, start, end } of matches) {
-      if (start > cursor) {
-        newNodes.push({ type: "text", value: node.value.slice(cursor, start) });
+      const matches: Array<{ value: string; start: number; end: number }> = [];
+      let match: RegExpExecArray | null;
+      WIKI_LINK_RE.lastIndex = 0;
+      while ((match = WIKI_LINK_RE.exec(node.value)) !== null) {
+        matches.push({ value: match[1], start: match.index, end: WIKI_LINK_RE.lastIndex });
       }
-      newNodes.push({
-        type: "wikiLink",
-        value,
-        data: {
-          hName: "span",
-          hProperties: { "data-wikilink": value },
-        },
-        children: [{ type: "text", value }],
-      });
-      cursor = end;
-    }
 
-    if (cursor < node.value.length) {
-      newNodes.push({ type: "text", value: node.value.slice(cursor) });
-    }
+      if (matches.length === 0) return;
 
-    parent.children.splice(index, 1, ...newNodes);
-    return [SKIP, index + newNodes.length] as any;
-  });
-}
+      const newNodes: any[] = [];
+      let cursor = 0;
 
-export function remarkWikiLink(this: any) {
-  const self = this;
-  const originalParser: ((doc: string, file: any) => Root) | undefined = self.parser;
+      for (const { value, start, end } of matches) {
+        if (start > cursor) {
+          newNodes.push({ type: "text", value: node.value.slice(cursor, start) });
+        }
+        newNodes.push({
+          type: "wikiLink",
+          value,
+          data: {
+            hName: "span",
+            hProperties: { "data-wikilink": value },
+          },
+          children: [{ type: "text", value }],
+        });
+        cursor = end;
+      }
 
-  if (originalParser) {
-    self.parser = function (doc: string, file: any): Root {
-      const tree = originalParser.call(this, doc, file);
-      transformWikiLinks(tree);
-      return tree;
-    };
-  } else {
-    // Fallback: transformer (for use with .process() / .run())
-    return transformWikiLinks;
-  }
+      if (cursor < node.value.length) {
+        newNodes.push({ type: "text", value: node.value.slice(cursor) });
+      }
+
+      parent.children.splice(index, 1, ...newNodes);
+    });
+  };
 }

@@ -5,7 +5,9 @@ import { remarkWikiLink } from "./remark-wiki-link";
 import type { Root } from "mdast";
 
 function parse(markdown: string): Root {
-  return unified().use(remarkParse).use(remarkWikiLink).parse(markdown) as Root;
+  const tree = unified().use(remarkParse).parse(markdown);
+  unified().use(remarkWikiLink).runSync(tree as any);
+  return tree as Root;
 }
 
 describe("remarkWikiLink", () => {
@@ -42,5 +44,16 @@ describe("remarkWikiLink", () => {
     const children = (tree.children[0] as any).children;
     expect(children).toHaveLength(1);
     expect(children[0].type).toBe("text");
+  });
+
+  it("does not emit empty text node when wiki link is at start of text", () => {
+    const tree = parse("[[note]] at the start");
+    const children = (tree.children[0] as any).children;
+    // First node should be the wikiLink, not an empty text node
+    expect(children[0].type).toBe("wikiLink");
+    expect(children[0].value).toBe("note");
+    // Second node should be the trailing text
+    expect(children[1].type).toBe("text");
+    expect(children[1].value).toBe(" at the start");
   });
 });
