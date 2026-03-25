@@ -66,6 +66,30 @@ Os tokens mudam automaticamente com o tema (`data-theme="indigo"` ou `data-theme
 - NestJS: controllers usam `@Get`, `@Put`, `@Post`, `@Patch`, `@Delete`; serviços são `@Injectable()`
 - Arquitetura feature-based com colocation: cada feature agrupa componentes, stores e testes no mesmo diretório
 
+## Specs e POCs
+
+### `specs/`
+
+Design specs aprovadas que guiam a implementação de features. Cada arquivo segue o padrão:
+
+```
+specs/YYYY-MM-DD-nome-da-feature-design.md
+```
+
+A spec documenta: arquitetura de componentes, estados, comportamentos e decisões de design. Deve ser lida antes de implementar a feature correspondente.
+
+### `pocs/`
+
+Provas de conceito visuais e exploratórias — mockups HTML, paletas de cores, logos, exploração de interface. Não são código de produção. Estrutura atual:
+
+```
+pocs/
+  design-mockup.html       — mockup geral da interface
+  logos/                   — variações do logo SVG
+  interface/               — alternativas de layout (option-a/b/c)
+  design-system/           — paletas de cor, plano de implementação do design system
+```
+
 ## Arquivos de contexto por área
 
 - Frontend: `client/AGENTS.md`
