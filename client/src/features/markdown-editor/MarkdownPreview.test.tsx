@@ -1,9 +1,12 @@
 // @vitest-environment happy-dom
+import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MarkdownPreview } from "./MarkdownPreview";
 import { Square as SquareIcon, SquareCheck as SquareCheckIcon } from "lucide-react";
+import { resolveWikiLink } from "@shared/file.store";
+import { usePaneController } from "@features/panes/pane-controller.store";
 
 // Mock react-markdown to control rendered output in tests
 vi.mock("react-markdown", () => ({
@@ -105,6 +108,31 @@ describe("MarkdownPreview", () => {
       expect(screen.getByRole("img")).toHaveAttribute("src", "https://example.com/img.png");
     });
   });
+
+  describe("wiki link component", () => {
+    it("renders with preview-wikilink class", () => {
+      const openFileInPane = vi.fn();
+      (usePaneController as any).mockReturnValue({
+        activePaneId: "pane-1",
+        actions: { openFileInPane, splitPane: vi.fn().mockReturnValue("pane-2") },
+      });
+      const Comp = makeWikiLinkComponent("my note", openFileInPane);
+      render(<Comp node={{ properties: { dataWikilink: "my note" } }}>{[]}</Comp>);
+      expect(screen.getByText("my note")).toHaveClass("preview-wikilink");
+    });
+
+    it("calls openFileInPane on click", async () => {
+      const openFileInPane = vi.fn();
+      (usePaneController as any).mockReturnValue({
+        activePaneId: "pane-1",
+        actions: { openFileInPane, splitPane: vi.fn().mockReturnValue("pane-2") },
+      });
+      const Comp = makeWikiLinkComponent("my note", openFileInPane);
+      render(<Comp node={{ properties: { dataWikilink: "my note" } }}>{[]}</Comp>);
+      await userEvent.click(screen.getByText("my note"));
+      expect(openFileInPane).toHaveBeenCalledWith("docs/target.md");
+    });
+  });
 });
 
 // ── Helpers to render individual custom components ──────────────────────────
@@ -144,5 +172,30 @@ function makeImgComponent() {
   return function ImgComp({ src, alt }: { src?: string; alt?: string; node: any }) {
     const resolved = src?.startsWith("http") ? src : `/api/files/raw/${src}`;
     return <img src={resolved} alt={alt} className="md-preview-img" />;
+  };
+}
+
+function makeWikiLinkComponent(wikiValue: string, openFileInPane: ReturnType<typeof vi.fn>) {
+  return function WikiLinkComp({ node, children }: { node: any; children: any }) {
+    const wikiLinkValue = node?.properties?.dataWikilink as string | undefined;
+    if (wikiLinkValue) {
+      return (
+        <span
+          className="preview-wikilink"
+          onClick={(e: React.MouseEvent) => {
+            const path = resolveWikiLink(wikiLinkValue);
+            if (!path) return;
+            if (e.ctrlKey || e.metaKey) {
+              openFileInPane(path, "pane-2");
+            } else {
+              openFileInPane(path);
+            }
+          }}
+        >
+          {wikiValue}
+        </span>
+      );
+    }
+    return <span>{children}</span>;
   };
 }

@@ -51,6 +51,7 @@ export function MarkdownPreview({ content, onCheckboxToggle }: Props) {
 
     if (href.endsWith(".md") || (!href.startsWith("http") && !href.startsWith("#"))) {
       const path = resolveFileFromPath(href.replace(/\.md$/, ""));
+      if (!path) return;
       if (ctrlKey) {
         const newPaneId = splitPane(activePaneId, "right");
         openFileInPane(path, newPaneId);
@@ -64,6 +65,7 @@ export function MarkdownPreview({ content, onCheckboxToggle }: Props) {
   };
 
   return (
+    <div className="md-preview">
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkWikiLink]}
       components={{
@@ -118,5 +120,6 @@ export function MarkdownPreview({ content, onCheckboxToggle }: Props) {
     >
       {stripFrontmatter(content)}
     </ReactMarkdown>
+    </div>
   );
 }
