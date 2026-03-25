@@ -84,6 +84,8 @@ specs/
 Workflow esperado: **spec aprovada → agente executa com base nos arquivos de tasks**.
 Ao implementar uma feature, leia o arquivo de spec correspondente antes de começar.
 
+**Planos gerados pela skill `superpowers:writing-plans`** devem ser salvos em `specs/` com o mesmo padrão de nomenclatura (`YYYY-MM-DD-nome-da-feature.md`), e não no caminho padrão da skill (`docs/superpowers/plans/`).
+
 ### `pocs/` — provas de conceito e exploração
 
 Explorations visuais, mockups e experimentos que não vão direto para o código de produção.
