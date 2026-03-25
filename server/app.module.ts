@@ -6,6 +6,7 @@ import { PdfModule } from './pdf/pdf.module.js';
 import { ChatModule } from './chat/chat.module.js';
 import { env } from './env.js';
 import { ModelConfigModule } from './model-config/model-config.module.js';
+import { RagModule } from './rag/rag.module.js';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ModelConfigModule } from './model-config/model-config.module.js';
     TranslateModule,
     PdfModule,
     ChatModule,
+    RagModule,
   ],
 })
 export class AppModule {}

@@ -35,6 +35,9 @@ importers:
       '@codemirror/view':
         specifier: ^6.39.14
         version: 6.39.14
+      '@electric-sql/pglite':
+        specifier: ^0.4.2
+        version: 0.4.2
       '@langchain/classic':
         specifier: ^1.0.25
         version: 1.0.25(@langchain/core@1.1.32(@opentelemetry/api@1.9.0)(openai@6.29.0(ws@8.19.0)(zod@4.3.6))(ws@8.19.0))(@opentelemetry/api@1.9.0)(openai@6.29.0(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)
@@ -707,6 +710,9 @@ packages:
     engines: {bun: '>=1', deno: '>=2', node: '>=16'}
     peerDependencies:
       '@noble/ciphers': ^1.0.0
+
+  '@electric-sql/pglite@0.4.2':
+    resolution: {integrity: sha512-1GUUl/MZpy5QWgWisD3Epho3GkJrZ1MzVgQpo2pifQWUs96F9rXKZxeVLPhkwFYck34CH/kQ8lis6wX9ifn3kg==}
 
   '@electron/get@2.0.3':
     resolution: {integrity: sha512-Qkzpg2s9GnVV2I2BjRksUi43U5e6+zaQMcjoJy0C+C5oxaKl+fmckGDQFtRpZpZV0NQekuZZ+tGz7EA9TVnQtQ==}
@@ -7870,6 +7876,8 @@ snapshots:
   '@ecies/ciphers@0.2.5(@noble/ciphers@1.3.0)':
     dependencies:
       '@noble/ciphers': 1.3.0
+
+  '@electric-sql/pglite@0.4.2': {}
 
   '@electron/get@2.0.3':
     dependencies:

@@ -10,6 +10,7 @@ import type { BaseMessage } from "@langchain/core/messages";
 
 import { IterableReadableStream } from '@langchain/core/utils/stream';
 import { ChatAgent } from './chat.agent.js';
+import { LocalRagService } from '../rag/local-rag.service.js';
 
 const CHAT_ROOT = path.resolve(process.cwd(), 'docs/chat/history');
 
@@ -49,6 +50,7 @@ export class ChatService {
   constructor(
     private readonly filesystemService: FilesystemService,
     private readonly chatAgent: ChatAgent,
+    private readonly ragService: LocalRagService,
     
   ) {
    
@@ -134,12 +136,15 @@ export class ChatService {
         thread_id: sessionId,
       }
     }
-    const chatAgent = await this.chatAgent.createAgent({})
-
+    const chatAgent = await this.chatAgent.createAgent({
+      vectorStore: this.ragService.getVectorStore()
+    })
+    
     const stream = await chatAgent.stream({messages: [ ...messages]}, {
       streamMode: ['messages', 'updates', 'checkpoints'],
       configurable: config.configurable
      }, )
+     
      return stream
   
     

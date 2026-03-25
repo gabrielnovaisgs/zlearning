@@ -67,6 +67,9 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, isNew]);
 
+  useEffect(() => {
+    console.log("messages", messages)
+  }, [messages])
 
   // Trata erro 404: exibe erro e remove a tab
   useEffect(() => {
