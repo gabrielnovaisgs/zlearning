@@ -42,7 +42,8 @@ Tasks 4 e 6 podem ser executadas em paralelo (4 depende de 2, 6 depende de 3).
 | `server/chat/chat.module.ts` | Modificar | Remover FilesystemModule, injetar PrismaService |
 | `client/src/features/chat/chat.service.ts` | Modificar | Remover ContextSources, adicionar syncMessages |
 | `client/src/features/chat/use-chat-sessions.ts` | Modificar | Adicionar useSyncMessages mutation |
-| `client/src/features/chat/ChatEditor.tsx` | Modificar | initialMessages + onFinish com sync |
+| `client/src/features/chat/ContextSourceBar.tsx` | Modificar | Mover tipo ContextSources para self-contained (remover import de chat.service) |
+| `client/src/features/chat/ChatEditor.tsx` | Modificar | initialMessages + onFinish + remover ContextSourceBar |
 
 ---
 
@@ -51,11 +52,11 @@ Tasks 4 e 6 podem ser executadas em paralelo (4 depende de 2, 6 depende de 3).
 **Files:**
 - Criar: `prisma/schema.prisma`
 
-- [ ] **Criar a nova branch a partir de `feat/chat-docs` (branch principal do projeto)**
+- [ ] **Criar a nova branch a partir de `main` (branch principal do projeto)**
 
 ```bash
 nvm use
-git checkout feat/chat-docs && git pull
+git checkout main && git pull
 git checkout -b feat/pglite-chat-persistence
 ```
 
@@ -98,18 +99,20 @@ model Message {
 }
 ```
 
-- [ ] **Gerar o Prisma Client**
+- [ ] **Gerar as migrations e o Prisma Client**
 
 ```bash
-pnpm prisma generate
+pnpm prisma migrate dev --name init
 ```
 
-Esperado: `✔ Generated Prisma Client` sem erros. Cria `node_modules/.prisma/client`.
+Esperado: cria `prisma/migrations/` com o SQL inicial e gera o Prisma Client em `node_modules/.prisma/client` automaticamente.
+
+
 
 - [ ] **Commit**
 
 ```bash
-git add prisma/schema.prisma package.json pnpm-lock.yaml
+git add prisma/ package.json pnpm-lock.yaml
 git commit -m "feat: install prisma + pglite-prisma-adapter and create schema"
 ```
 
@@ -140,23 +143,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleInit() {
     await this.$connect();
-    await this.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "Session" (
-        "id" TEXT PRIMARY KEY,
-        "title" TEXT NOT NULL,
-        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
-        "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
-      )
-    `);
-    await this.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "Message" (
-        "id" TEXT PRIMARY KEY,
-        "sessionId" TEXT NOT NULL REFERENCES "Session"("id") ON DELETE CASCADE,
-        "role" TEXT NOT NULL,
-        "content" TEXT NOT NULL,
-        "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
-      )
-    `);
   }
 
   async onModuleDestroy() {
@@ -338,8 +324,8 @@ Se houver erros relacionados a `ContextSources` em outros arquivos do cliente (e
 - [ ] **Commit**
 
 ```bash
-git add client/src/features/chat/chat.service.ts client/src/features/chat/use-chat-sessions.ts
-git commit -m "feat: add syncMessages to chat service and useSyncMessages mutation"
+git add client/src/features/chat/chat.service.ts client/src/features/chat/use-chat-sessions.ts client/src/features/chat/ContextSourceBar.tsx
+git commit -m "feat: add syncMessages, useSyncMessages mutation; make ContextSourceBar self-contained"
 ```
 
 ---
@@ -749,7 +735,7 @@ Ler `client/src/features/chat/ChatEditor.test.tsx` para entender o que está tes
 
 Mudanças necessárias:
 
-1. Remover import e uso de `ContextSources` do `chat.service.ts`
+1. Remover import de `ContextSourceBar` e todo uso dele
 2. Adicionar import de `useSyncMessages`
 3. Adicionar `useMemo` para `initialMessages`
 4. Atualizar `useChat` para usar `initialMessages` e `onFinish`
@@ -758,7 +744,7 @@ O arquivo atualizado:
 
 ```typescript
 // client/src/features/chat/ChatEditor.tsx
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { nanoid } from 'nanoid';
@@ -766,7 +752,6 @@ import { useChatSessions, useChatSession, useSyncMessages, invalidateSessions } 
 import { ChatSidebar } from './ChatSidebar';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
-import { ContextSourceBar } from './ContextSourceBar';
 import { usePaneController } from '@features/panes/pane-controller.store';
 
 interface ChatEditorProps {
@@ -870,7 +855,6 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
           </div>
         ) : (
           <>
-            <ContextSourceBar value={{}} onChange={() => {}} />
             <ChatMessages messages={messages} isLoading={isLoading} />
             <ChatInput
               input={input}
