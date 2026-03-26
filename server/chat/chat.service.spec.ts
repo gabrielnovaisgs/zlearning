@@ -136,7 +136,7 @@ describe('ChatService', () => {
         await service.syncMessages('session-1', messages);
 
         expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
-        const transactionArgs = vi.mocked(mockPrisma.$transaction).mock.calls[0][0] as any[];
+        const transactionArgs = vi.mocked(mockPrisma.$transaction).mock.calls[0][0] as unknown as any[];
         // 2 message upserts + 1 session update
         expect(transactionArgs).toHaveLength(3);
       });
