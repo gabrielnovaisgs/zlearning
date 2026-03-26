@@ -1,11 +1,10 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider        = "prisma-client"
 }
 
 datasource db {
   provider = "postgresql"
-  // URL is configured in prisma.config.ts (Prisma 7+). Runtime usa o adapter PGLite.
+  
 }
 
 model Session {
@@ -14,6 +13,8 @@ model Session {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   messages  Message[]
+
+  @@map("sessions")
 }
 
 model Message {
@@ -23,4 +24,6 @@ model Message {
   content   String
   createdAt DateTime @default(now())
   session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
 }

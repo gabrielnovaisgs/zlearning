@@ -1,7 +1,10 @@
 import { defineConfig } from "prisma/config";
+import "dotenv/config";
 
 export default defineConfig({
+  schema: "./server/prisma/schema.prisma",
+  
   datasource: {
-    url: "postgresql://localhost/zlearning",
+    url: process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/zlearning",
   },
 });
