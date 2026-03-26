@@ -1,14 +1,12 @@
 // client/src/features/chat/ChatEditor.tsx
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, TextStreamChatTransport, isTextUIPart } from 'ai';
+import { DefaultChatTransport } from 'ai';
 import { nanoid } from 'nanoid';
-import { useChatSessions, useChatSession, invalidateSessions } from './use-chat-sessions';
-import type { ContextSources } from './ContextSourceBar';
+import { useChatSessions, useChatSession, useSyncMessages, invalidateSessions } from './use-chat-sessions';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
-import { ContextSourceBar } from './ContextSourceBar';
 import { usePaneController } from '@features/panes/pane-controller.store';
 
 interface ChatEditorProps {
@@ -21,28 +19,40 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
 
   const { createSession } = useChatSessions();
   const { session, isError: sessionNotFound } = useChatSession(realSessionId);
+  const { mutate: syncMessages } = useSyncMessages();
 
   const [input, setInput] = useState('');
-  const [contextSources, setContextSources] = useState<ContextSources>({});
   const [isCreating, setIsCreating] = useState(false);
   const [sessionError, setSessionError] = useState(false);
-  const contextSourcesRef = useRef(contextSources);
-  contextSourcesRef.current = contextSources;
 
-
+  // Build initialMessages from persisted session data.
+  // Depends on session?.id so it resets only when the session changes, not on every render.
+  const initialMessages = useMemo(
+    () =>
+      session?.messages.map((m) => ({
+        id: m.id,
+        role: m.role as 'user' | 'assistant',
+        parts: [{ type: 'text' as const, text: m.content }],
+        metadata: {},
+      })) ?? [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [session?.id],
+  );
 
   const transport = useMemo(() => {
     return new DefaultChatTransport({
-      api: `http://localhost:3000/api/chat/sessions/${sessionId}/messages`
+      api: `http://localhost:3000/api/chat/sessions/${sessionId}/messages`,
     });
   }, [sessionId]);
 
-
   const { messages, sendMessage, status, stop } = useChat({
     transport,
-    onFinish: () => invalidateSessions(),
+    messages: initialMessages,
+    onFinish: () => {
+      if (realSessionId) syncMessages({ id: realSessionId, messages });
+      invalidateSessions();
+    },
   });
-
 
   const isLoading = status === 'streaming' || status === 'submitted';
 
@@ -60,16 +70,10 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
       .catch(() => {
         setSessionError(true);
       });
-
-    console.log("session id", sessionId)
     // createSession is a new reference each render (inline arrow in hook); adding it
     // would cause extra re-runs. isCreating guard prevents double-invocation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, isNew]);
-
-  useEffect(() => {
-    console.log("messages", messages)
-  }, [messages])
 
   // Trata erro 404: exibe erro e remove a tab
   useEffect(() => {
@@ -90,17 +94,11 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
-    console.log("Message", input)
     const text = input;
     setInput('');
     sendMessage({ text });
   }
 
-  useEffect(() => {
-    console.log("messages", messages)
-  }, [messages])
-
-  // TODO: ao crescer as mensagens o input é empurrado para baixo, ajustar para que ele sempre fique no canto interior sem sumir
   return (
     <div className="flex h-full">
       <ChatSidebar
@@ -121,7 +119,6 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
           </div>
         ) : (
           <>
-            <ContextSourceBar value={contextSources} onChange={setContextSources} />
             <ChatMessages messages={messages} isLoading={isLoading} />
             <ChatInput
               input={input}

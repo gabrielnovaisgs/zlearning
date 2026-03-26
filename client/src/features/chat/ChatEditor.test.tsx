@@ -20,6 +20,10 @@ vi.mock('./use-chat-sessions', () => ({
     isError: false,
   })),
   invalidateSessions: vi.fn(),
+  useSyncMessages: vi.fn(() => ({
+    mutate: vi.fn(),
+    isPending: false,
+  })),
 }));
 
 // Keep @ai-sdk/react, ai, and pane-controller mocks unchanged from before
