@@ -7,6 +7,7 @@ import { ChatModule } from './chat/chat.module.js';
 import { env } from './env.js';
 import { ModelConfigModule } from './model-config/model-config.module.js';
 import { RagModule } from './rag/rag.module.js';
+import { DatabaseModule } from './database/database.module.js';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { RagModule } from './rag/rag.module.js';
       envFilePath: '../.env',
       load: [() => env],
     }),
+    DatabaseModule,
     ModelConfigModule,
     FilesystemModule,
     TranslateModule,
