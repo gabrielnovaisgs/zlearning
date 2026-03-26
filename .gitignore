@@ -46,3 +46,6 @@ yarn-error.log*
 .swp
 .swo
 docs/
+
+# PGLite database (runtime artifact)
+docs/chat/chat.db

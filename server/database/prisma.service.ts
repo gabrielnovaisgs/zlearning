@@ -8,6 +8,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   constructor() {
     const pglite = new PGlite('./docs/chat/chat.db');
     const adapter = new PrismaPGlite(pglite);
+    // `as any` is required: Prisma 7 driver adapter constructor overload is not
+    // resolved correctly through class inheritance by TypeScript.
     super({ adapter } as any);
   }
 
