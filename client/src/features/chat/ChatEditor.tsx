@@ -48,8 +48,8 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
   const { messages, sendMessage, status, stop } = useChat({
     transport,
     messages: initialMessages,
-    onFinish: () => {
-      if (realSessionId) syncMessages({ id: realSessionId, messages });
+    onFinish: ({ messages: finalMessages }) => {
+      if (realSessionId) syncMessages({ id: realSessionId, messages: finalMessages });
       invalidateSessions();
     },
   });
