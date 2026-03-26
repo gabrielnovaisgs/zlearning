@@ -1,152 +1,91 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
-import { LlmService, ChatMessage } from '../llm/llm.service.js';
-import { FilesystemService } from '../filesystem/filesystem.service.js';
-
-
-import fs from 'fs/promises';
-import path from 'path';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { nanoid } from 'nanoid';
-import type { BaseMessage } from "@langchain/core/messages";
-
-import { IterableReadableStream } from '@langchain/core/utils/stream';
+import type { BaseMessage } from '@langchain/core/messages';
+import type { IterableReadableStream } from '@langchain/core/utils/stream';
+import type { UIMessage } from 'ai';
+import { PrismaService } from '../database/prisma.service.js';
 import { ChatAgent } from './chat.agent.js';
 import { LocalRagService } from '../rag/local-rag.service.js';
 
-const CHAT_ROOT = path.resolve(process.cwd(), 'docs/chat/history');
-
-export interface ContextSource {
-  type: 'md' | 'pdf' | 'url' | 'youtube' | string;
-  source: string;
-}
-
-export interface ContextSources {
-  [provider: string]: ContextSource[];
-}
-
-export interface ChatMessageRecord {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  createdAt: string;
-}
-
-export interface SessionSummary {
-  id: string;
-  title: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Session extends SessionSummary {
-  contextSources: ContextSources;
-  messages: ChatMessageRecord[];
-}
-
 @Injectable()
 export class ChatService {
-  private readonly logger = new Logger(ChatService.name);
-
-
   constructor(
-    private readonly filesystemService: FilesystemService,
+    private readonly prisma: PrismaService,
     private readonly chatAgent: ChatAgent,
     private readonly ragService: LocalRagService,
-    
-  ) {
-   
+  ) {}
 
+  async listSessions() {
+    return this.prisma.session.findMany({
+      orderBy: { updatedAt: 'desc' },
+    });
   }
 
-  private sessionPath(id: string): string {
-    return path.join(CHAT_ROOT, `chat-${id}.json`);
-  }
-
-  private async readSession(id: string): Promise<Session> {
-    try {
-      const raw = await fs.readFile(this.sessionPath(id), 'utf-8');
-      return JSON.parse(raw) as Session;
-    } catch (err: any) {
-      if (err.code === 'ENOENT') throw new NotFoundException(`Session ${id} not found`);
-      throw err;
-    }
-  }
-
-  private async writeSession(session: Session): Promise<void> {
-    await fs.mkdir(CHAT_ROOT, { recursive: true });
-    await fs.writeFile(
-      this.sessionPath(session.id),
-      JSON.stringify(session),
-    );
-  }
-
-  async listSessions(): Promise<SessionSummary[]> {
-    try {
-      const files = await fs.readdir(CHAT_ROOT);
-      const sessions = await Promise.all(
-        files
-          .filter((f) => f.startsWith('chat-') && f.endsWith('.json'))
-          .map(async (f) => {
-            const id = f.replace(/^chat-/, '').replace(/\.json$/, '');
-            const s = await this.readSession(id);
-            return { id: s.id, title: s.title, createdAt: s.createdAt, updatedAt: s.updatedAt };
-          }),
-      );
-      return sessions.sort(
-        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-      );
-    } catch (err: any) {
-      if (err.code === 'ENOENT') return [];
-      throw err;
-    }
-  }
-
-  async createSession(): Promise<SessionSummary> {
+  async createSession() {
     const id = nanoid();
-    const now = new Date().toISOString();
-    const session: Session = {
-      id, title: 'Nova conversa',
-      createdAt: now, updatedAt: now,
-      contextSources: {}, messages: [],
-    };
-    await this.writeSession(session);
-    const { messages: _, ...summary } = session;
-    return summary;
+    return this.prisma.session.create({
+      data: { id, title: 'Nova conversa' },
+    });
   }
 
-  async getSession(id: string): Promise<Session> {
-    return this.readSession(id);
-  }
-
-  async deleteSession(id: string): Promise<void> {
+  async getSession(id: string) {
     try {
-      await fs.unlink(this.sessionPath(id));
-    } catch (err: any) {
-      if (err.code !== 'ENOENT') throw err;
+      return await this.prisma.session.findUniqueOrThrow({
+        where: { id },
+        include: { messages: { orderBy: { createdAt: 'asc' } } },
+      });
+    } catch {
+      throw new NotFoundException(`Session ${id} not found`);
     }
+  }
+
+  async deleteSession(id: string) {
+    await this.prisma.session.delete({ where: { id } }).catch(() => {});
+  }
+
+  async syncMessages(sessionId: string, messages: UIMessage[]) {
+    const records = messages.map((m) => ({
+      id: m.id,
+      sessionId,
+      role: m.role,
+      content: m.parts
+        .filter((p) => p.type === 'text')
+        .map((p) => (p as any).text as string)
+        .join('') || '',
+    }));
+
+    const firstUserMsg = messages.find((m) => m.role === 'user');
+    const firstText = firstUserMsg?.parts.find((p) => p.type === 'text') as any;
+    const title = firstText?.text?.slice(0, 80) ?? 'Nova conversa';
+
+    await this.prisma.$transaction([
+      ...records.map((r) =>
+        this.prisma.message.upsert({
+          where: { id: r.id },
+          update: { content: r.content },
+          create: r,
+        }),
+      ),
+      this.prisma.session.update({
+        where: { id: sessionId },
+        data: { title, updatedAt: new Date() },
+      }),
+    ]);
   }
 
   async streamMessage(
     sessionId: string,
     messages: BaseMessage[],
-    contextSources?: ContextSources,
   ): Promise<IterableReadableStream<any>> {
-    
-    const config = {
-      configurable: {
-        thread_id: sessionId,
-      }
-    }
     const chatAgent = await this.chatAgent.createAgent({
-      vectorStore: this.ragService.getVectorStore()
-    })
-    
-    const stream = await chatAgent.stream({messages: [ ...messages]}, {
-      streamMode: ['messages', 'updates', 'checkpoints'],
-      configurable: config.configurable
-     }, )
-     
-     return stream
-  
-    
+      vectorStore: this.ragService.getVectorStore(),
+    });
+    return chatAgent.stream(
+      { messages: [...messages] },
+      {
+        streamMode: ['messages', 'updates', 'checkpoints'],
+        configurable: { thread_id: sessionId },
+      },
+    );
   }
 }
