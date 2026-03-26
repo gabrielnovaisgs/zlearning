@@ -10,9 +10,29 @@ Contexto específico do backend NestJS. Leia também o `AGENTS.md` da raiz.
 
 | Dado | Path |
 |------|------|
-| Sessões de chat | `docs/chat/history/chat-{nanoid}.json` (relativo a `process.cwd()`) |
+| Banco PGLite (produção) | `docs/chat/chat.db` (relativo a `process.cwd()`) |
 | Documentos do RAG | `docs/files/Estudos` (relativo a `process.cwd()`) |
 | `.env` | `../.env` relativo ao diretório `server/` |
+| Migrations | `server/prisma/migrations/` |
+
+## Banco de dados (Prisma + PGLite)
+
+- Schema: `server/prisma/schema.prisma`
+- Migrations: `server/prisma/migrations/`
+- Script CLI para gerar migrations: `server/prisma/migrate.sh`
+
+**Nomenclatura:**
+
+| Camada | Convenção | Exemplo |
+|--------|-----------|---------|
+| Modelo Prisma | PascalCase singular | `Session`, `Message` |
+| Tabela no banco | snake_case plural (via `@@map`) | `sessions`, `messages` |
+| Campos | camelCase no Prisma, camelCase na coluna | `sessionId`, `createdAt` |
+
+**Ambientes:**
+
+- Desenvolvimento (`NODE_ENV != 'production'`): Postgres real via `DATABASE_URL` do `.env`
+- Produção: PGLite embarcado em `docs/chat/chat.db`; migrations aplicadas automaticamente pelo `PrismaService.applyMigrations()` no startup
 
 ## ModelConfig — providers e modelos padrão
 
