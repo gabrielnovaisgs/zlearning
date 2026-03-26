@@ -1,13 +1,5 @@
 // client/src/features/chat/chat.service.ts
-
-export interface ContextSource {
-  type: 'md' | 'pdf' | 'url' | 'youtube' | string;
-  source: string;
-}
-
-export interface ContextSources {
-  [provider: string]: ContextSource[];
-}
+import type { UIMessage } from 'ai';
 
 export interface ChatMessageRecord {
   id: string;
@@ -24,14 +16,10 @@ export interface SessionSummary {
 }
 
 export interface Session extends SessionSummary {
-  contextSources: ContextSources;
   messages: ChatMessageRecord[];
 }
 
-async function request<T>(
-  url: string,
-  options?: RequestInit,
-): Promise<T> {
+async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
@@ -56,4 +44,10 @@ export const chatService = {
 
   deleteSession: (id: string) =>
     request<void>(`/api/chat/sessions/${id}`, { method: 'DELETE' }),
+
+  syncMessages: (id: string, messages: UIMessage[]) =>
+    request<void>(`/api/chat/sessions/${id}/messages`, {
+      method: 'PUT',
+      body: JSON.stringify({ messages }),
+    }),
 };

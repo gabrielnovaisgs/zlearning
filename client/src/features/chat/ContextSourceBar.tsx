@@ -1,6 +1,13 @@
 // client/src/features/chat/ContextSourceBar.tsx
 import { useState, useRef, useEffect } from 'react';
-import type { ContextSources } from './chat.service';
+export interface ContextSource {
+  type: 'md' | 'pdf' | 'url' | 'youtube' | string;
+  source: string;
+}
+
+export interface ContextSources {
+  [provider: string]: ContextSource[];
+}
 
 interface ContextSourceBarProps {
   value: ContextSources;

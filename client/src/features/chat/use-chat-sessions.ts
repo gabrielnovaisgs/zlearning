@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
+import type { UIMessage } from 'ai';
 import { queryClient } from '@shared/query-client';
 import { chatService, type SessionSummary, type Session } from './chat.service';
 
@@ -67,4 +68,13 @@ export function useChatSession(id: string | null): UseChatSessionReturn {
 
 export function invalidateSessions() {
   return queryClient.invalidateQueries({ queryKey: SESSIONS_KEY });
+}
+
+// ── useSyncMessages ──────────────────────────────────────────────────────────
+
+export function useSyncMessages() {
+  return useMutation({
+    mutationFn: ({ id, messages }: { id: string; messages: UIMessage[] }) =>
+      chatService.syncMessages(id, messages),
+  });
 }

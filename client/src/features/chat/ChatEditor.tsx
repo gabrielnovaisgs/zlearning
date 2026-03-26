@@ -4,7 +4,7 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, TextStreamChatTransport, isTextUIPart } from 'ai';
 import { nanoid } from 'nanoid';
 import { useChatSessions, useChatSession, invalidateSessions } from './use-chat-sessions';
-import type { ContextSources } from './chat.service';
+import type { ContextSources } from './ContextSourceBar';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
