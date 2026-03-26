@@ -1,15 +1,15 @@
 import 'reflect-metadata';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Response } from 'express';
 import { ChatController } from './chat.controller.js';
 import type { ChatService } from './chat.service.js';
 
 const mockService = {
   listSessions: vi.fn().mockResolvedValue([]),
-  createSession: vi.fn().mockResolvedValue({ id: 'abc', title: 'Test', createdAt: '', updatedAt: '' }),
-  getSession: vi.fn().mockResolvedValue({ id: 'abc', title: 'Test', createdAt: '', updatedAt: '', contextSources: {}, messages: [] }),
+  createSession: vi.fn().mockResolvedValue({ id: 'abc', title: 'Test', createdAt: new Date(), updatedAt: new Date() }),
+  getSession: vi.fn().mockResolvedValue({ id: 'abc', title: 'Test', createdAt: new Date(), updatedAt: new Date(), messages: [] }),
   deleteSession: vi.fn().mockResolvedValue(undefined),
   streamMessage: vi.fn(),
+  syncMessages: vi.fn().mockResolvedValue(undefined),
 } as unknown as ChatService;
 
 describe('ChatController', () => {
@@ -40,20 +40,9 @@ describe('ChatController', () => {
     expect(mockService.deleteSession).toHaveBeenCalledWith('abc');
   });
 
-  it('streamMessage chama service.streamMessage com content e contextSources', async () => {
-    vi.mocked(mockService.streamMessage).mockResolvedValue('test response');
-
-    const mockRes = {
-      send: vi.fn(),
-    } as unknown as import('express').Response;
-
-    await controller.streamMessage(
-      'abc',
-      { content: 'hello', contextSources: {} } as any,
-      mockRes,
-    );
-
-    expect(mockService.streamMessage).toHaveBeenCalledWith('abc', 'hello', {});
-    expect(mockRes.send).toHaveBeenCalledWith('test response');
+  it('syncMessages chama service.syncMessages com id e messages', async () => {
+    const messages = [{ id: 'm1', role: 'user', parts: [{ type: 'text', text: 'hi' }], metadata: {} }] as any;
+    await controller.syncMessages('abc', { messages });
+    expect(mockService.syncMessages).toHaveBeenCalledWith('abc', messages);
   });
 });

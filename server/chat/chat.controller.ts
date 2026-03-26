@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Delete, Body, Param, Res, HttpCode,
+  Controller, Get, Post, Put, Delete, Body, Param, Res, HttpCode,
 } from '@nestjs/common';
 import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
 import { createUIMessageStreamResponse } from 'ai';
@@ -35,6 +35,12 @@ export class ChatController {
     return this.chatService.deleteSession(id);
   }
 
+  @Put('sessions/:id/messages')
+  @HttpCode(204)
+  syncMessages(@Param('id') id: string, @Body() body: { messages: any[] }) {
+    return this.chatService.syncMessages(id, body.messages);
+  }
+
   @Post('sessions/:id/messages')
   async streamMessage(
     @Param('id') id: string,
@@ -43,10 +49,12 @@ export class ChatController {
   ): Promise<void> {
     const { messages }: { messages: UIMessage[] } = body;
     const langChainMessages = await toBaseMessages(messages)
-    const langchainStream = await this.chatService.streamMessage(id, langChainMessages, body.contextSources);
+    const langchainStream = await this.chatService.streamMessage(id, langChainMessages);
     const webResponse = createUIMessageStreamResponse({
       stream: toUIMessageStream(langchainStream),
+
     });
+
     res.status(webResponse.status);
     webResponse.headers.forEach((value, key) => res.setHeader(key, value));
     Readable.fromWeb(webResponse.body as any).pipe(res);
