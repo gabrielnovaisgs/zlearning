@@ -42,6 +42,9 @@ export const chatService = {
   getSession: (id: string) =>
     request<Session>(`/api/chat/sessions/${id}`),
 
+  getSessionMessages: (id: string) =>
+    request<{ messages: ChatMessageRecord[] }>(`/api/chat/sessions/${id}/messages`),
+
   deleteSession: (id: string) =>
     request<void>(`/api/chat/sessions/${id}`, { method: 'DELETE' }),
 

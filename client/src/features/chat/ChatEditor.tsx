@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { nanoid } from 'nanoid';
-import { useChatSessions, useChatSession, useSyncMessages, invalidateSessions } from './use-chat-sessions';
+import { useChatSessions, useChatSession, useSessionMessages, useSyncMessages, invalidateSessions } from './use-chat-sessions';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
@@ -18,25 +18,23 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
   const realSessionId = isNew ? null : sessionId;
 
   const { createSession } = useChatSessions();
-  const { session, isError: sessionNotFound } = useChatSession(realSessionId);
+  const { isError: sessionNotFound } = useChatSession(realSessionId);
+  const { messages: persistedMessages, invalidate: invalidateMessages } = useSessionMessages(realSessionId);
   const { mutate: syncMessages } = useSyncMessages();
 
   const [input, setInput] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [sessionError, setSessionError] = useState(false);
 
-  // Build initialMessages from persisted session data.
-  // Depends on session?.id so it resets only when the session changes, not on every render.
   const initialMessages = useMemo(
     () =>
-      session?.messages.map((m) => ({
+      persistedMessages.map((m) => ({
         id: m.id,
-        role: m.role as 'user' | 'assistant',
+        role: m.role,
         parts: [{ type: 'text' as const, text: m.content }],
         metadata: {},
-      })) ?? [],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [session?.id],
+      })),
+    [realSessionId],
   );
 
   const transport = useMemo(() => {
@@ -70,19 +68,17 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
       .catch(() => {
         setSessionError(true);
       });
-    // createSession is a new reference each render (inline arrow in hook); adding it
-    // would cause extra re-runs. isCreating guard prevents double-invocation.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, isNew]);
 
-  // Trata erro 404: exibe erro e remove a tab
   useEffect(() => {
     if (!sessionNotFound) return;
     setSessionError(true);
     usePaneController.getState().actions.removeTabPath(`chat://${realSessionId}`);
   }, [sessionNotFound, realSessionId]);
 
-  function handleSelectSession(id: string) {
+  async function handleSelectSession(id: string) {
+
+    await invalidateMessages()
     usePaneController.getState().actions.openFileInPane(`chat://${id}`);
   }
 

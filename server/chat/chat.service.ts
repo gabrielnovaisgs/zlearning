@@ -39,6 +39,18 @@ export class ChatService {
     }
   }
 
+
+
+  async getSessionMessages(sessionId: string) {
+    const session = await this.prisma.session.findUnique({ where: { id: sessionId } });
+    if (!session) throw new NotFoundException(`Session ${sessionId} not found`);
+    const messages =  await this.prisma.message.findMany({
+      where: { sessionId },
+      orderBy: { createdAt: 'asc' },
+    });
+    return { messages };
+  }
+
   async deleteSession(id: string) {
     await this.prisma.session.delete({ where: { id } }).catch(() => {});
   }

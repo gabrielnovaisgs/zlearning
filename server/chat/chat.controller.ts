@@ -33,6 +33,11 @@ export class ChatController {
     return this.chatService.deleteSession(id);
   }
 
+  @Get('sessions/:id/messages')
+  getSessionMessages(@Param('id') id: string) {
+    return this.chatService.getSessionMessages(id);
+  }
+
   @Put('sessions/:id/messages')
   @HttpCode(204)
   syncMessages(@Param('id') id: string, @Body() body: { messages: any[] }) {

@@ -70,6 +70,28 @@ export function invalidateSessions() {
   return queryClient.invalidateQueries({ queryKey: SESSIONS_KEY });
 }
 
+// ── useSessionMessages ───────────────────────────────────────────────────────
+
+interface UseSessionMessagesReturn {
+  messages: import('./chat.service').ChatMessageRecord[];
+  isLoading: boolean;
+  isError: boolean;
+  invalidate: () => void;
+}
+
+export function useSessionMessages(id: string | null): UseSessionMessagesReturn {
+  const { data: response, isLoading, isError  } = useQuery({
+    queryKey: ['chat-session-messages', id] as const,
+    queryFn: () => chatService.getSessionMessages(id!),
+    enabled: Boolean(id),
+    retry: false,
+  });
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['chat-session-messages', id] as const });
+  
+  return { messages: response?.messages ?? [], isLoading, isError, invalidate };
+}
+
 // ── useSyncMessages ──────────────────────────────────────────────────────────
 
 export function useSyncMessages() {

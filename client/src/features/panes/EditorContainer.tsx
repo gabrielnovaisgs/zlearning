@@ -22,8 +22,10 @@ const editorRegistry: Record<EditorType, (filePath: string | null) => ReactNode>
   [EditorType.NewTab]: () => <NewTabScreen />,
   [EditorType.Markdown]: (filePath) => <MarkdownEditor filePath={filePath!} />,
   [EditorType.Pdf]: (filePath) => <PdfViewer pdfPath={filePath!} />,
-  [EditorType.Chat]: (filePath) =>
-    <ChatEditor sessionId={filePath!.replace(/^chat:\/\//, "")} />,
+  [EditorType.Chat]: (filePath) => {
+    const sessionId = filePath!.replace(/^chat:\/\//, "");
+    return <ChatEditor key={sessionId} sessionId={sessionId} />;
+  },
 };
 
 export function EditorContainer({ type, filePath, isFocused: _isFocused }: Props) {
