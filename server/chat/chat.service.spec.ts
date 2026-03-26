@@ -6,9 +6,6 @@ import { AIMessageChunk, HumanMessage } from 'langchain';
 import { ChatService } from './chat.service.js';
 import type { PrismaService } from '../database/prisma.service.js';
 import { LlmService } from '../llm/llm.service.js';
-import { ModelConfigService, Services } from '../model-config/model-config.service.js';
-import { ConfigService } from '@nestjs/config';
-import type { Env } from 'env.js';
 import { ChatAgent } from './chat.agent.js';
 import type { LocalRagService } from '../rag/local-rag.service.js';
 import { MemoryVectorStore } from '@langchain/classic/vectorstores/memory';
@@ -165,8 +162,6 @@ describe('ChatService', () => {
 
   describe('streamMessage', () => {
     it('deve retornar uma resposta do modelo', async () => {
-      const modelConfigService = new ModelConfigService();
-      const config = new ConfigService<Env, true>();
       const mockLlm: LlmService = {
         getModel: () => new FakeListChatModel({ responses: chatResponses }),
       } as unknown as LlmService;
