@@ -8,8 +8,6 @@ import { Readable } from 'node:stream';
 import type { Response } from 'express';
 import { ChatService } from './chat.service.js';
 
-
-
 @Controller('chat')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
@@ -52,7 +50,6 @@ export class ChatController {
     const langchainStream = await this.chatService.streamMessage(id, langChainMessages);
     const webResponse = createUIMessageStreamResponse({
       stream: toUIMessageStream(langchainStream),
-
     });
 
     res.status(webResponse.status);
