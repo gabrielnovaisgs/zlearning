@@ -5,7 +5,7 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { syntaxHighlighting } from "@codemirror/language";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
-import { buildEditorTheme, codeHighlightStyle } from "./theme";
+import { buildEditorTheme, buildHighlightStyle } from "./theme";
 import { markdownWidgets } from "./markdown-widgets";
 import { markdownKeymap } from "./keybindings";
 
@@ -18,7 +18,8 @@ export interface EditorInstance {
 
 export function createEditor(
   parent: HTMLElement,
-  onChange: (content: string) => void
+  onChange: (content: string) => void,
+  isDark = true
 ): EditorInstance {
   const updateListener = EditorView.updateListener.of((update) => {
     if (update.docChanged) {
@@ -34,10 +35,10 @@ export function createEditor(
       highlightActiveLine(),
       closeBrackets(),
       markdown({ base: markdownLanguage, codeLanguages: languages }),
-      syntaxHighlighting(codeHighlightStyle),
+      syntaxHighlighting(buildHighlightStyle(isDark)),
       markdownKeymap,
       keymap.of([...defaultKeymap, ...historyKeymap, ...closeBracketsKeymap]),
-      buildEditorTheme(),
+      buildEditorTheme(isDark),
       markdownWidgets,
       updateListener,
       EditorView.lineWrapping,

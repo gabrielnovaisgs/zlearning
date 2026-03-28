@@ -6,7 +6,7 @@ function cssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-export function buildEditorTheme() {
+export function buildEditorTheme(isDark = true) {
   return EditorView.theme(
     {
       "&": {
@@ -226,10 +226,10 @@ export function buildEditorTheme() {
 
       // Task markers
       ".cm-md-task-checked": {
-        color: "#a6e3a1",
+        color: cssVar('--accent'),
       },
       ".cm-md-task-unchecked": {
-        color: "#585b70",
+        color: cssVar('--fg-muted'),
       },
 
       // Images
@@ -293,50 +293,64 @@ export function buildEditorTheme() {
         color: cssVar('--fg-muted'),
       },
     },
-    { dark: true }
+    { dark: isDark }
   );
 }
 
-// Backward compat: static theme used by setup.ts
-export const obsidianTheme = buildEditorTheme();
+// Syntax highlighting for code blocks — reads CSS vars at call time so colors
+// adapt when the editor is rebuilt after a theme change.
+export function buildHighlightStyle(isDark: boolean) {
+  const fg        = cssVar('--fg-secondary');
+  const fgMuted   = cssVar('--fg-muted');
+  const keyword   = isDark ? "#cba6f7" : "#7c3aed";
+  const fn        = isDark ? "#89b4fa" : "#1d4ed8";
+  const string    = isDark ? "#a6e3a1" : "#16a34a";
+  const number    = isDark ? "#fab387" : "#ea580c";
+  const comment   = isDark ? "#6c7086" : "#9ca3af";
+  const type      = isDark ? "#f9e2af" : "#b45309";
+  const operator  = isDark ? "#89dceb" : "#0369a1";
+  const punct     = isDark ? "#9399b2" : "#475569";
+  const regexp    = isDark ? "#f38ba8" : "#dc2626";
+  const meta      = isDark ? "#f5c2e7" : "#db2777";
 
-// Catppuccin Mocha syntax highlighting for code blocks
-export const codeHighlightStyle = HighlightStyle.define([
-  { tag: t.keyword, color: "#cba6f7" },
-  { tag: t.controlKeyword, color: "#cba6f7" },
-  { tag: t.operatorKeyword, color: "#cba6f7" },
-  { tag: t.definitionKeyword, color: "#cba6f7" },
-  { tag: t.moduleKeyword, color: "#cba6f7" },
-  { tag: t.function(t.variableName), color: "#89b4fa" },
-  { tag: t.function(t.definition(t.variableName)), color: "#89b4fa" },
-  { tag: t.variableName, color: "#cdd6f4" },
-  { tag: t.definition(t.variableName), color: "#cdd6f4" },
-  { tag: t.propertyName, color: "#89dceb" },
-  { tag: t.definition(t.propertyName), color: "#89dceb" },
-  { tag: t.string, color: "#a6e3a1" },
-  { tag: t.special(t.string), color: "#a6e3a1" },
-  { tag: t.number, color: "#fab387" },
-  { tag: t.integer, color: "#fab387" },
-  { tag: t.float, color: "#fab387" },
-  { tag: t.bool, color: "#fab387" },
-  { tag: t.null, color: "#fab387" },
-  { tag: t.comment, color: "#6c7086", fontStyle: "italic" },
-  { tag: t.lineComment, color: "#6c7086", fontStyle: "italic" },
-  { tag: t.blockComment, color: "#6c7086", fontStyle: "italic" },
-  { tag: t.typeName, color: "#f9e2af" },
-  { tag: t.className, color: "#f9e2af" },
-  { tag: t.namespace, color: "#f9e2af" },
-  { tag: t.operator, color: "#89dceb" },
-  { tag: t.punctuation, color: "#9399b2" },
-  { tag: t.bracket, color: "#9399b2" },
-  { tag: t.separator, color: "#9399b2" },
-  { tag: t.regexp, color: "#f38ba8" },
-  { tag: t.tagName, color: "#f38ba8" },
-  { tag: t.attributeName, color: "#f9e2af" },
-  { tag: t.attributeValue, color: "#a6e3a1" },
-  { tag: t.meta, color: "#f5c2e7" },
-  { tag: t.annotation, color: "#f5c2e7" },
-  { tag: t.escape, color: "#f5c2e7" },
-  { tag: t.self, color: "#f38ba8" },
-  { tag: t.atom, color: "#fab387" },
-]);
+  return HighlightStyle.define([
+    { tag: t.keyword, color: keyword },
+    { tag: t.controlKeyword, color: keyword },
+    { tag: t.operatorKeyword, color: keyword },
+    { tag: t.definitionKeyword, color: keyword },
+    { tag: t.moduleKeyword, color: keyword },
+    { tag: t.function(t.variableName), color: fn },
+    { tag: t.function(t.definition(t.variableName)), color: fn },
+    { tag: t.variableName, color: fg },
+    { tag: t.definition(t.variableName), color: fg },
+    { tag: t.propertyName, color: operator },
+    { tag: t.definition(t.propertyName), color: operator },
+    { tag: t.string, color: string },
+    { tag: t.special(t.string), color: string },
+    { tag: t.number, color: number },
+    { tag: t.integer, color: number },
+    { tag: t.float, color: number },
+    { tag: t.bool, color: number },
+    { tag: t.null, color: number },
+    { tag: t.comment, color: comment, fontStyle: "italic" },
+    { tag: t.lineComment, color: comment, fontStyle: "italic" },
+    { tag: t.blockComment, color: comment, fontStyle: "italic" },
+    { tag: t.typeName, color: type },
+    { tag: t.className, color: type },
+    { tag: t.namespace, color: type },
+    { tag: t.operator, color: operator },
+    { tag: t.punctuation, color: punct },
+    { tag: t.bracket, color: punct },
+    { tag: t.separator, color: punct },
+    { tag: t.regexp, color: regexp },
+    { tag: t.tagName, color: regexp },
+    { tag: t.attributeName, color: type },
+    { tag: t.attributeValue, color: string },
+    { tag: t.meta, color: meta },
+    { tag: t.annotation, color: meta },
+    { tag: t.escape, color: meta },
+    { tag: t.self, color: regexp },
+    { tag: t.atom, color: number },
+    { tag: t.strikethrough, color: fgMuted },
+  ]);
+}

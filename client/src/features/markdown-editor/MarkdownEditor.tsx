@@ -116,14 +116,14 @@ export function MarkdownEditor({ filePath }: Props) {
       if (!isExternalUpdate.current && path) {
         scheduleSave(path, content);
       }
-    });
+    }, mode === 'dark');
 
     editorRef.current = editor;
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       editor.destroy();
     };
-  }, [scheduleSave]);
+  }, [scheduleSave]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Rebuild editor when theme mode changes to pick up new CSS vars
   useEffect(() => {
@@ -136,7 +136,7 @@ export function MarkdownEditor({ filePath }: Props) {
       if (!isExternalUpdate.current && path) {
         scheduleSave(path, content);
       }
-    });
+    }, mode === 'dark');
 
     isExternalUpdate.current = true;
     editor.setContent(currentContent);
