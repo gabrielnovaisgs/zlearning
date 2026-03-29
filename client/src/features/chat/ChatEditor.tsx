@@ -25,8 +25,7 @@ interface ChatSessionProps {
 }
 
 function ChatSession({ sessionId }: ChatSessionProps) {
-  const { messages: persistedMessages, invalidate: invalidateMessages } =
-    useSessionMessages(sessionId);
+  const { messages: persistedMessages } = useSessionMessages(sessionId);
   const { mutate: syncMessages } = useSyncMessages();
   const [input, setInput] = useState('');
 
