@@ -93,26 +93,19 @@ export const usePaneController = create<PaneState>()((set, get) => {
         const found = findPaneById(panes, targetPaneId);
         if (!found) return;
         const { pane, idx: paneIdx } = found;
-        const activeTab = pane.tabs.find((t) => t.id === pane.activeTabId);
         const existingTab = pane.tabs.find((t) => t.path === path);
-        if (activeTab && activeTab.path === null) {
-          if (existingTab) {
-            const newTabs = pane.tabs.filter((t) => t.id !== activeTab.id);
-            panes[paneIdx] = { ...pane, tabs: newTabs, activeTabId: existingTab.id };
-          } else {
-            panes[paneIdx] = {
-              ...pane,
-              tabs: pane.tabs.map((t) => (t.id === activeTab.id ? { ...t, path } : t)),
-              activeTabId: activeTab.id,
-            };
-          }
+        if (existingTab) {
+          panes[paneIdx] = { ...pane, activeTabId: existingTab.id };
+        } else if (pane.activeTabId) {
+          panes[paneIdx] = {
+            ...pane,
+            tabs: pane.tabs.map((t) =>
+              t.id === pane.activeTabId ? { ...t, path } : t,
+            ),
+          };
         } else {
-          if (existingTab) {
-            panes[paneIdx] = { ...pane, activeTabId: existingTab.id };
-          } else {
-            const newTab: Tab = { id: crypto.randomUUID(), path };
-            panes[paneIdx] = { ...pane, tabs: [...pane.tabs, newTab], activeTabId: newTab.id };
-          }
+          const newTab: Tab = { id: crypto.randomUUID(), path };
+          panes[paneIdx] = { ...pane, tabs: [...pane.tabs, newTab], activeTabId: newTab.id };
         }
         commit({ panes, activePaneId: targetPaneId });
       },
