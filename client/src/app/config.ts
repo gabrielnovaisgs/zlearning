@@ -1,4 +1,4 @@
 export const GLOBAL_CONFIG = {
-    appName: 'ZLearning',
+    appName: 'ULearn',
     headerHeight: 36,
 }

@@ -1,3 +1,4 @@
+import { GLOBAL_CONFIG } from "@app/config";
 import { registry } from "@features/command-palette/CommandRegistry";
 import { useFileStore } from "@shared/file.store";
 import { FolderOpen, FilePlus } from "lucide-react";
@@ -16,7 +17,7 @@ export function NewTabScreen() {
     <div className="flex flex-1 items-center justify-center bg-bg">
       <div className="flex flex-col items-center gap-8">
         <span className="font-serif text-3xl font-normal tracking-tight text-fg-muted opacity-40">
-          ZLearning
+          {GLOBAL_CONFIG.appName}
         </span>
         <p className="text-xs text-fg-muted tracking-normal">O que deseja fazer?</p>
         <div className="flex gap-3">
