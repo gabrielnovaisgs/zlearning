@@ -24,7 +24,7 @@ const editorRegistry: Record<EditorType, (filePath: string | null) => ReactNode>
   [EditorType.Pdf]: (filePath) => <PdfViewer pdfPath={filePath!} />,
   [EditorType.Chat]: (filePath) => {
     const sessionId = filePath!.replace(/^chat:\/\//, "");
-    return <ChatEditor key={sessionId} sessionId={sessionId} />;
+    return <ChatEditor sessionId={sessionId} />;
   },
 };
 

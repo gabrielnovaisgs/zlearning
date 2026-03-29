@@ -3,7 +3,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ChatEditor } from './ChatEditor';
 
-// Mock only the facade hooks — no knowledge of React Query needed
 vi.mock('./use-chat-sessions', () => ({
   useChatSessions: vi.fn(() => ({
     sessions: [{ id: 'abc', title: 'Test session', createdAt: '', updatedAt: '' }],
@@ -19,6 +18,12 @@ vi.mock('./use-chat-sessions', () => ({
     isLoading: false,
     isError: false,
   })),
+  useSessionMessages: vi.fn(() => ({
+    messages: [],
+    isLoading: false,
+    isError: false,
+    invalidate: vi.fn(),
+  })),
   invalidateSessions: vi.fn(),
   useSyncMessages: vi.fn(() => ({
     mutate: vi.fn(),
@@ -26,7 +31,6 @@ vi.mock('./use-chat-sessions', () => ({
   })),
 }));
 
-// Keep @ai-sdk/react, ai, and pane-controller mocks unchanged from before
 vi.mock('@ai-sdk/react', () => ({
   useChat: vi.fn(() => ({
     messages: [],
@@ -64,6 +68,11 @@ vi.mock('@features/panes/pane-controller.store', () => ({
   },
 }));
 
+vi.mock('./chat-pending', () => ({
+  setPendingMessage: vi.fn(),
+  consumePendingMessage: vi.fn(() => null),
+}));
+
 describe('ChatEditor', () => {
   it('renderiza sidebar de sessões', () => {
     render(<ChatEditor sessionId="abc" />);
@@ -78,5 +87,25 @@ describe('ChatEditor', () => {
   it('renderiza input de chat quando sessão está ativa', () => {
     render(<ChatEditor sessionId="abc" />);
     expect(screen.getByPlaceholderText(/Pergunte sobre suas notas/)).toBeInTheDocument();
+  });
+
+  it('não cria sessão no backend ao montar com sessionId "new-xxx"', async () => {
+    const { useChatSessions } = await import('./use-chat-sessions');
+    const createSession = vi.fn().mockResolvedValue({ id: 'x', title: '', createdAt: '', updatedAt: '' });
+    vi.mocked(useChatSessions).mockReturnValue({
+      sessions: [],
+      isLoading: false,
+      createSession,
+      deleteSession: vi.fn(),
+    });
+
+    render(<ChatEditor sessionId="new-tempid" />);
+    expect(createSession).not.toHaveBeenCalled();
+  });
+
+  it('mostra input imediatamente em modo draft sem estado de carregamento', () => {
+    render(<ChatEditor sessionId="new-tempid" />);
+    const input = screen.getByPlaceholderText(/Pergunte sobre suas notas/);
+    expect(input).not.toBeDisabled();
   });
 });
