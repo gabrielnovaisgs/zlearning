@@ -1,5 +1,5 @@
 // client/src/features/chat/ChatEditor.tsx
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { nanoid } from 'nanoid';
@@ -13,7 +13,7 @@ import {
 import { setPendingMessage, consumePendingMessage } from './chat-pending';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatMessages } from './ChatMessages';
-import { ChatInput } from './ChatInput';
+import { ChatInput, type PromptInputMessage } from './ChatInput';
 import { usePaneController } from '@features/panes/pane-controller.store';
 
 // ── ChatSession ──────────────────────────────────────────────────────────────
@@ -27,7 +27,6 @@ interface ChatSessionProps {
 function ChatSession({ sessionId }: ChatSessionProps) {
   const { messages: persistedMessages } = useSessionMessages(sessionId);
   const { mutate: syncMessages } = useSyncMessages();
-  const [input, setInput] = useState('');
 
   const initialMessages = useMemo(
     () =>
@@ -60,8 +59,6 @@ function ChatSession({ sessionId }: ChatSessionProps) {
     },
   });
 
-  const isLoading = status === 'streaming' || status === 'submitted';
-
   // Consume any message stored by the lazy-creation flow in ChatEditor
   useEffect(() => {
     const pending = consumePendingMessage(sessionId);
@@ -69,24 +66,15 @@ function ChatSession({ sessionId }: ChatSessionProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-    const text = input;
-    setInput('');
-    sendMessage({ text });
+  function handleSubmit(message: PromptInputMessage) {
+    if (!message.text.trim()) return;
+    sendMessage({ text: message.text });
   }
 
   return (
     <>
-      <ChatMessages messages={messages} isLoading={isLoading} />
-      <ChatInput
-        input={input}
-        onInputChange={(e) => setInput(e.target.value)}
-        onSubmit={handleSubmit}
-        onStop={stop}
-        isLoading={isLoading}
-      />
+      <ChatMessages messages={messages} isLoading={status === 'streaming' || status === 'submitted'} />
+      <ChatInput onSubmit={handleSubmit} onStop={stop} status={status} />
     </>
   );
 }
@@ -106,13 +94,11 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
   const { createSession } = useChatSessions();
   const { isError: sessionNotFound } = useChatSession(realSessionId);
 
-  const [draftInput, setDraftInput] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [sessionError, setSessionError] = useState(false);
 
   // Reset draft state when tab navigates to a different path
   useEffect(() => {
-    setDraftInput('');
     setIsCreating(false);
     setSessionError(false);
   }, [sessionId]);
@@ -132,12 +118,10 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
     usePaneController.getState().actions.openFileInPane(`chat://${tempId}`);
   }
 
-  async function handleDraftSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const text = draftInput.trim();
+  async function handleDraftSubmit(message: PromptInputMessage) {
+    const text = message.text.trim();
     if (!text || isCreating) return;
     setIsCreating(true);
-    setDraftInput('');
     try {
       const session = await createSession();
       setPendingMessage(session.id, text);
@@ -168,11 +152,9 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
           <>
             <div className="flex-1" />
             <ChatInput
-              input={draftInput}
-              onInputChange={(e) => setDraftInput(e.target.value)}
               onSubmit={handleDraftSubmit}
               onStop={() => {}}
-              isLoading={isCreating}
+              status={isCreating ? 'submitted' : 'ready'}
             />
           </>
         ) : (

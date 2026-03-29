@@ -1,75 +1,39 @@
 // client/src/features/chat/ChatInput.tsx
-import { useRef, type FormEvent, type KeyboardEvent } from 'react';
-import { ArrowUp, Square } from 'lucide-react';
+import type { ChatStatus } from 'ai';
 import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupTextarea,
-} from '@shared/ui/input-group';
+  PromptInput,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  type PromptInputMessage,
+} from '@shared/ai-elements/prompt-input';
+
+export type { PromptInputMessage };
 
 interface ChatInputProps {
-  input: string;
-  onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  onSubmit: (e: FormEvent<HTMLFormElement>) => void;
+  onSubmit: (message: PromptInputMessage) => void;
   onStop: () => void;
-  isLoading: boolean;
+  status: ChatStatus;
   disabled?: boolean;
 }
 
-export function ChatInput({
-  input, onInputChange, onSubmit, onStop, isLoading, disabled,
-}: ChatInputProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (!isLoading && input.trim()) {
-        textareaRef.current?.closest('form')?.requestSubmit();
-      }
-    }
-  }
-
+export function ChatInput({ onSubmit, onStop, status, disabled }: ChatInputProps) {
   return (
-    <form
+    <PromptInput
       onSubmit={onSubmit}
-      className="p-3 border-t border-border"
+      className="border-t border-border rounded-none"
     >
-      <InputGroup>
-        <InputGroupTextarea
-          ref={textareaRef}
-          value={input}
-          onChange={onInputChange}
-          onKeyDown={handleKeyDown}
+      <PromptInputBody>
+        <PromptInputTextarea
           placeholder="Pergunte sobre suas notas... (Enter para enviar)"
-          disabled={disabled || isLoading}
-          rows={1}
-          className="min-h-9 max-h-32 overflow-y-auto"
+          disabled={disabled}
         />
-        <InputGroupAddon align="inline-end">
-          {isLoading ? (
-            <InputGroupButton
-              type="button"
-              size="icon-sm"
-              variant="destructive"
-              onClick={onStop}
-              aria-label="Parar geração"
-            >
-              <Square size={14} />
-            </InputGroupButton>
-          ) : (
-            <InputGroupButton
-              type="submit"
-              size="icon-sm"
-              disabled={!input.trim() || !!disabled}
-              aria-label="Enviar mensagem"
-            >
-              <ArrowUp size={14} />
-            </InputGroupButton>
-          )}
-        </InputGroupAddon>
-      </InputGroup>
-    </form>
+      </PromptInputBody>
+      <PromptInputFooter>
+        <div />
+        <PromptInputSubmit status={status} onStop={onStop} />
+      </PromptInputFooter>
+    </PromptInput>
   );
 }
