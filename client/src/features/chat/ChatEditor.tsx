@@ -15,6 +15,7 @@ import { ChatSidebar } from './ChatSidebar';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput, type PromptInputMessage } from './ChatInput';
 import { usePaneController } from '@features/panes/pane-controller.store';
+import { GLOBAL_CONFIG } from '@app/config';
 
 // ── ChatSession ──────────────────────────────────────────────────────────────
 // Owns useChat for a single session. Parent uses key={sessionId} so this
@@ -136,12 +137,11 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
   }
 
   return (
-    <div className="flex h-full">
-      <ChatSidebar
-        activeSessionId={realSessionId}
-        onSelectSession={handleSelectSession}
-        onNewSession={handleNewSession}
-      />
+    <div className={` flex`}
+      style={{
+        height: `calc(100vh - ${GLOBAL_CONFIG.headerHeight}px)`
+      }}
+    >
 
       <div className="flex flex-col flex-1 min-w-0 min-h-0">
         {sessionError ? (
@@ -153,7 +153,7 @@ export function ChatEditor({ sessionId }: ChatEditorProps) {
             <div className="flex-1" />
             <ChatInput
               onSubmit={handleDraftSubmit}
-              onStop={() => {}}
+              onStop={() => { }}
               status={isCreating ? 'submitted' : 'ready'}
             />
           </>

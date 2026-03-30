@@ -5,8 +5,8 @@ import { LocalRagService } from "./local-rag.service.js";
 export class LocalRagController {
     constructor(private readonly ragService: LocalRagService) {}
 
-    @Post('load')
-    async loadDocs(){
-        await this.ragService.loadDocs()
+    @Post('setup')
+    async setupVectorStore(){
+        await this.ragService.setupVectorStore()
     }
 }

@@ -4,6 +4,7 @@ import {
   PromptInput,
   PromptInputBody,
   PromptInputFooter,
+  PromptInputProvider,
   PromptInputSubmit,
   PromptInputTextarea,
   type PromptInputMessage,
@@ -20,20 +21,25 @@ interface ChatInputProps {
 
 export function ChatInput({ onSubmit, onStop, status, disabled }: ChatInputProps) {
   return (
-    <PromptInput
-      onSubmit={onSubmit}
-      className="border-t border-border rounded-none"
-    >
-      <PromptInputBody>
-        <PromptInputTextarea
-          placeholder="Pergunte sobre suas notas... (Enter para enviar)"
-          disabled={disabled}
-        />
-      </PromptInputBody>
-      <PromptInputFooter>
-        <div />
-        <PromptInputSubmit status={status} onStop={onStop} />
-      </PromptInputFooter>
-    </PromptInput>
+    <div className=''>
+      <PromptInputProvider>
+        <PromptInput
+
+          onSubmit={onSubmit}
+          className="m-3"
+        >
+          <PromptInputBody>
+            <PromptInputTextarea
+              placeholder="Pergunte sobre suas notas... (Enter para enviar)"
+              disabled={disabled}
+            />
+          </PromptInputBody>
+          <PromptInputFooter>
+            <div />
+            <PromptInputSubmit status={status} onStop={onStop} />
+          </PromptInputFooter>
+        </PromptInput>
+      </PromptInputProvider>
+    </div>
   );
 }

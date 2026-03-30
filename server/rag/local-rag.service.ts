@@ -1,6 +1,6 @@
 import { VectorStore } from '@langchain/core/vectorstores';
 import { OllamaEmbeddings } from '@langchain/ollama';
-import { MemoryVectorStore } from "@langchain/classic/vectorstores/memory";
+import { LanceDB } from "@langchain/community/vectorstores/lancedb";
 import { Injectable } from '@nestjs/common';
 import path from 'path';
 import fs from 'fs/promises'
@@ -9,19 +9,32 @@ import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf"
 import { TextLoader } from "@langchain/classic/document_loaders/fs/text"
+import { PGlite } from '@electric-sql/pglite';
+import { vector } from '@electric-sql/pglite/vector';
+import * as lancedb from "@lancedb/lancedb";
 const DOCS_PATH = path.join(process.cwd(), 'docs/files/Estudos');
+const DB_PATH = path.join(process.cwd(), 'docs/rag/');
 @Injectable()
 export class LocalRagService {
+
     getVectorStore(): VectorStore {
       return this.vectorStore
     }
     private vectorStore: VectorStore;
-
-    constructor() {
+    private lanceDB: lancedb.Connection;
+  
+    
+    async setupVectorStore(){
         const embeddings = this.getEmbeddings()
-        this.vectorStore = new MemoryVectorStore(embeddings)
+        this.lanceDB = await lancedb.connect(DB_PATH);
         
+         
+        const docs = await this.loadDocs()
+        this.vectorStore  = new LanceDB(embeddings, {uri: DB_PATH, tableName: 'docs', mode: 'overwrite'})
+        await this.vectorStore.addDocuments(docs)
     }
+    
+
     async splitPathsByType(){ 
         const files: {[key: string]: string[]} = {}
         const entries = await fs.readdir(DOCS_PATH, {withFileTypes: true})
@@ -32,7 +45,7 @@ export class LocalRagService {
     async loadDocs(){
         const files = await this.splitPathsByType()
         const docs = await Promise.all([
-            this.loadPdfs(files['.pdf']), 
+            //this.loadPdfs(files['.pdf']), 
             this.loadMarkdown(files['.md'])
         ])
         const splitter = new RecursiveCharacterTextSplitter({
@@ -41,7 +54,7 @@ export class LocalRagService {
         });
         const splitDocs = await splitter.splitDocuments(docs.flat(2))
         
-       await this.vectorStore.addDocuments(splitDocs)
+       return splitDocs
     }
 
     async loadPdfs(files: string[]){

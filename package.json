@@ -5,6 +5,7 @@
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
+    "dev": " pnpm run dev:client & pnpm run dev:server",
     "dev:electron": "electron-vite",
     "dev:client": "vite",
     "dev:server": "nest start --watch",
@@ -25,6 +26,7 @@
     "@codemirror/state": "^6.5.4",
     "@codemirror/view": "^6.39.14",
     "@electric-sql/pglite": "^0.4.2",
+    "@lancedb/lancedb": "^0.27.1",
     "@langchain/classic": "^1.0.25",
     "@langchain/community": "^1.1.25",
     "@langchain/core": "^1.1.32",

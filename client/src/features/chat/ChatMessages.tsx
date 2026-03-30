@@ -32,7 +32,7 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
   }
 
   return (
-    <Conversation className="flex-1">
+    <Conversation className="flex-1 min-h-0">
       <ConversationContent className="gap-3">
         {messages.map((msg, index) => {
           const text = msg.parts.filter(isTextUIPart).map((p) => p.text).join('');
